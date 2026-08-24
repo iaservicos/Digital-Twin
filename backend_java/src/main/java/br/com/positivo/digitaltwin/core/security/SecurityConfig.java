@@ -36,6 +36,7 @@ public class SecurityConfig {
                                 "/api/v1",
                                 "/api/v1/health/**",
                                 "/api/v1/auth/**",
+                                "/auth/**",
                                 "/api/v1/dashboard/calcular/status",
                                 "/api/v1/dashboard/version",
                                 "/api/v1/campanha/ativa",
