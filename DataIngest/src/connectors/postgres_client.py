@@ -137,3 +137,7 @@ class PostgreSQLClient:
 
         logger.info(f"Gravados/Atualizados {rows_count} registros com sucesso na tabela '{target_table}'.")
         return rows_count
+
+
+# Alias para retrocompatibilidade
+PostgresClient = PostgreSQLClient

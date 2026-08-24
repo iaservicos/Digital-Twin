@@ -3,12 +3,12 @@ Aplicação principal FastAPI.
 Configura middlewares (CORS), documentação OpenAPI/Swagger, rotas e Landing Page de status.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from datetime import datetime
 from src.api.routes import router as chamados_router
-from src.connectors.postgres_client import PostgresClient
+from src.connectors.postgres_client import PostgreSQLClient
 
 app = FastAPI(
     title="Digital Twin - DataIngest & Analytics Engine",
@@ -31,16 +31,37 @@ app.add_middleware(
 app.include_router(chamados_router)
 
 
+@app.get("/health", tags=["Healthcheck"])
+@app.get("/api/v1/health", tags=["Healthcheck"])
+def healthcheck():
+    """Endpoint JSON de verificação de integridade da API."""
+    db_status = "CONNECTED"
+    try:
+        pg = PostgreSQLClient()
+        with pg._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+    except Exception as e:
+        db_status = f"DISCONNECTED: {str(e)}"
+
+    return {
+        "status": "UP",
+        "service": "DataIngest Engine",
+        "database": db_status,
+        "timestamp": datetime.now().isoformat()
+    }
+
+
 @app.get("/", response_class=HTMLResponse, tags=["Dashboard"])
+@app.get("/api/v1", response_class=HTMLResponse, tags=["Dashboard"])
 def landing_page():
     """Página de apresentação e status visual do motor DataIngest."""
     
-    # Testar conectividade com Postgres
     db_status = "ONLINE"
     db_color = "#10b981"
     try:
-        pg = PostgresClient()
-        with pg.get_connection() as conn:
+        pg = PostgreSQLClient()
+        with pg._get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1")
     except Exception:
@@ -236,7 +257,7 @@ def landing_page():
     <div class="actions">
       <a href="/docs" class="btn btn-primary" target="_blank">⚡ Swagger OpenAPI</a>
       <a href="/redoc" class="btn btn-secondary" target="_blank">📖 ReDoc</a>
-      <a href="/api/v1/sync/status" class="btn btn-secondary" target="_blank">🔄 Status do Sync</a>
+      <a href="/health" class="btn btn-secondary" target="_blank">🩺 Health JSON</a>
     </div>
     <div class="footer">&copy; 2026 Positivo Tecnologia &bull; Brilha+ Data Engine</div>
   </div>
