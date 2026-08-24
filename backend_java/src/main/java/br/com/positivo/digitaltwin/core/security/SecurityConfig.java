@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .authorizeHttpRequests(auth -> auth
                         // Landing page e endpoints públicos
+                                                // Landing page, healthcheck e Swagger OpenAPI completo
                         .requestMatchers(
                                 "/",
                                 "/index.html",
@@ -41,9 +42,17 @@ public class SecurityConfig {
                                 "/api/v1/dashboard/version",
                                 "/api/v1/campanha/ativa",
                                 "/actuator/**",
+                                "/v3/api-docs",
                                 "/v3/api-docs/**",
-                                "/swagger-ui/**",
+                                "/v3/api-docs.yaml",
                                 "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/swagger-ui/index.html",
+                                "/swagger-resources",
+                                "/swagger-resources/**",
+                                "/configuration/ui",
+                                "/configuration/security",
+                                "/webjars/**",
                                 "/docs"
                         ).permitAll()
                         // Todos os demais requerem autenticação
