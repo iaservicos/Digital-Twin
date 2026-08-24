@@ -1,3 +1,44 @@
+import { create } from 'zustand';
+import axios from 'axios';
+import { api } from '../services/api';
+
+export interface TableStatus {
+  status: 'pending' | 'processing' | 'success' | 'failed';
+  rows: number;
+  seconds?: number;
+}
+
+export interface SyncTracker {
+  status: 'idle' | 'processing' | 'success' | 'failed';
+  progress: number;
+  step: string;
+  current_table: string | null;
+  tables: {
+    chamados: TableStatus;
+    reincidentes: TableStatus;
+    pecas: TableStatus;
+  };
+  estimated_seconds_remaining: number;
+  elapsed_seconds: number;
+  total_rows: number;
+  error?: string | null;
+  periodo?: {
+    data_inicio: string | null;
+    data_fim: string | null;
+  };
+  start_timestamp?: string | null;
+}
+
+interface SyncStore {
+  tracker: SyncTracker;
+  isWidgetDismissed: boolean;
+  dismissWidget: () => void;
+  resetWidget: () => void;
+  fetchStatus: () => Promise<void>;
+  triggerSync: (data_inicio: string, data_fim: string) => Promise<void>;
+  triggerCampaignRecalculation: (apiToken: string | null) => Promise<void>;
+  tickSeconds: () => void;
+}
 
 const getPythonHeaders = () => {
   const apiKey = import.meta.env.VITE_DATA_INGEST_API_KEY || 'pos-data-token-2026';
@@ -8,47 +49,18 @@ const getPythonHeaders = () => {
 };
 
 const getPythonApiUrl = () => {
-  return (
-    import.meta.env.VITE_DATA_INGEST_URL ||
-    import.meta.env.VITE_PYTHON_API_URL ||
-    'http://localhost:8000'
-  ).replace(/\/+$/, '');
+  const envUrl = import.meta.env.VITE_DATA_INGEST_URL || import.meta.env.VITE_PYTHON_API_URL;
+  if (envUrl) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  // Se em produção, usa a URL oficial do Render
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://digitaltwin-dataingest.onrender.com';
+  }
+  return 'http://localhost:8000';
 };
 
-import { create } from 'zustand';
-import axios from 'axios';
-
-export interface TableProgress {
-  status: 'pending' | 'processing' | 'success' | 'failed';
-  rows: number;
-  seconds?: number;
-}
-
-export interface SyncTrackerState {
-  status: 'idle' | 'processing' | 'success' | 'failed';
-  progress: number;
-  step: string;
-  current_table?: string | null;
-  tables: Record<string, TableProgress>;
-  estimated_seconds_remaining: number;
-  elapsed_seconds: number;
-  total_rows: number;
-  error?: string | null;
-  periodo?: { data_inicio?: string | null; data_fim?: string | null };
-}
-
-interface SyncStore {
-  tracker: SyncTrackerState;
-  isWidgetDismissed: boolean;
-  triggerSync: (data_inicio: string, data_fim: string) => Promise<void>;
-  triggerCampaignRecalculation: (apiToken: string | null) => Promise<void>;
-  fetchStatus: () => Promise<void>;
-  dismissWidget: () => void;
-  resetWidget: () => void;
-  tickSeconds: () => void;
-}
-
-const initialTracker: SyncTrackerState = {
+const initialTracker: SyncTracker = {
   status: 'idle',
   progress: 0,
   step: 'Pronto para iniciar',
@@ -88,7 +100,6 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   fetchStatus: async () => {
     try {
       const pythonApiUrl = getPythonApiUrl();
-      const backendApiUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8080/api/v1';
 
       // 1. Tenta buscar status da Ingestão Databricks (Python FastAPI)
       const pythonRes = await axios.get(`${pythonApiUrl}/api/v1/sync/status`, { headers: getPythonHeaders() }).catch(() => null);
@@ -97,8 +108,8 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         return;
       }
 
-      // 2. Tenta buscar status do Cálculo/Contabilização de Campanha (Spring Boot Java)
-      const backendRes = await axios.get(`${backendApiUrl}/dashboard/calcular/status`).catch(() => null);
+      // 2. Tenta buscar status do Cálculo/Contabilização de Campanha (Spring Boot Java via api centralizada)
+      const backendRes = await api.get('/dashboard/calcular/status').catch(() => null);
       if (backendRes?.data?.status === 'processing') {
         const calcData = backendRes.data;
         set({
@@ -107,6 +118,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
             status: 'processing',
             progress: calcData.progress || 25,
             step: calcData.step || 'Contabilizando pontuações da campanha...',
+            current_table: 'reincidentes',
             estimated_seconds_remaining: calcData.estimatedSecondsRemaining || 5,
             elapsed_seconds: calcData.elapsedSeconds || 0,
             total_rows: calcData.total || 361,
@@ -143,6 +155,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
             status: 'success',
             progress: 100,
             step: 'Contabilização da campanha concluída com sucesso!',
+            current_table: null,
             estimated_seconds_remaining: 0,
             elapsed_seconds: calcData.elapsedSeconds || 5,
             total_rows: calcData.total || 361,
@@ -220,15 +233,12 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
 
     try {
       const pythonApiUrl = getPythonApiUrl();
-      const backendApiUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8080/api/v1';
 
-      // 1. Obter período da campanha ativa
+      // 1. Obter período da campanha ativa via api central
       let mes = 8;
       let ano = 2026;
       try {
-        const campRes = await axios.get(`${backendApiUrl}/campanha/ativa`, {
-          headers: { Authorization: `Bearer ${apiToken}` }
-        });
+        const campRes = await api.get('/campanha/ativa');
         if (campRes?.data?.dataFim) {
           const parts = campRes.data.dataFim.split('-');
           ano = parseInt(parts[0], 10);
@@ -260,6 +270,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
           status: 'success',
           progress: 100,
           step: 'Contabilização da campanha concluída com sucesso!',
+          current_table: null,
           estimated_seconds_remaining: 0,
           elapsed_seconds: 4.5,
           total_rows: 361,

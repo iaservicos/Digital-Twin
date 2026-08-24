@@ -163,7 +163,7 @@ export default function SettingsScreen() {
     formData.append('file', file);
 
     try {
-      const baseURL = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000';
+      const baseURL = import.meta.env.VITE_DATA_INGEST_URL || import.meta.env.VITE_PYTHON_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? 'https://digitaltwin-dataingest.onrender.com' : 'http://localhost:8000');
       
       const response = await axios.post(`${baseURL}/api/ingestion/upload?type=${type}`, formData, {
         headers: {

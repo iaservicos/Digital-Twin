@@ -1,14 +1,24 @@
 import axios from 'axios';
 import * as SecureStore from '../utils/secureStore';
 
-// Detecta o IP dinamicamente para Web
-const getBaseURL = () => {
-  let url = import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-  url = url.trim().replace(/\/+$/, '');
-  if (!url.endsWith('/api/v1')) {
-    url += '/api/v1';
+// Detecta a URL base do backend de forma dinâmica e resiliente
+export const getBaseURL = () => {
+  const envUrl = import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL;
+  
+  if (envUrl) {
+    let cleanUrl = envUrl.trim().replace(/\/+$/, '');
+    if (!cleanUrl.endsWith('/api/v1')) {
+      cleanUrl += '/api/v1';
+    }
+    return cleanUrl;
   }
-  return url;
+
+  // Se em produção (Vercel/Web) sem env declarada, usa a URL oficial do Render
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://brilhamais-api-java.onrender.com/api/v1';
+  }
+
+  return 'http://localhost:8080/api/v1';
 };
 
 export const api = axios.create({
@@ -55,20 +65,15 @@ api.interceptors.response.use(
     // 403 = autenticado, mas sem permissão para este recurso → NÃO faz logout
     if (status === 401 && !isPublicRoute) {
       try {
-        // Importação lazy para evitar dependência circular
         const { useAuthStore } = await import('../store/authStore');
         await useAuthStore.getState().logout();
       } catch {
-        // Fallback: limpa manualmente se o store falhar
         await SecureStore.deleteItemAsync('brilhamais_token');
         await SecureStore.deleteItemAsync('brilhamais_user');
       }
-      // Redireciona para login sem usar React Router (contexto pode não existir)
       window.location.href = '/login';
     }
 
     return Promise.reject(error);
   }
 );
-
-
