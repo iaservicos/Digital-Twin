@@ -44,6 +44,7 @@ jwt:
 data:
   ingest:
     url: ${DATA_INGEST_URL:http://localhost:8000}
+    api-key: ${DATA_INGEST_API_KEY:pos-data-token-2026}
 
 logging:
   level:

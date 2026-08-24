@@ -1,3 +1,20 @@
+
+const getPythonHeaders = () => {
+  const apiKey = import.meta.env.VITE_DATA_INGEST_API_KEY || 'pos-data-token-2026';
+  return {
+    'X-API-Key': apiKey,
+    'Content-Type': 'application/json',
+  };
+};
+
+const getPythonApiUrl = () => {
+  return (
+    import.meta.env.VITE_DATA_INGEST_URL ||
+    import.meta.env.VITE_PYTHON_API_URL ||
+    'http://localhost:8000'
+  ).replace(/\/+$/, '');
+};
+
 import { create } from 'zustand';
 import axios from 'axios';
 
@@ -70,11 +87,11 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
 
   fetchStatus: async () => {
     try {
-      const pythonApiUrl = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000';
+      const pythonApiUrl = getPythonApiUrl();
       const backendApiUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8080/api/v1';
 
       // 1. Tenta buscar status da Ingestão Databricks (Python FastAPI)
-      const pythonRes = await axios.get(`${pythonApiUrl}/api/v1/sync/status`).catch(() => null);
+      const pythonRes = await axios.get(`${pythonApiUrl}/api/v1/sync/status`, { headers: getPythonHeaders() }).catch(() => null);
       if (pythonRes?.data?.status === 'processing') {
         set({ tracker: pythonRes.data, isWidgetDismissed: false });
         return;
@@ -167,8 +184,8 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     });
 
     try {
-      const pythonApiUrl = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000';
-      await axios.post(`${pythonApiUrl}/api/v1/sync`, { data_inicio, data_fim });
+      const pythonApiUrl = getPythonApiUrl();
+      await axios.post(`${pythonApiUrl}/api/v1/sync`, { data_inicio, data_fim }, { headers: getPythonHeaders() });
     } catch (error: any) {
       console.error('Erro ao disparar sincronização:', error);
       set({
@@ -202,7 +219,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     });
 
     try {
-      const pythonApiUrl = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000';
+      const pythonApiUrl = getPythonApiUrl();
       const backendApiUrl = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8080/api/v1';
 
       // 1. Obter período da campanha ativa
@@ -235,7 +252,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       });
 
       // 2. Acionar motor ultra-otimizado em Python
-      await axios.post(`${pythonApiUrl}/api/v1/calculo/geral?mes=${mes}&ano=${ano}`);
+      await axios.post(`${pythonApiUrl}/api/v1/calculo/geral?mes=${mes}&ano=${ano}`, {}, { headers: getPythonHeaders() });
 
       // 3. Sucesso completo
       set({

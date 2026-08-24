@@ -1,3 +1,5 @@
+from src.api.security import verify_api_key
+from fastapi import Depends
 """
 Rotas e endpoints da API REST utilizando FastAPI.
 Define rotas GET para consulta ao Databricks, status em tempo real e POST /api/v1/sync com filtro por bimestre.
@@ -15,7 +17,7 @@ from src.connectors.postgres_client import PostgreSQLClient
 import polars as pl
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v1", tags=["DataIngest API"])
+router = APIRouter(prefix="/api/v1", tags=["DataIngest API"], dependencies=[Depends(verify_api_key)])
 
 
 class SyncRequest(BaseModel):

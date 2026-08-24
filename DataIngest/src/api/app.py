@@ -1,11 +1,12 @@
 """
 Aplicação principal FastAPI.
-Configura middlewares (CORS), documentação OpenAPI/Swagger, rotas e Landing Page de status.
+Configura middlewares (CORS), documentação OpenAPI/Swagger com suporte a X-API-Key, rotas e Landing Page.
 """
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.openapi.utils import get_openapi
 from datetime import datetime
 from src.api.routes import router as chamados_router
 from src.connectors.postgres_client import PostgreSQLClient
@@ -27,14 +28,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registrar rotas da API
+# Registrar rotas protegidas da API
 app.include_router(chamados_router)
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Digital Twin - DataIngest & Analytics Engine",
+        version="1.0.0",
+        description="Motor analítico de alta performance (Polars + Databricks ETL) protegido por X-API-Key.",
+        routes=app.routes,
+    )
+    openapi_schema["components"]["securitySchemes"] = {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "Insira a chave secreta de serviço configurada em DATA_INGEST_API_KEY para autenticar as rotas protegidas."
+        }
+    }
+    openapi_schema["security"] = [{"ApiKeyAuth": []}]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 
 @app.get("/health", tags=["Healthcheck"])
 @app.get("/api/v1/health", tags=["Healthcheck"])
 def healthcheck():
-    """Endpoint JSON de verificação de integridade da API."""
+    """Endpoint público JSON de verificação de integridade da API."""
     db_status = "CONNECTED"
     try:
         pg = PostgreSQLClient()
@@ -233,7 +258,7 @@ def landing_page():
 <body>
   <div class="glow"></div>
   <div class="card">
-    <div class="badge-live"><div class="dot"></div> Engine Operacional</div>
+    <div class="badge-live"><div class="dot"></div> ENGINE OPERACIONAL</div>
     <h1>DataIngest & Analytics</h1>
     <p class="subtitle">Motor de Ingestão Databricks e Cálculo Analítico Polars &mdash; Positivo Tecnologia</p>
     <div class="grid-status">

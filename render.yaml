@@ -43,6 +43,8 @@ services:
         generateValue: true
       - key: DATA_INGEST_URL
         value: https://digitaltwin-dataingest.onrender.com
+      - key: DATA_INGEST_API_KEY
+        value: pos-data-token-2026
 
   # -------------------------------------------------------------
   # 3. DATA INGEST (Python 3.12 / FastAPI / Polars Engine)
@@ -64,3 +66,5 @@ services:
         sync: false
       - key: DATABRICKS_TOKEN
         sync: false
+      - key: DATA_INGEST_API_KEY
+        value: pos-data-token-2026

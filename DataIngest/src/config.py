@@ -14,6 +14,12 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
+    # API Security Configs
+    DATA_INGEST_API_KEY: str = Field(
+        default="pos-data-token-2026", 
+        description="Chave secreta de autenticação para a API REST DataIngest"
+    )
+
     # Databricks Configs
     DATABRICKS_SERVER_HOSTNAME: str = Field(..., description="Hostname do Databricks workspace")
     DATABRICKS_HTTP_PATH: str = Field(..., description="HTTP Path do SQL Warehouse ou Cluster")
