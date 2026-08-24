@@ -1,0 +1,66 @@
+# Render Blueprint (Infrastructure as Code) para Plataforma Digital Twin
+services:
+  # -------------------------------------------------------------
+  # 1. FRONTEND REACT (Static Site com CDN e SSL Automático)
+  # -------------------------------------------------------------
+  - type: web
+    name: digitaltwin-frontend
+    runtime: static
+    rootDir: frontend_react
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_BACKEND_API_URL
+        value: https://digitaltwin-backend.onrender.com/api/v1
+      - key: VITE_DATA_INGEST_URL
+        value: https://digitaltwin-dataingest.onrender.com
+
+  # -------------------------------------------------------------
+  # 2. BACKEND JAVA (Spring Boot 3 / Java 21)
+  # -------------------------------------------------------------
+  - type: web
+    name: digitaltwin-backend
+    runtime: docker
+    rootDir: backend_java
+    dockerfilePath: dockerfile
+    plan: free
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: PORT
+        value: 8080
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATA_INGEST_URL
+        value: https://digitaltwin-dataingest.onrender.com
+
+  # -------------------------------------------------------------
+  # 3. DATA INGEST (Python 3.12 / FastAPI / Polars Engine)
+  # -------------------------------------------------------------
+  - type: web
+    name: digitaltwin-dataingest
+    runtime: docker
+    rootDir: DataIngest
+    dockerfilePath: Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABRICKS_SERVER_HOSTNAME
+        sync: false
+      - key: DATABRICKS_HTTP_PATH
+        sync: false
+      - key: DATABRICKS_TOKEN
+        sync: false

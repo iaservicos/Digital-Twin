@@ -27,11 +27,17 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> {})
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints públicos e status em tempo real
+                        // Landing page e endpoints públicos
                         .requestMatchers(
-                                "/api/v1/auth/**",
+                                "/",
+                                "/index.html",
+                                "/favicon.ico",
+                                "/error",
+                                "/api/v1",
                                 "/api/v1/health/**",
+                                "/api/v1/auth/**",
                                 "/api/v1/dashboard/calcular/status",
+                                "/api/v1/dashboard/version",
                                 "/api/v1/campanha/ativa",
                                 "/actuator/**",
                                 "/v3/api-docs/**",
