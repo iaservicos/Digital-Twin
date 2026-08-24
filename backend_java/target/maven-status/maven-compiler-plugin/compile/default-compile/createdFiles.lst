@@ -59,6 +59,7 @@ br\com\positivo\digitaltwin\modules\brilhamais\repositories\ChamadoRepository.cl
 br\com\positivo\digitaltwin\modules\brilhamais\constants\BrilhaMaisConstants.class
 br\com\positivo\digitaltwin\modules\brilhamais\models\Tecnico.class
 br\com\positivo\digitaltwin\modules\brilhamais\controllers\CampanhaController.class
+br\com\positivo\digitaltwin\core\config\OpenApiConfig.class
 br\com\positivo\digitaltwin\modules\brilhamais\dto\VerificarTecnicoResponse.class
 br\com\positivo\digitaltwin\modules\brilhamais\dto\RankingDTO$RankingDTOBuilder.class
 br\com\positivo\digitaltwin\modules\brilhamais\dto\VincularMatriculaRequest.class

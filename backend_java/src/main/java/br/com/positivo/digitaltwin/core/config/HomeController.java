@@ -226,4 +226,10 @@ public class HomeController {
 
         return ResponseEntity.ok(html);
     }
+
+    @GetMapping("/docs")
+    public org.springframework.web.servlet.view.RedirectView redirectToSwagger() {
+        return new org.springframework.web.servlet.view.RedirectView("/swagger-ui/index.html");
+    }
+
 }

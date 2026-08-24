@@ -1,6 +1,7 @@
 C:\Users\marci\Documents\Positivo\Projetos\DigitalTwin\backend_java\src\main\java\br\com\positivo\digitaltwin\core\config\ApplicationConfig.java
 C:\Users\marci\Documents\Positivo\Projetos\DigitalTwin\backend_java\src\main\java\br\com\positivo\digitaltwin\core\config\CorsConfig.java
 C:\Users\marci\Documents\Positivo\Projetos\DigitalTwin\backend_java\src\main\java\br\com\positivo\digitaltwin\core\config\HomeController.java
+C:\Users\marci\Documents\Positivo\Projetos\DigitalTwin\backend_java\src\main\java\br\com\positivo\digitaltwin\core\config\OpenApiConfig.java
 C:\Users\marci\Documents\Positivo\Projetos\DigitalTwin\backend_java\src\main\java\br\com\positivo\digitaltwin\core\config\RestClientConfig.java
 C:\Users\marci\Documents\Positivo\Projetos\DigitalTwin\backend_java\src\main\java\br\com\positivo\digitaltwin\core\exceptions\BusinessException.java
 C:\Users\marci\Documents\Positivo\Projetos\DigitalTwin\backend_java\src\main\java\br\com\positivo\digitaltwin\core\exceptions\GlobalExceptionHandler.java
