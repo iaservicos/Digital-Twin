@@ -20,7 +20,7 @@ public class HomeController {
     @GetMapping(value = {"/", "/api/v1"}, produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> renderLandingPage() {
         String dbStatus = "ONLINE";
-        String dbColor = "#10b981";
+        String dbColor = "#38bdf8";
 
         try {
             jdbcTemplate.queryForObject("SELECT 1", Integer.class);
@@ -43,7 +43,7 @@ public class HomeController {
                 + "  <style>"
                 + "    * { margin: 0; padding: 0; box-sizing: border-box; }"
                 + "    body {"
-                + "      background: radial-gradient(circle at 50% 0%, #064e3b 0%, #022c22 40%, #020617 100%);"
+                + "      background: radial-gradient(circle at 50% 0%, #0369a1 0%, #0c4a6e 35%, #020617 100%);"
                 + "      color: #f8fafc;"
                 + "      font-family: 'Plus Jakarta Sans', sans-serif;"
                 + "      min-height: 100vh;"
@@ -59,13 +59,13 @@ public class HomeController {
                 + "      position: absolute;"
                 + "      width: 600px;"
                 + "      height: 600px;"
-                + "      background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0) 70%);"
+                + "      background: radial-gradient(circle, rgba(14, 165, 233, 0.22) 0%, rgba(14, 165, 233, 0) 70%);"
                 + "      top: -120px;"
                 + "      border-radius: 50%;"
                 + "      pointer-events: none;"
                 + "    }"
                 + "    .card {"
-                + "      background: rgba(15, 23, 42, 0.82);"
+                + "      background: rgba(15, 23, 42, 0.85);"
                 + "      backdrop-filter: blur(20px);"
                 + "      -webkit-backdrop-filter: blur(20px);"
                 + "      border: 1px solid rgba(255, 255, 255, 0.1);"
@@ -73,7 +73,7 @@ public class HomeController {
                 + "      padding: 44px;"
                 + "      max-width: 660px;"
                 + "      width: 100%;"
-                + "      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 50px rgba(16, 185, 129, 0.15);"
+                + "      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 50px rgba(14, 165, 233, 0.18);"
                 + "      text-align: center;"
                 + "      position: relative;"
                 + "      z-index: 1;"
@@ -82,9 +82,9 @@ public class HomeController {
                 + "      display: inline-flex;"
                 + "      align-items: center;"
                 + "      gap: 8px;"
-                + "      background: rgba(16, 185, 129, 0.12);"
-                + "      border: 1px solid rgba(16, 185, 129, 0.35);"
-                + "      color: #34d399;"
+                + "      background: rgba(14, 165, 233, 0.12);"
+                + "      border: 1px solid rgba(14, 165, 233, 0.35);"
+                + "      color: #38bdf8;"
                 + "      padding: 6px 16px;"
                 + "      border-radius: 9999px;"
                 + "      font-size: 12px;"
@@ -96,14 +96,14 @@ public class HomeController {
                 + "    .dot {"
                 + "      width: 8px;"
                 + "      height: 8px;"
-                + "      background: #10b981;"
+                + "      background: #0ea5e9;"
                 + "      border-radius: 50%;"
-                + "      box-shadow: 0 0 12px #10b981;"
+                + "      box-shadow: 0 0 12px #0ea5e9;"
                 + "      animation: pulse 2s infinite;"
                 + "    }"
                 + "    @keyframes pulse {"
-                + "      0%, 100% { opacity: 1; transform: scale(1); }"
-                + "      50% { opacity: 0.35; transform: scale(0.75); }"
+                + "      0%, 100% {{ opacity: 1; transform: scale(1); }}"
+                + "      50% {{ opacity: 0.35; transform: scale(0.75); }}"
                 + "    }"
                 + "    h1 {"
                 + "      font-family: 'Outfit', sans-serif;"
@@ -111,7 +111,7 @@ public class HomeController {
                 + "      font-weight: 800;"
                 + "      letter-spacing: -0.02em;"
                 + "      margin-bottom: 8px;"
-                + "      background: linear-gradient(135deg, #ffffff 0%, #a7f3d0 50%, #34d399 100%);"
+                + "      background: linear-gradient(135deg, #ffffff 0%, #bae6fd 50%, #38bdf8 100%);"
                 + "      -webkit-background-clip: text;"
                 + "      -webkit-text-fill-color: transparent;"
                 + "    }"
@@ -166,13 +166,13 @@ public class HomeController {
                 + "      transition: all 0.2s ease;"
                 + "    }"
                 + "    .btn-primary {"
-                + "      background: linear-gradient(135deg, #10b981 0%, #059669 100%);"
+                + "      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);"
                 + "      color: #ffffff;"
-                + "      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);"
+                + "      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.35);"
                 + "    }"
                 + "    .btn-primary:hover {"
                 + "      transform: translateY(-2px);"
-                + "      box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5);"
+                + "      box-shadow: 0 6px 22px rgba(14, 165, 233, 0.5);"
                 + "    }"
                 + "    .btn-secondary {"
                 + "      background: rgba(30, 41, 59, 0.8);"
@@ -204,7 +204,7 @@ public class HomeController {
                 + "      </div>"
                 + "      <div class=\"status-item\">"
                 + "        <span class=\"label\">Arquitetura</span>"
-                + "        <span class=\"val\" style=\"color: #34d399;\">Modular Monolith</span>"
+                + "        <span class=\"val\" style=\"color: #38bdf8;\">Modular Monolith</span>"
                 + "      </div>"
                 + "      <div class=\"status-item\">"
                 + "        <span class=\"label\">PostgreSQL Sync</span>"
@@ -217,7 +217,7 @@ public class HomeController {
                 + "    </div>"
                 + "    <div class=\"actions\">"
                 + "      <a href=\"/docs\" class=\"btn btn-primary\" target=\"_blank\">&#9889; Swagger OpenAPI</a>"
-                + "      <a href=\"/api/v1/dashboard/version\" class=\"btn btn-secondary\" target=\"_blank\">&#128202; Info da Vers&atilde;o</a>"
+                + "      <a href=\"/redoc\" class=\"btn btn-secondary\" target=\"_blank\">&#128214; ReDoc</a>"
                 + "      <a href=\"/api/v1/health\" class=\"btn btn-secondary\" target=\"_blank\">&#129658; Health JSON</a>"
                 + "    </div>"
                 + "    <div class=\"footer\">&copy; 2026 Positivo Tecnologia &bull; Brilha+ Digital Twin</div>"
@@ -231,5 +231,29 @@ public class HomeController {
     @GetMapping("/docs")
     public RedirectView redirectToSwagger() {
         return new RedirectView("/swagger-ui/index.html");
+    }
+
+    @GetMapping(value = "/redoc", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> renderReDoc() {
+        String redocHtml = "<!DOCTYPE html>"
+                + "<html>"
+                + "<head>"
+                + "  <title>Digital Twin API - ReDoc | Positivo Tecnologia</title>"
+                + "  <meta charset=\"utf-8\"/>"
+                + "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+                + "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">"
+                + "  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>"
+                + "  <link href=\"https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap\" rel=\"stylesheet\">"
+                + "  <style>"
+                + "    body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }"
+                + "  </style>"
+                + "</head>"
+                + "<body>"
+                + "  <redoc spec-url=\"/v3/api-docs\"></redoc>"
+                + "  <script src=\"https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js\"></script>"
+                + "</body>"
+                + "</html>";
+
+        return ResponseEntity.ok(redocHtml);
     }
 }

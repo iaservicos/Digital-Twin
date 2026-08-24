@@ -53,7 +53,8 @@ public class SecurityConfig {
                                 "/configuration/ui",
                                 "/configuration/security",
                                 "/webjars/**",
-                                "/docs"
+                                "/docs",
+                                "/redoc"
                         ).permitAll()
                         // Todos os demais requerem autenticação
                         .anyRequest().authenticated()
