@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/regras")
+@RequestMapping({"/api/v1/regras", "/regras"})
 @RequiredArgsConstructor
 public class RegrasCampanhaController {
 

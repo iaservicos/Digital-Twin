@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../../services/api';
 import { Calendar, AlertTriangle, ShieldAlert, Edit2, Check, X, PowerOff, Plus, RefreshCw, Settings, Sparkles, Clock, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSyncStore } from '../../store/syncStore';
@@ -53,9 +53,7 @@ export default function CampaignManager() {
   const fetchCampanhaAtual = async () => {
     try {
       const baseURL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8080/api/v1';
-      const response = await axios.get(`${baseURL}/campanha/ativa`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/campanha/ativa');
       setCampanhaAtual(response.data);
     } catch (err) {
       console.error('Erro ao buscar campanha', err);
@@ -95,7 +93,7 @@ export default function CampaignManager() {
 
     try {
       const baseURL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8080/api/v1';
-      await axios.post(`${baseURL}/campanha/nova-campanha`, {
+      await api.post(`/campanha/nova-campanha`, {
         dataInicio,
         duracaoMeses,
         limparDadosBrutos

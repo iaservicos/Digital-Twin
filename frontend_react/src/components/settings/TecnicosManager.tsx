@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { Pencil, Trash2, KeyRound, Plus, X, Search, Loader2 } from 'lucide-react';
 import { toTitleCase } from '../../utils/stringFormatters';
@@ -48,10 +48,7 @@ export default function TecnicosManager() {
   const fetchTecnicos = async () => {
     try {
       setLoading(true);
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-      const response = await axios.get(`${baseURL}/tecnicos`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+            const response = await api.get('/tecnicos');
       setTecnicos(response.data);
     } catch (err) {
       console.error('Erro ao buscar usuários', err);
@@ -112,10 +109,7 @@ export default function TecnicosManager() {
     if (!window.confirm('Tem certeza que deseja excluir este usuário? Esta ação é irreversível e pode afetar históricos.')) return;
     
     try {
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-      await axios.delete(`${baseURL}/tecnicos/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+            await api.delete(`/tecnicos/${id}`);
       setTecnicos(tecnicos.filter(t => t.idTecnico !== id));
     } catch (err) {
       console.error('Erro ao deletar', err);
@@ -161,16 +155,13 @@ export default function TecnicosManager() {
     };
 
     try {
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-      
+            
       if (selectedTecnico) {
         // Update
-        await axios.put(`${baseURL}/tecnicos/${selectedTecnico.idTecnico}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await api.put(`/tecnicos/${selectedTecnico.idTecnico}`, payload);
       } else {
         // Create 
-        await axios.post(`${baseURL}/tecnicos`, {
+        await api.post('/tecnicos', {
           ...payload,
           senha: autoPassword ? 'brilha123' : createPassword 
         }, {
@@ -195,8 +186,7 @@ export default function TecnicosManager() {
     setError('');
 
     try {
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-      await axios.patch(`${baseURL}/tecnicos/${selectedTecnico.idTecnico}/senha`, 
+            await api.patch(`/tecnicos/${selectedTecnico.idTecnico}/senha`, 
       { novaSenha: newPassword }, 
       { headers: { Authorization: `Bearer ${token}` } });
       
