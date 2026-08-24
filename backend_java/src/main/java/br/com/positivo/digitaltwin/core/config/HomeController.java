@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -16,18 +17,17 @@ public class HomeController {
 
     private final JdbcTemplate jdbcTemplate;
 
-    @GetMapping(value = "/", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = {"/", "/api/v1"}, produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> renderLandingPage() {
-        String dbStatus = "DISCONNECTED";
-        String dbColor = "#ef4444";
-        String dbBadgeBg = "rgba(239, 68, 68, 0.15)";
-        
+        String dbStatus = "ONLINE";
+        String dbColor = "#10b981";
+
         try {
             jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-            dbStatus = "CONNECTED";
-            dbColor = "#10b981";
-            dbBadgeBg = "rgba(16, 185, 129, 0.15)";
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            dbStatus = "DEGRADED";
+            dbColor = "#f59e0b";
+        }
 
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
 
@@ -43,7 +43,7 @@ public class HomeController {
                 + "  <style>"
                 + "    * { margin: 0; padding: 0; box-sizing: border-box; }"
                 + "    body {"
-                + "      background: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 100%);"
+                + "      background: radial-gradient(circle at 50% 0%, #064e3b 0%, #022c22 40%, #020617 100%);"
                 + "      color: #f8fafc;"
                 + "      font-family: 'Plus Jakarta Sans', sans-serif;"
                 + "      min-height: 100vh;"
@@ -57,23 +57,23 @@ public class HomeController {
                 + "    }"
                 + "    .glow {"
                 + "      position: absolute;"
-                + "      width: 500px;"
-                + "      height: 500px;"
-                + "      background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0) 70%);"
-                + "      top: -100px;"
+                + "      width: 600px;"
+                + "      height: 600px;"
+                + "      background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0) 70%);"
+                + "      top: -120px;"
                 + "      border-radius: 50%;"
                 + "      pointer-events: none;"
                 + "    }"
                 + "    .card {"
-                + "      background: rgba(15, 23, 42, 0.75);"
-                + "      backdrop-filter: blur(16px);"
-                + "      -webkit-backdrop-filter: blur(16px);"
+                + "      background: rgba(15, 23, 42, 0.82);"
+                + "      backdrop-filter: blur(20px);"
+                + "      -webkit-backdrop-filter: blur(20px);"
                 + "      border: 1px solid rgba(255, 255, 255, 0.1);"
-                + "      border-radius: 24px;"
-                + "      padding: 40px;"
-                + "      max-width: 620px;"
+                + "      border-radius: 28px;"
+                + "      padding: 44px;"
+                + "      max-width: 660px;"
                 + "      width: 100%;"
-                + "      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(14, 165, 233, 0.1);"
+                + "      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 50px rgba(16, 185, 129, 0.15);"
                 + "      text-align: center;"
                 + "      position: relative;"
                 + "      z-index: 1;"
@@ -83,56 +83,56 @@ public class HomeController {
                 + "      align-items: center;"
                 + "      gap: 8px;"
                 + "      background: rgba(16, 185, 129, 0.12);"
-                + "      border: 1px solid rgba(16, 185, 129, 0.3);"
+                + "      border: 1px solid rgba(16, 185, 129, 0.35);"
                 + "      color: #34d399;"
-                + "      padding: 6px 14px;"
+                + "      padding: 6px 16px;"
                 + "      border-radius: 9999px;"
                 + "      font-size: 12px;"
                 + "      font-weight: 700;"
                 + "      letter-spacing: 0.05em;"
                 + "      text-transform: uppercase;"
-                + "      margin-bottom: 20px;"
+                + "      margin-bottom: 22px;"
                 + "    }"
                 + "    .dot {"
                 + "      width: 8px;"
                 + "      height: 8px;"
                 + "      background: #10b981;"
                 + "      border-radius: 50%;"
-                + "      box-shadow: 0 0 10px #10b981;"
+                + "      box-shadow: 0 0 12px #10b981;"
                 + "      animation: pulse 2s infinite;"
                 + "    }"
                 + "    @keyframes pulse {"
                 + "      0%, 100% { opacity: 1; transform: scale(1); }"
-                + "      50% { opacity: 0.4; transform: scale(0.8); }"
+                + "      50% { opacity: 0.35; transform: scale(0.75); }"
                 + "    }"
                 + "    h1 {"
                 + "      font-family: 'Outfit', sans-serif;"
-                + "      font-size: 32px;"
+                + "      font-size: 34px;"
                 + "      font-weight: 800;"
                 + "      letter-spacing: -0.02em;"
                 + "      margin-bottom: 8px;"
-                + "      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);"
+                + "      background: linear-gradient(135deg, #ffffff 0%, #a7f3d0 50%, #34d399 100%);"
                 + "      -webkit-background-clip: text;"
                 + "      -webkit-text-fill-color: transparent;"
                 + "    }"
                 + "    p.subtitle {"
                 + "      color: #94a3b8;"
                 + "      font-size: 15px;"
-                + "      margin-bottom: 32px;"
+                + "      margin-bottom: 34px;"
                 + "      line-height: 1.5;"
                 + "    }"
                 + "    .grid-status {"
                 + "      display: grid;"
                 + "      grid-template-columns: repeat(2, 1fr);"
                 + "      gap: 14px;"
-                + "      margin-bottom: 32px;"
+                + "      margin-bottom: 34px;"
                 + "      text-align: left;"
                 + "    }"
                 + "    .status-item {"
-                + "      background: rgba(30, 41, 59, 0.5);"
-                + "      border: 1px solid rgba(255, 255, 255, 0.05);"
-                + "      border-radius: 14px;"
-                + "      padding: 16px;"
+                + "      background: rgba(30, 41, 59, 0.55);"
+                + "      border: 1px solid rgba(255, 255, 255, 0.06);"
+                + "      border-radius: 16px;"
+                + "      padding: 18px;"
                 + "    }"
                 + "    .status-item span.label {"
                 + "      display: block;"
@@ -158,34 +158,34 @@ public class HomeController {
                 + "      display: inline-flex;"
                 + "      align-items: center;"
                 + "      gap: 8px;"
-                + "      padding: 12px 20px;"
-                + "      border-radius: 12px;"
+                + "      padding: 12px 22px;"
+                + "      border-radius: 14px;"
                 + "      font-size: 13px;"
-                + "      font-weight: 600;"
+                + "      font-weight: 700;"
                 + "      text-decoration: none;"
                 + "      transition: all 0.2s ease;"
                 + "    }"
                 + "    .btn-primary {"
-                + "      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);"
+                + "      background: linear-gradient(135deg, #10b981 0%, #059669 100%);"
                 + "      color: #ffffff;"
-                + "      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);"
+                + "      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);"
                 + "    }"
                 + "    .btn-primary:hover {"
                 + "      transform: translateY(-2px);"
-                + "      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);"
+                + "      box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5);"
                 + "    }"
                 + "    .btn-secondary {"
-                + "      background: rgba(30, 41, 59, 0.7);"
-                + "      border: 1px solid rgba(255, 255, 255, 0.1);"
+                + "      background: rgba(30, 41, 59, 0.8);"
+                + "      border: 1px solid rgba(255, 255, 255, 0.12);"
                 + "      color: #cbd5e1;"
                 + "    }"
                 + "    .btn-secondary:hover {"
-                + "      background: rgba(51, 65, 85, 0.7);"
+                + "      background: rgba(51, 65, 85, 0.8);"
                 + "      color: #ffffff;"
                 + "      transform: translateY(-2px);"
                 + "    }"
                 + "    .footer {"
-                + "      margin-top: 24px;"
+                + "      margin-top: 26px;"
                 + "      font-size: 12px;"
                 + "      color: #475569;"
                 + "    }"
@@ -194,30 +194,31 @@ public class HomeController {
                 + "<body>"
                 + "  <div class=\"glow\"></div>"
                 + "  <div class=\"card\">"
-                + "    <div class=\"badge-live\"><div class=\"dot\"></div> Sistema Operacional</div>"
-                + "    <h1>Plataforma Digital Twin</h1>"
-                + "    <p class=\"subtitle\">API REST Oficial de Performance Técnica &mdash; Positivo Tecnologia</p>"
+                + "    <div class=\"badge-live\"><div class=\"dot\"></div> SISTEMA OPERACIONAL</div>"
+                + "    <h1>Digital Twin & Backend API</h1>"
+                + "    <p class=\"subtitle\">API Central de Regras, Autentica&ccedil;&atilde;o e Apura&ccedil;&atilde;o &mdash; Positivo Tecnologia</p>"
                 + "    <div class=\"grid-status\">"
                 + "      <div class=\"status-item\">"
-                + "        <span class=\"label\">Serviço</span>"
+                + "        <span class=\"label\">Runtime</span>"
                 + "        <span class=\"val\">Spring Boot 3 / Java 21</span>"
                 + "      </div>"
                 + "      <div class=\"status-item\">"
-                + "        <span class=\"label\">Banco de Dados</span>"
+                + "        <span class=\"label\">Arquitetura</span>"
+                + "        <span class=\"val\" style=\"color: #34d399;\">Modular Monolith</span>"
+                + "      </div>"
+                + "      <div class=\"status-item\">"
+                + "        <span class=\"label\">PostgreSQL Sync</span>"
                 + "        <span class=\"val\" style=\"color: " + dbColor + ";\">" + dbStatus + "</span>"
                 + "      </div>"
                 + "      <div class=\"status-item\">"
-                + "        <span class=\"label\">Horário do Servidor</span>"
+                + "        <span class=\"label\">Hor&aacute;rio do Servidor</span>"
                 + "        <span class=\"val\">" + now + "</span>"
-                + "      </div>"
-                + "      <div class=\"status-item\">"
-                + "        <span class=\"label\">Arquitetura</span>"
-                + "        <span class=\"val\">Modular Monolith</span>"
                 + "      </div>"
                 + "    </div>"
                 + "    <div class=\"actions\">"
-                + "      <a href=\"/api/v1/health\" class=\"btn btn-primary\" target=\"_blank\">🩺 Health Check</a>"
-                + "      <a href=\"/api/v1/dashboard/version\" class=\"btn btn-secondary\" target=\"_blank\">📊 Info da Versão</a>"
+                + "      <a href=\"/docs\" class=\"btn btn-primary\" target=\"_blank\">&#9889; Swagger OpenAPI</a>"
+                + "      <a href=\"/api/v1/dashboard/version\" class=\"btn btn-secondary\" target=\"_blank\">&#128202; Info da Vers&atilde;o</a>"
+                + "      <a href=\"/api/v1/health\" class=\"btn btn-secondary\" target=\"_blank\">&#129658; Health JSON</a>"
                 + "    </div>"
                 + "    <div class=\"footer\">&copy; 2026 Positivo Tecnologia &bull; Brilha+ Digital Twin</div>"
                 + "  </div>"
@@ -228,8 +229,7 @@ public class HomeController {
     }
 
     @GetMapping("/docs")
-    public org.springframework.web.servlet.view.RedirectView redirectToSwagger() {
-        return new org.springframework.web.servlet.view.RedirectView("/swagger-ui/index.html");
+    public RedirectView redirectToSwagger() {
+        return new RedirectView("/swagger-ui/index.html");
     }
-
 }
