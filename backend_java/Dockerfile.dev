@@ -1,0 +1,16 @@
+# --- ESTÁGIO DE DESENVOLVIMENTO (SPRING BOOT HOT RELOAD) ---
+FROM maven:3.9.6-eclipse-temurin-21-alpine
+
+WORKDIR /app
+
+# O código-fonte será montado via volume pelo docker-compose.dev.yml, 
+# então não precisamos copiar os arquivos aqui (mantendo a sincronia).
+
+# Expõe a porta padrão do Spring Boot
+EXPOSE 8080
+
+# Define perfil de dev
+ENV SPRING_PROFILES_ACTIVE=dev
+
+# Comando para inicializar a aplicação em modo de desenvolvimento (permite reload rápido)
+CMD ["mvn", "spring-boot:run"]

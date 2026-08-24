@@ -1,0 +1,19 @@
+# --- ESTÁGIO DE DESENVOLVIMENTO VITE WEB ---
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copia arquivos de dependências
+COPY package*.json ./
+
+# Instala as dependências do projeto
+RUN npm install
+
+# Copia todo o código-fonte do frontend
+COPY . .
+
+# Expõe a porta configurada do Vite
+EXPOSE 3000
+
+# Comando para rodar o Vite (React Web) no modo dev liberando acesso externo
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

@@ -1,0 +1,56 @@
+services:
+  # --- 1. MICROSERVIÇO DE INGESTÃO DATABRICKS (PYTHON FASTAPI) ---
+  data_ingest:
+    build:
+      context: ./DataIngest
+      dockerfile: Dockerfile
+    container_name: digitaltwin_data_ingest
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    networks:
+      digitaltwin_network:
+        aliases:
+          - data_ingest
+          - data-ingest
+
+  # --- 2. BACKEND DE NEGÓCIO (SPRING BOOT 3 / JAVA 21) ---
+  backend:
+    build:
+      context: ./backend_java
+      dockerfile: Dockerfile
+    container_name: digitaltwin_backend
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - DATA_INGEST_URL=http://data_ingest:8000
+      - SPRING_FLYWAY_BASELINE_ON_MIGRATE=true
+      - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=false
+      - SPRING_FLYWAY_IGNORE_MIGRATION_PATTERNS=*:missing
+      - SPRING_FLYWAY_SCHEMAS=public
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA=public
+    networks:
+      - digitaltwin_network
+
+  # --- 3. FRONTEND WEB (REACT TYPESCRIPT VITE PWA) ---
+  frontend:
+    build:
+      context: ./frontend_react
+      dockerfile: dockerfile
+    container_name: digitaltwin_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+      - data_ingest
+    networks:
+      - digitaltwin_network
+
+networks:
+  digitaltwin_network:
+    driver: bridge

@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased text-slate-900 bg-slate-50 dark:text-slate-50 dark:bg-grid-pattern;
+  }
+}
+
+/* Esconder barra de rolagem mas permitir scrolar no mobile */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Chrome autofill background override for dark mode */
+.dark-autofill {
+  caret-color: #e2e8f0 !important;
+}
+
+.dark-autofill:-webkit-autofill,
+.dark-autofill:-webkit-autofill:hover, 
+.dark-autofill:-webkit-autofill:focus, 
+.dark-autofill:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Logo Brilha+ Styles */
+.neon-glow {
+  text-shadow: 
+    0 0 10px rgba(34, 211, 238, 0.8), 
+    0 0 20px rgba(34, 211, 238, 0.5), 
+    0 0 40px rgba(34, 211, 238, 0.3);
+}
+
+.plus-sign {
+  background: linear-gradient(135deg, #67e8f9 0%, #0891b2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.logo-container {
+  position: relative;
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.glow-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34,211,238,0.15) 0%, rgba(34,211,238,0) 70%);
+  z-index: 0;
+  filter: blur(20px);
+}

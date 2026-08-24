@@ -1,0 +1,129 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+.eslintcache
+.stylelintcache
+
+# Java / Backend (Spring Boot)
+backend/target/
+backend/build/
+backend/.gradle/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.mvn/wrapper/maven-wrapper.jar
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environments
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.venv
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Supabase / DB / Auth
+*.sqlite3
+
+# OS generated files
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project Specific & AI Tools
+.agents
+.agent/
+.github/
+.gemini/
+.ai/
+cursor/
+.cursorrules
+Project_Docs/
+docs/
+design-system.md
+backend_logs.txt
+check_out.json
+# Database Migration Scripts (Flyway/Manual)
+# backend/src/main/resources/db/migration/*.sql
+scripts/revert_*.py
+backend/revert_*.py
+*.dump
+
+# Environment Variables
+*.env
+
+# Cache/Gerados do Frontend
+*.tsbuildinfo
+output.css
+
+# Arquivos temporários do projeto
+scratch/
+
+# Dados / Ingestão
+*.csv
+*.xlsx
+*.xls
+/Documentações/
+/Legacy
+
+# Variáveis de Ambiente e Segredos (Segurança GitHub)
+.env.*
+!.env.example
+.env.production
+.env.development
