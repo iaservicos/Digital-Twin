@@ -110,6 +110,82 @@ class ETLService:
                 "elapsed_seconds": elapsed_time
             }
 
+
+    def sincronizar_tb_chamados(self) -> int:
+        """
+        Transfere e atualiza os chamados da tabela bruta 'chamados' (Databricks)
+        para a tabela operacional 'tb_chamado' vinculando aos técnicos cadastrados.
+        Garante que todos os chamados recentes reflitam na base operacional.
+        """
+        query_sync = """
+            INSERT INTO tb_chamado (
+                chamado,
+                id_tecnico,
+                assistencia_centro_trabalho,
+                ft,
+                equipamento,
+                projeto,
+                sla_status,
+                material_descricao,
+                texto_encerrado,
+                assistencia_nome,
+                tecnico_nome
+            )
+            SELECT
+                c.chamado::bigint,
+                t.id_tecnico,
+                c.assistencia_centro_trabalho,
+                c.ft,
+                c.tipo_equipamento,
+                c.projeto,
+                c.sla_status,
+                c.descricao_material,
+                c.texto_encerrado,
+                c.assistencia_razao_social,
+                t.nome_completo
+            FROM chamados c
+            JOIN tb_tecnico t ON UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(t.nome_completo))
+            WHERE c.chamado ~ '^[0-9]+$'
+            ON CONFLICT (chamado) DO UPDATE SET
+                id_tecnico = EXCLUDED.id_tecnico,
+                assistencia_centro_trabalho = EXCLUDED.assistencia_centro_trabalho,
+                ft = EXCLUDED.ft,
+                equipamento = EXCLUDED.equipamento,
+                projeto = EXCLUDED.projeto,
+                sla_status = EXCLUDED.sla_status,
+                material_descricao = EXCLUDED.material_descricao,
+                texto_encerrado = EXCLUDED.texto_encerrado,
+                assistencia_nome = EXCLUDED.assistencia_nome,
+                tecnico_nome = EXCLUDED.tecnico_nome;
+        """
+        logger.info("Executando sincronização de chamados para tb_chamado...")
+        with self.postgres._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query_sync)
+                affected = cur.rowcount
+            conn.commit()
+        logger.info(f"Sincronização de tb_chamado concluída: {affected} registros atualizados.")
+        return affected
+
+    def recalcular_indicadores_campanha(self) -> dict:
+        """
+        Aciona o motor de cálculo Polars de alta performance para apurar Julho e Agosto
+        e consolidar a média do bimestre na tabela tb_apuracao_mensal.
+        """
+        from src.services.calculo_pontuacao import CalculoPontuacaoService
+        calc = CalculoPontuacaoService(postgres_client=self.postgres)
+        
+        logger.info("Recalculando apuração da campanha: Julho e Agosto de 2026...")
+        res_jul = calc.calcular_pontuacao_geral(mes=7, ano=2026)
+        res_ago = calc.calcular_pontuacao_geral(mes=8, ano=2026)
+        res_cons = calc.calcular_media_campanha_fase6(ano=2026)
+        
+        return {
+            "julho": res_jul,
+            "agosto": res_ago,
+            "consolidado": res_cons
+        }
+
     def sync_all_tables(
         self, 
         data_inicio: str = None, 
@@ -237,6 +313,19 @@ class ETLService:
                 "rows": res_pecas["total_rows"], 
                 "seconds": res_pecas["elapsed_seconds"]
             }
+
+
+            # -----------------------------------------------------------------
+            # Etapa 4: Carga Incremental Automática em tb_chamado (Prevenção)
+            # -----------------------------------------------------------------
+            self.update_progress(88, "Atualizando base operacional de chamados...", "Processamento")
+            novos_tb = self.sincronizar_tb_chamados()
+
+            # -----------------------------------------------------------------
+            # Etapa 5: Recálculo Analítico Automático da Campanha (Prevenção)
+            # -----------------------------------------------------------------
+            self.update_progress(95, "Recalculando apuração oficial da campanha...", "Cálculo Polars")
+            self.recalcular_indicadores_campanha()
 
             # -----------------------------------------------------------------
             # Conclusão com Sucesso

@@ -53,7 +53,6 @@ const getPythonApiUrl = () => {
   if (envUrl) {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  // Se em produção, usa a URL oficial do Render
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     return 'https://digitaltwin-dataingest.onrender.com';
   }
@@ -100,86 +99,23 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   fetchStatus: async () => {
     try {
       const pythonApiUrl = getPythonApiUrl();
+      const pythonRes = await axios.get(`${pythonApiUrl}/api/v1/sync/status`, {
+        headers: getPythonHeaders(),
+        timeout: 3000
+      }).catch(() => null);
 
-      // 1. Tenta buscar status da Ingestão Databricks (Python FastAPI)
-      const pythonRes = await axios.get(`${pythonApiUrl}/api/v1/sync/status`, { headers: getPythonHeaders() }).catch(() => null);
-      if (pythonRes?.data?.status === 'processing') {
-        set({ tracker: pythonRes.data, isWidgetDismissed: false });
-        return;
-      }
-
-      // 2. Tenta buscar status do Cálculo/Contabilização de Campanha (Spring Boot Java via api centralizada)
-      const backendRes = await api.get('/dashboard/calcular/status').catch(() => null);
-      if (backendRes?.data?.status === 'processing') {
-        const calcData = backendRes.data;
-        set({
-          isWidgetDismissed: false,
-          tracker: {
-            status: 'processing',
-            progress: calcData.progress || 25,
-            step: calcData.step || 'Contabilizando pontuações da campanha...',
-            current_table: 'reincidentes',
-            estimated_seconds_remaining: calcData.estimatedSecondsRemaining || 5,
-            elapsed_seconds: calcData.elapsedSeconds || 0,
-            total_rows: calcData.total || 361,
-            tables: {
-              chamados: { status: 'success', rows: calcData.processados || 361 },
-              reincidentes: { status: 'processing', rows: calcData.total || 361 },
-              pecas: { status: 'pending', rows: 0 }
-            }
+      if (pythonRes?.data) {
+        const data = pythonRes.data;
+        if (data.status === 'processing') {
+          set({ tracker: data, isWidgetDismissed: false });
+        } else if (data.status === 'success' || data.status === 'failed') {
+          if (get().tracker.status === 'processing') {
+            set({ tracker: data });
           }
-        });
-        return;
-      }
-
-      // Se o backend retornou falha
-      if (backendRes?.data?.status === 'failed' && get().tracker.status === 'processing') {
-        const calcData = backendRes.data;
-        set({
-          tracker: {
-            ...get().tracker,
-            status: 'failed',
-            progress: 0,
-            step: calcData.step || 'Falha na contabilização da campanha.',
-            error: calcData.error || 'Erro ao processar cálculo'
-          }
-        });
-        return;
-      }
-
-      // Se o backend completou com sucesso recentemente e estávamos processando
-      if (backendRes?.data?.status === 'success' && get().tracker.status === 'processing') {
-        const calcData = backendRes.data;
-        set({
-          tracker: {
-            status: 'success',
-            progress: 100,
-            step: 'Contabilização da campanha concluída com sucesso!',
-            current_table: null,
-            estimated_seconds_remaining: 0,
-            elapsed_seconds: calcData.elapsedSeconds || 5,
-            total_rows: calcData.total || 361,
-            tables: {
-              chamados: { status: 'success', rows: calcData.total || 361 },
-              reincidentes: { status: 'success', rows: calcData.total || 361 },
-              pecas: { status: 'success', rows: calcData.total || 361 }
-            }
-          }
-        });
-        return;
-      }
-
-      // Se o estado local ainda está em 'processing', NÃO sobrescrever com idle
-      if (get().tracker.status === 'processing') {
-        return;
-      }
-
-      // Se nenhum estiver processando, usa a resposta mais recente se existir
-      if (pythonRes?.data && pythonRes.data.status !== 'idle') {
-        set({ tracker: pythonRes.data });
+        }
       }
     } catch (err) {
-      console.error('Erro ao consultar status unificado:', err);
+      console.error('Erro ao consultar status da sincronização:', err);
     }
   },
 
@@ -190,15 +126,19 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         ...initialTracker,
         status: 'processing',
         progress: 5,
-        step: `Conectando ao Databricks para o período ${data_inicio} até ${data_fim}...`,
-        estimated_seconds_remaining: 15,
+        step: `Conectando ao Databricks SQL Warehouse (${data_inicio} até ${data_fim})...`,
+        estimated_seconds_remaining: 30,
         periodo: { data_inicio, data_fim }
       }
     });
 
     try {
       const pythonApiUrl = getPythonApiUrl();
-      await axios.post(`${pythonApiUrl}/api/v1/sync`, { data_inicio, data_fim }, { headers: getPythonHeaders() });
+      await axios.post(
+        `${pythonApiUrl}/api/v1/sync`,
+        { data_inicio, data_fim },
+        { headers: getPythonHeaders() }
+      );
     } catch (error: any) {
       console.error('Erro ao disparar sincronização:', error);
       set({
@@ -207,7 +147,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
           status: 'failed',
           progress: 0,
           step: 'Erro ao conectar ao microserviço DataIngest.',
-          error: error.response?.data?.detail || 'Servidor offline'
+          error: error.response?.data?.detail || error.message || 'Servidor offline'
         }
       });
     }
@@ -234,7 +174,6 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     try {
       const pythonApiUrl = getPythonApiUrl();
 
-      // 1. Obter período da campanha ativa via api central
       let mes = 8;
       let ano = 2026;
       try {
@@ -245,7 +184,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
           mes = parseInt(parts[1], 10);
         }
       } catch (e) {
-        // Usa default 08/2026
+        // Default 08/2026
       }
 
       set({
@@ -261,10 +200,12 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         }
       });
 
-      // 2. Acionar motor ultra-otimizado em Python
-      await axios.post(`${pythonApiUrl}/api/v1/calculo/geral?mes=${mes}&ano=${ano}`, {}, { headers: getPythonHeaders() });
+      await axios.post(
+        `${pythonApiUrl}/api/v1/calculo/geral?mes=${mes}&ano=${ano}`,
+        {},
+        { headers: getPythonHeaders() }
+      );
 
-      // 3. Sucesso completo
       set({
         tracker: {
           status: 'success',
