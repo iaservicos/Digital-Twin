@@ -17,7 +17,7 @@ import java.util.Map;
  */
 public final class DashboardMapper {
 
-    private static final DateTimeFormatter FORMATTER_HORA = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter FORMATTER_DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy - HH:mm");
 
     private DashboardMapper() {
     }
@@ -112,7 +112,7 @@ public final class DashboardMapper {
                         : (c.getProjeto() != null ? c.getProjeto() : "Chamado"))
                 .status(isDentro ? "Encerrado dentro SLA" : "Encerrado fora do SLA")
                 .isLate(!isDentro)
-                .time(c.getDataFt() != null ? c.getDataFt().format(FORMATTER_HORA) : "")
+                .time(c.getDataFt() != null ? c.getDataFt().format(FORMATTER_DATA_HORA) : "")
                 .pecasUtilizadas(pecas)
                 .textoEncerramento(textoEnc)
                 .build();

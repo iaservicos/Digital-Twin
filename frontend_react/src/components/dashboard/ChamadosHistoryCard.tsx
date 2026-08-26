@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { ChamadoItem } from './ChamadoItem';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { useCampanhaStore } from '../../store/campanhaStore';
 
 interface ChamadosHistoryCardProps {
   tecnicoId: number;
@@ -17,17 +16,15 @@ export default function ChamadosHistoryCard({ tecnicoId }: ChamadosHistoryCardPr
   const [dataFiltro, setDataFiltro] = useState('');
 
   const fetchChamados = async (pageNumber: number) => {
+    if (!tecnicoId || tecnicoId === 0) return;
+
     try {
       setLoading(true);
-      const { selectedCampanha } = useCampanhaStore.getState();
       const params: any = { page: pageNumber, size: 3 };
       
       if (dataFiltro) {
         params.dataInicio = dataFiltro;
         params.dataFim = dataFiltro;
-      } else if (selectedCampanha) {
-        params.dataInicio = selectedCampanha.dataInicio;
-        params.dataFim = selectedCampanha.dataFim;
       }
       
       const response = await api.get(`/dashboard/tecnico/${tecnicoId}/chamados`, { params });
@@ -43,7 +40,7 @@ export default function ChamadosHistoryCard({ tecnicoId }: ChamadosHistoryCardPr
   };
 
   useEffect(() => {
-    if (tecnicoId) {
+    if (tecnicoId && tecnicoId !== 0) {
       fetchChamados(0);
       setPage(0);
     }

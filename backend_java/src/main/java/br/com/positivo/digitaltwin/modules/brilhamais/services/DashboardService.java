@@ -5,10 +5,11 @@ import br.com.positivo.digitaltwin.modules.brilhamais.dto.HistoricoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.RankingDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.mappers.DashboardMapper;
 import br.com.positivo.digitaltwin.modules.brilhamais.models.ApuracaoMensal;
+import br.com.positivo.digitaltwin.modules.brilhamais.models.BaseAtp;
 import br.com.positivo.digitaltwin.modules.brilhamais.models.Campanha;
 import br.com.positivo.digitaltwin.modules.brilhamais.models.Chamado;
-import br.com.positivo.digitaltwin.modules.brilhamais.models.Tecnico;
 import br.com.positivo.digitaltwin.modules.brilhamais.repositories.ApuracaoMensalRepository;
+import br.com.positivo.digitaltwin.modules.brilhamais.repositories.BaseAtpRepository;
 import br.com.positivo.digitaltwin.modules.brilhamais.repositories.CampanhaRepository;
 import br.com.positivo.digitaltwin.modules.brilhamais.repositories.ChamadoRepository;
 import br.com.positivo.digitaltwin.modules.brilhamais.repositories.TecnicoRepository;
@@ -23,17 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.format.TextStyle;
+import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Serviço de Leitura e Projeção de Dados do Dashboard.
- * Consome os dados oficiais persistidos em tb_apuracao_mensal e projeta para os DTOs do frontend.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -44,6 +38,7 @@ public class DashboardService {
     private final CampanhaRepository campanhaRepository;
     private final ChamadoRepository chamadoRepository;
     private final TecnicoRepository tecnicoRepository;
+    private final BaseAtpRepository baseAtpRepository;
     private final JdbcTemplate jdbcTemplate;
 
     public List<RankingDTO> getRankingMensal(LocalDate mesAno) {
@@ -68,18 +63,48 @@ public class DashboardService {
                     .stream().collect(Collectors.groupingBy(h -> h.getTecnico().getIdTecnico()));
         }
 
-        List<RankingDTO> ranking = new ArrayList<>();
+        Map<String, String> cidadePorCt = new HashMap<>();
+        try {
+            List<BaseAtp> todasBases = baseAtpRepository.findAll();
+            for (BaseAtp b : todasBases) {
+                if (b.getCtCodigo() != null && !cidadePorCt.containsKey(b.getCtCodigo())) {
+                    String cidade = b.getCidade() != null ? b.getCidade().trim() : "";
+                    String uf = b.getUf() != null ? b.getUf().trim() : "";
+                    if (!cidade.isEmpty() && !uf.isEmpty()) {
+                        cidadePorCt.put(b.getCtCodigo(), cidade + "/" + uf);
+                    } else if (!cidade.isEmpty()) {
+                        cidadePorCt.put(b.getCtCodigo(), cidade);
+                    } else if (b.getNomeAtp() != null) {
+                        cidadePorCt.put(b.getCtCodigo(), b.getNomeAtp());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Erro ao carregar bases para lookup", e);
+        }
+
+        List<RankingDTO> ranking = new ArrayList<>(apuracoes.size());
         int posicao = 1;
 
         for (ApuracaoMensal apuracao : apuracoes) {
             int idTecnico = apuracao.getTecnico().getIdTecnico();
             List<ApuracaoMensal> historicoApuracao = historicoPorTecnico.getOrDefault(idTecnico, Collections.emptyList());
-            
+
             List<HistoricoDTO> historico = historicoApuracao.stream()
                     .map(h -> DashboardMapper.toHistoricoDTO(h, formatarLabelMes(h.getMesAno())))
                     .collect(Collectors.toList());
 
-            ranking.add(DashboardMapper.toRankingDTO(apuracao, posicao++, historico));
+            RankingDTO rDto = DashboardMapper.toRankingDTO(apuracao, posicao++, historico);
+
+            List<String> ctList = apuracao.getTecnico().getCtBases();
+            if (ctList != null && !ctList.isEmpty()) {
+                String resolved = ctList.stream()
+                        .map(ct -> cidadePorCt.getOrDefault(ct, ct))
+                        .collect(Collectors.joining(","));
+                rDto.setLocalEquipe(resolved);
+            }
+
+            ranking.add(rDto);
         }
 
         return ranking;
@@ -130,6 +155,7 @@ public class DashboardService {
     private String formatarLabelMes(LocalDate mesAno) {
         if (mesAno == null) return "Mês";
         if (mesAno.getDayOfMonth() > 27) return "Média Final";
-        return String.format("%02d/%d", mesAno.getMonthValue(), mesAno.getYear());
+        String mesNome = mesAno.getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
+        return mesNome.substring(0, 1).toUpperCase() + mesNome.substring(1);
     }
 }

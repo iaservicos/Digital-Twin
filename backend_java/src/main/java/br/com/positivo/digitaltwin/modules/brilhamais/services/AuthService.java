@@ -31,6 +31,7 @@ import java.util.Map;
 public class AuthService {
 
     private final TecnicoRepository tecnicoRepository;
+    private final br.com.positivo.digitaltwin.modules.brilhamais.repositories.BaseAtpRepository baseAtpRepository;
     private final SupervisorRepository supervisorRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -80,7 +81,7 @@ public class AuthService {
             extraClaims.put("nome", tecnico.getNomeCompleto());
             extraClaims.put("cargo", tecnico.getCargo());
             extraClaims.put("role", tecnico.getRole());
-            extraClaims.put("localEquipe", tecnico.getCtBases() != null ? String.join(",", tecnico.getCtBases()) : "");
+            extraClaims.put("localEquipe", resolverCidadeRegiao(tecnico.getCtBases()));
 
             String token = jwtService.generateToken(extraClaims, userDetails);
             return AuthResponse.builder()
@@ -89,7 +90,7 @@ public class AuthService {
                     .isPrimeiroAcesso(tecnico.getIsPrimeiroAcesso() != null && tecnico.getIsPrimeiroAcesso())
                     .nome(tecnico.getNomeCompleto())
                     .cargo(tecnico.getCargo())
-                    .localEquipe(tecnico.getCtBases() != null ? String.join(",", tecnico.getCtBases()) : "")
+                    .localEquipe(resolverCidadeRegiao(tecnico.getCtBases()))
                     .role(tecnico.getRole())
                     .build();
         }
@@ -154,4 +155,25 @@ public class AuthService {
                 .senha(request.getMatricula().trim())
                 .build());
     }
+
+    private String resolverCidadeRegiao(java.util.List<String> ctBases) {
+        if (ctBases == null || ctBases.isEmpty()) {
+            return "";
+        }
+        java.util.List<br.com.positivo.digitaltwin.modules.brilhamais.models.BaseAtp> bases = baseAtpRepository.findByCtCodigoIn(ctBases);
+        if (bases != null && !bases.isEmpty()) {
+            br.com.positivo.digitaltwin.modules.brilhamais.models.BaseAtp base = bases.get(0);
+            String cidade = base.getCidade() != null ? base.getCidade().trim() : "";
+            String uf = base.getUf() != null ? base.getUf().trim() : "";
+            if (!cidade.isEmpty() && !uf.isEmpty()) {
+                return cidade + "/" + uf;
+            } else if (!cidade.isEmpty()) {
+                return cidade;
+            } else if (base.getNomeAtp() != null) {
+                return base.getNomeAtp();
+            }
+        }
+        return String.join(",", ctBases);
+    }
+
 }

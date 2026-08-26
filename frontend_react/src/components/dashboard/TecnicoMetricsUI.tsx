@@ -37,8 +37,8 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-light-text-main dark:text-text-main">Dashboard de Performance</h1>
-          <p className="text-sm text-light-text-muted dark:text-text-muted mt-1">
-            Indicadores e ranking em tempo real.
+          <p className="text-sm text-light-text-muted dark:text-text-muted mt-1 font-medium">
+            {displayMetricas.tecnico || 'Técnico'}{displayMetricas.localEquipe ? ` - ${displayMetricas.localEquipe}` : ''}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -57,11 +57,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
               <span>Não Elegível</span>
             </button>
           )}
-          {displayMetricas.posicaoRanking && displayMetricas.posicaoRanking !== '--' && (
-            <span className="text-xs font-bold text-light-text-muted bg-slate-100 dark:bg-surface px-3 py-1 rounded-full flex items-center shadow-sm">
-              <Medal size={12} className="mr-1 text-accent-teal" /> Ranking: {displayMetricas.posicaoRanking}º Lugar
-            </span>
-          )}
+
         </div>
       </div>
 
@@ -154,7 +150,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-status-danger/30 transition-colors">
           <div className="flex flex-col items-center mb-2">
             <span className="text-[10px] font-bold bg-slate-100 dark:bg-surface text-light-text-muted px-2 py-0.5 rounded-full mb-1">EQUIPE</span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">Reinc. (Eqp)</h3>
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">Reincidência</h3>
           </div>
           <CircularProgress
             value={displayMetricas.percentualReincidenciaEquipe || 0}
@@ -170,7 +166,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-pink-500/30 transition-colors">
           <div className="flex flex-col items-center mb-2">
             <span className="text-[10px] font-bold bg-pink-500/10 text-pink-500 px-2 py-0.5 rounded-full mb-1">INDIVIDUAL</span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">Reinc. (Ind)</h3>
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">Reincidência</h3>
           </div>
           <CircularProgress
             value={percentualReincidencia}
@@ -179,7 +175,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
             label={percentualReincidencia.toFixed(1)}
             isPercentage={true}
           />
-          <p className="text-[10px] text-light-text-muted mt-1">Gatilho Prata</p>
+          <p className="text-[10px] text-light-text-muted mt-1">Meta: {'<'} 7%</p>
         </div>
 
         {/* 4. Card Perdas SLA */}
@@ -195,7 +191,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
             label={(displayMetricas.percentualPerdidos || 0).toFixed(1)}
             isPercentage={true}
           />
-          <p className="text-[10px] text-light-text-muted mt-1">Meta: Minimizar</p>
+          <p className="text-[10px] text-light-text-muted mt-1">Meta: ≤ 1%</p>
         </div>
 
         {/* 5. Card Avaliação NPS */}
@@ -208,7 +204,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
             <p className="text-4xl font-bold text-indigo-400">{displayMetricas.npsScore?.toFixed(1) || '0.0'}</p>
             <p className="text-xs text-status-success font-medium mt-1">+{displayMetricas.pontosNps || 0} pts</p>
           </div>
-          <p className="text-[10px] text-light-text-muted mt-1">Satisfação do cliente</p>
+          <p className="text-[10px] text-light-text-muted mt-1">Meta: ≥ 85</p>
         </div>
 
         {/* 6. Card Peças */}
@@ -224,7 +220,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
             label={percentualConsumo.toFixed(1)}
             isPercentage={true}
           />
-          <p className="text-[10px] text-light-text-muted mt-1">Desempenho da base</p>
+          <p className="text-[10px] text-light-text-muted mt-1">Meta: ≥ 25%</p>
         </div>
       </div>
 

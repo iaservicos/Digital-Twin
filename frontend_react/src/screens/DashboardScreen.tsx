@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
-import toast from 'react-hot-toast';
 
 import { TecnicoMetricsUI } from '../components/dashboard/TecnicoMetricsUI';
 import { useTecnicoMetrics } from '../hooks/useTecnicoMetrics';
@@ -21,21 +20,10 @@ export default function DashboardScreen() {
         const { selectedCampanha } = useCampanhaStore.getState();
         const query = selectedCampanha ? `?mesAno=${selectedCampanha.dataFim}` : '';
 
-        // 1. Carrega dados em cache para mostrar a tela rápido
+        // Carrega dados oficiais do ranking
         const response = await api.get(`/dashboard/ranking${query}`);
-        if (mounted) setRankingOriginal(response.data);
-
-        // 2. Dispara recálculo silencioso no background APENAS para campanha ativa
-        if (user?.matricula && (!selectedCampanha || selectedCampanha.ativa)) {
-          api.post(`/dashboard/calcular-tecnico?matricula=${user.matricula}`, {}, { timeout: 120000 })
-            .then(async () => {
-              const freshResponse = await api.get(`/dashboard/ranking${query}`);
-              if (mounted) {
-                setRankingOriginal(freshResponse.data);
-                toast.success('Pontuação atualizada com sucesso!');
-              }
-            })
-            .catch(e => console.error('Erro no recálculo em background:', e));
+        if (mounted && response.data) {
+          setRankingOriginal(response.data);
         }
       } catch (error) {
         console.error('Erro ao buscar métricas do BD:', error);
@@ -51,13 +39,19 @@ export default function DashboardScreen() {
     };
   }, [user]);
 
-  // Passando tecnicosVisiveis fake contendo apenas ele mesmo,
-  // pois a API já retorna todos no rankingOriginal.
+  // Obter idTecnico real do ranking ou do authStore
+  const foundRanking = rankingOriginal.find((r: any) => 
+    (r.matricula && user?.matricula && String(r.matricula) === String(user.matricula)) ||
+    (r.tecnico && user?.nomeCompleto && String(r.tecnico).toUpperCase() === String(user.nomeCompleto).toUpperCase())
+  );
+
+  const realIdTecnico = foundRanking?.idTecnico || (user as any)?.id || (user as any)?.idTecnico || 0;
+
   const myTecnicoInfo = user ? [{
-    idTecnico: 0, // Fallback dummy
+    idTecnico: realIdTecnico,
     matricula: user.matricula,
     nomeCompleto: user.nomeCompleto,
-    ctBases: user.localEquipe ? user.localEquipe.split(',') : []
+    ctBases: user.localEquipe ? [user.localEquipe] : []
   }] : [];
 
   const { metricas, displayMetricas } = useTecnicoMetrics(

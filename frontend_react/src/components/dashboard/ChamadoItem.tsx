@@ -21,7 +21,7 @@ export const ChamadoItem = ({ item }: any) => {
               <p className={`font-bold text-sm ${item.isLate ? 'text-status-danger' : 'text-accent-teal'}`}>
                 {item.status}
               </p>
-              <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5">{item.time}</p>
+              <p className="text-xs font-mono text-light-text-muted dark:text-text-muted mt-0.5 whitespace-nowrap">{item.time}</p>
             </div>
           </div>
         </div>
