@@ -587,3 +587,66 @@ class CalculoPontuacaoService:
         print(f"[MOTOR ANALÍTICO MODULAR] Consolidação da Campanha concluída em {elapsed:.2f}s para {len(records_consolidado)} técnicos.")
 
         return {"status": "ok", "tecnicos_consolidados": len(records_consolidado), "tempo_segundos": round(elapsed, 2)}
+
+    # =========================================================================
+    # 9. GESTÃO E CÁLCULO DA CAMPANHA ATIVA
+    # =========================================================================
+    def calcular_campanha_ativa(self) -> Dict[str, Any]:
+        """
+        Lê a campanha ativa em tb_campanha, apura todos os meses do ciclo ativo
+        e executa a consolidação bimestral de elegibilidade final.
+        """
+        start_time = time.time()
+        conn = self.pg_client._get_connection()
+        
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("""
+                SELECT id_campanha, data_inicio, data_fim, ativa, duracao_meses
+                FROM tb_campanha
+                WHERE ativa = true
+                ORDER BY id_campanha DESC
+                LIMIT 1;
+            """)
+            camp = cur.fetchone()
+
+        conn.close()
+
+        if not camp:
+            raise ValueError("Nenhuma campanha ativa encontrada no banco de dados (tb_campanha).")
+
+        dt_inicio: date = camp["data_inicio"]
+        dt_fim: date = camp["data_fim"]
+
+        # Determinar todos os meses no intervalo da campanha
+        meses_processados = []
+        ano_corrente = dt_inicio.year
+        mes_corrente = dt_inicio.month
+
+        while (ano_corrente < dt_fim.year) or (ano_corrente == dt_fim.year and mes_corrente <= dt_fim.month):
+            res_mes = self.calcular_pontuacao_geral(mes=mes_corrente, ano=ano_corrente)
+            meses_processados.append(res_mes)
+            
+            # Avançar para o próximo mês
+            if mes_corrente == 12:
+                mes_corrente = 1
+                ano_corrente += 1
+            else:
+                mes_corrente += 1
+
+        # Executar consolidação bimestral
+        res_consolidacao = self.calcular_media_campanha_fase6(ano=dt_fim.year)
+
+        elapsed = round(time.time() - start_time, 2)
+        print(f"[MOTOR ANALÍTICO MODULAR] Recálculo da Campanha Ativa #{camp['id_campanha']} concluído em {elapsed}s.")
+
+        return {
+            "status": "success",
+            "campanha_id": camp["id_campanha"],
+            "periodo": {
+                "data_inicio": str(dt_inicio),
+                "data_fim": str(dt_fim)
+            },
+            "meses_processados": meses_processados,
+            "consolidacao_final": res_consolidacao,
+            "tempo_total_segundos": elapsed
+        }

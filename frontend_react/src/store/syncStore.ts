@@ -201,7 +201,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       });
 
       await axios.post(
-        `${pythonApiUrl}/api/v1/calculo/geral?mes=${mes}&ano=${ano}`,
+        `${pythonApiUrl}/api/v1/calculo/campanha`,
         {},
         { headers: getPythonHeaders() }
       );

@@ -24,16 +24,17 @@ export default function DatabricksSyncFloatingWidget() {
   const location = useLocation();
   const { tracker, fetchStatus, tickSeconds, isWidgetDismissed, dismissWidget } = useSyncStore();
 
-  // Polling contínuo de status
+    // Polling inteligente de status (frequente apenas durante processamento ativo)
   useEffect(() => {
     fetchStatus();
 
+    const pollInterval = tracker.status === 'processing' ? 1000 : 30000;
     const interval = setInterval(() => {
       if (tracker.status === 'processing') {
         tickSeconds();
       }
       fetchStatus();
-    }, 1500);
+    }, pollInterval);
 
     return () => clearInterval(interval);
   }, [tracker.status, fetchStatus, tickSeconds]);

@@ -358,3 +358,22 @@ def recalcular_geral(
             status_code=500,
             detail=f"Erro interno no motor de cálculo: {str(e)}"
         )
+
+@router.post("/calculo/campanha", response_model=Dict[str, Any], tags=["Cálculo"])
+def recalcular_campanha_ativa() -> Dict[str, Any]:
+    """
+    Aciona o recálculo completo de todos os meses da campanha ativa e consolida a média final.
+    """
+    try:
+        calc_service = CalculoPontuacaoService()
+        result = calc_service.calcular_campanha_ativa()
+        return {
+            "status": "success",
+            "resultado": result
+        }
+    except Exception as e:
+        logger.error(f"Erro ao recalcular campanha ativa: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno no motor de cálculo de campanha: {str(e)}"
+        )
