@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Award, TrendingUp, CheckCircle2, Medal, XCircle } from 'lucide-react';
+import { Award, TrendingUp, CheckCircle2, Medal, XCircle, ShieldAlert } from 'lucide-react';
 import { CircularProgress } from '../ui/CircularProgress';
 import ChamadosHistoryCard from './ChamadosHistoryCard';
 import { ModalDetalhesPontuacao } from './ModalDetalhesPontuacao';
 import { ModalElegivel } from './ModalElegivel';
 import { ModalInelegivel } from './ModalInelegivel';
+import ModalChamadosReincidentes from './ModalChamadosReincidentes';
 
 interface TecnicoMetricsUIProps {
   metricas: any;
@@ -20,6 +21,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   setSelectedMonth
 }) => {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [isReincidentesModalOpen, setIsReincidentesModalOpen] = useState(false);
   const [isElegivelModalOpen, setIsElegivelModalOpen] = useState(false);
   const [isInelegivelModalOpen, setIsInelegivelModalOpen] = useState(false);
 
@@ -29,11 +31,10 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   const percentualSla = displayMetricas.percentualSla || 0;
   const percentualReincidencia = displayMetricas.percentualReincidencia || 0;
   const pontuacaoTotal = displayMetricas.pontosTotal || 0;
-  
-
 
   return (
     <div className="space-y-6 pb-6 w-full">
+      {/* Header do Dashboard */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-light-text-main dark:text-text-main">Dashboard de Performance</h1>
@@ -57,7 +58,6 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
               <span>Não Elegível</span>
             </button>
           )}
-
         </div>
       </div>
 
@@ -99,25 +99,31 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         </div>
       )}
 
-      {/* Top Grid: Pontuação & Últimos Chamados */}
+      {/* Top Grid: Pontuação Total & Últimos Chamados */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div
           onClick={() => setDetailsModalOpen(true)}
-          className="bg-gradient-to-br from-light-surface to-slate-50 dark:from-slate-800 dark:to-background rounded-positivo-lg p-6 border border-light-borderStrong dark:border-border shadow-xl flex flex-col items-center justify-center text-center relative overflow-hidden group cursor-pointer hover:border-accent-teal/50 hover:shadow-2xl hover:shadow-accent-teal/20 transition-all duration-300"
+          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-6 border border-light-borderStrong dark:border-border shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden group cursor-pointer hover:border-accent-teal/50 hover:shadow-xl transition-all duration-300 min-h-[220px]"
         >
-          <div className="absolute -right-6 -top-6 text-light-text-secondary/30 dark:text-light-text-secondary/20 transform group-hover:scale-110 transition-transform duration-500">
+          <div className="absolute -right-6 -top-6 text-light-text-secondary/30 dark:text-light-text-secondary/20 transform group-hover:scale-110 transition-transform duration-500 pointer-events-none">
             <Award size={120} />
           </div>
-          <h3 className="text-sm font-medium text-light-text-secondary dark:text-slate-300 mb-2 z-10 uppercase tracking-widest">Pontuação Total</h3>
-          <div className="flex items-baseline gap-1 z-10">
-            <span className="text-6xl font-black text-light-text-main dark:text-text-main">{pontuacaoTotal}</span>
-            <span className="text-lg text-light-text-muted font-bold">/100</span>
+          <h3 className="text-xs md:text-sm font-bold text-light-text-secondary dark:text-slate-300 mb-2 z-10 uppercase tracking-widest">
+            Pontuação Total
+          </h3>
+          <div className="flex items-baseline justify-center gap-1 z-10 my-1">
+            <span className="text-6xl md:text-7xl font-black text-light-text-main dark:text-text-main tracking-tight">
+              {pontuacaoTotal}
+            </span>
+            <span className="text-lg md:text-xl text-light-text-muted font-bold">
+              /100
+            </span>
           </div>
-          <div className="mt-4 bg-light-surface/10 backdrop-blur px-4 py-1.5 rounded-full z-10">
-            <p className="text-xs text-light-text-secondary dark:text-slate-200 font-medium flex items-center">
-              <TrendingUp size={14} className="mr-1 text-accent-emerald" />
+          <div className="mt-3 bg-slate-100/80 dark:bg-slate-800/80 border border-light-borderStrong/40 dark:border-border/40 backdrop-blur px-4 py-1.5 rounded-full z-10 flex items-center justify-center gap-1.5 shadow-sm">
+            <TrendingUp size={14} className="text-accent-emerald" />
+            <span className="text-xs text-light-text-secondary dark:text-slate-200 font-medium">
               Sua performance global
-            </p>
+            </span>
           </div>
         </div>
 
@@ -162,11 +168,19 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
           <p className="text-[10px] text-light-text-muted mt-1">Meta: {'<'} 7%</p>
         </div>
 
-        {/* 3. Card Reincidência (Individual) */}
-        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-pink-500/30 transition-colors">
+        {/* 3. Card Reincidência (Individual) - INTERATIVO */}
+        <div 
+          onClick={() => setIsReincidentesModalOpen(true)}
+          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-pink-500/60 hover:shadow-lg hover:shadow-pink-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          title="Clique para ver os chamados reincidentes e análise de falhas"
+        >
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-pink-500/10 text-pink-500 px-2 py-0.5 rounded-full mb-1">INDIVIDUAL</span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">Reincidência</h3>
+            <span className="text-[10px] font-bold bg-pink-500/10 text-pink-500 px-2 py-0.5 rounded-full mb-1 group-hover:bg-pink-500 group-hover:text-white transition-colors">
+              INDIVIDUAL
+            </span>
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-pink-400 transition-colors">
+              REINC. (IND)
+            </h3>
           </div>
           <CircularProgress
             value={percentualReincidencia}
@@ -175,7 +189,11 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
             label={percentualReincidencia.toFixed(1)}
             isPercentage={true}
           />
-          <p className="text-[10px] text-light-text-muted mt-1">Meta: {'<'} 7%</p>
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-pink-400 font-semibold group-hover:underline">
+            <span>Ver falhas</span>
+            <span className="text-[11px]">→</span>
+          </div>
+          <p className="text-[9px] text-light-text-muted">Meta: ≤ 7.0%</p>
         </div>
 
         {/* 4. Card Perdas SLA */}
@@ -224,6 +242,17 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         </div>
       </div>
 
+      {/* MODAL DE CHAMADOS REINCIDENTES COM ANÁLISE DE FALHAS */}
+      <ModalChamadosReincidentes
+        isOpen={isReincidentesModalOpen}
+        onClose={() => setIsReincidentesModalOpen(false)}
+        tecnicoId={displayMetricas.idTecnico}
+        tecnicoNome={displayMetricas.nomeCompleto}
+        selectedMonth={selectedMonth}
+        percentualReincidencia={percentualReincidencia}
+        pontosReincidencia={displayMetricas.pontosReincidencia || 0}
+      />
+
       <ModalDetalhesPontuacao 
         isOpen={detailsModalOpen} 
         onClose={() => setDetailsModalOpen(false)} 
@@ -246,7 +275,6 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   );
 };
 
-// Auxiliary function moved outside
 function getPremioInfo(pontos: number) {
   if (pontos >= 90) return { titulo: '1º Prêmio', valor: 'R$ 300,00' };
   if (pontos >= 80) return { titulo: '2º Prêmio', valor: 'R$ 200,00' };

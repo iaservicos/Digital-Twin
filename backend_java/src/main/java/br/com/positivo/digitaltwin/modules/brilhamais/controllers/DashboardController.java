@@ -1,6 +1,7 @@
 package br.com.positivo.digitaltwin.modules.brilhamais.controllers;
 
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoResumoDTO;
+import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoReincidenteDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.RankingDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.models.Campanha;
 import br.com.positivo.digitaltwin.modules.brilhamais.repositories.ApuracaoMensalRepository;
@@ -85,6 +86,13 @@ public class DashboardController {
             @RequestParam(name = "matricula") String matricula) {
         motorCalculoService.calcularEProcessarTecnico(matricula);
         return ResponseEntity.ok("Recálculo individual disparado para a matrícula " + matricula);
+    }
+
+    @GetMapping("/tecnico/{id}/reincidentes")
+    public ResponseEntity<List<ChamadoReincidenteDTO>> getReincidentesTecnico(
+            @PathVariable("id") Integer id,
+            @RequestParam(name = "mesAno", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate mesAno) {
+        return ResponseEntity.ok(dashboardService.getReincidentesTecnico(id, mesAno));
     }
 
     @GetMapping("/tecnico/{id}/chamados")

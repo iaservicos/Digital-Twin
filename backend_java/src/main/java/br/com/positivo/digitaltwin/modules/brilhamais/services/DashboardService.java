@@ -1,6 +1,7 @@
 package br.com.positivo.digitaltwin.modules.brilhamais.services;
 
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoResumoDTO;
+import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoReincidenteDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.HistoricoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.RankingDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.mappers.DashboardMapper;
@@ -150,6 +151,72 @@ public class DashboardService {
         }
 
         return resultado;
+    }
+
+    public List<ChamadoReincidenteDTO> getReincidentesTecnico(Integer idTecnico, LocalDate mesAno) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT 
+                r.chamado_anterior,
+                r.chamado_rrc,
+                r.ft_anterior,
+                r.ft_rrc,
+                CASE 
+                    WHEN r.ft_rrc IS NOT NULL AND r.ft_anterior IS NOT NULL 
+                    THEN EXTRACT(DAY FROM (r.ft_rrc - r.ft_anterior))::bigint 
+                    ELSE NULL 
+                END AS dias_entre,
+                r.tecnico_nome_anterior,
+                r.tecnico_nome_rrc,
+                r.ct_anterior,
+                r.ct_rrc,
+                r.projeto_anterior,
+                r.projeto_rrc,
+                r.defeito_anterior,
+                r.ocorrencia_chamado_anterior,
+                r.texto_encerrado_anterior,
+                r.aplicado_peca_anterior
+            FROM reincidentes r
+            JOIN tb_tecnico t ON UPPER(TRIM(r.tecnico_nome_anterior)) = UPPER(TRIM(t.nome_completo))
+            WHERE t.id_tecnico = ?
+        """);
+
+        List<Object> params = new ArrayList<>();
+        params.add(idTecnico);
+
+        if (mesAno != null) {
+            if (mesAno.getDayOfMonth() > 27) {
+                Campanha camp = campanhaRepository.findFirstByAtivaTrueOrderByIdCampanhaDesc().orElse(null);
+                if (camp != null && camp.getDataInicio() != null && camp.getDataFim() != null) {
+                    sql.append(" AND r.ft_rrc >= ? AND r.ft_rrc <= ?");
+                    params.add(camp.getDataInicio().atStartOfDay());
+                    params.add(camp.getDataFim().atTime(23, 59, 59));
+                }
+            } else {
+                String anoMes = String.format("%04d-%02d", mesAno.getYear(), mesAno.getMonthValue());
+                sql.append(" AND TO_CHAR(r.ft_rrc, 'YYYY-MM') = ?");
+                params.add(anoMes);
+            }
+        }
+
+        sql.append(" ORDER BY r.ft_rrc DESC");
+
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> new ChamadoReincidenteDTO(
+                rs.getString("chamado_anterior"),
+                rs.getString("chamado_rrc"),
+                rs.getTimestamp("ft_anterior") != null ? rs.getTimestamp("ft_anterior").toLocalDateTime() : null,
+                rs.getTimestamp("ft_rrc") != null ? rs.getTimestamp("ft_rrc").toLocalDateTime() : null,
+                rs.getObject("dias_entre") != null ? rs.getLong("dias_entre") : null,
+                rs.getString("tecnico_nome_anterior"),
+                rs.getString("tecnico_nome_rrc"),
+                rs.getString("ct_anterior"),
+                rs.getString("ct_rrc"),
+                rs.getString("projeto_anterior"),
+                rs.getString("projeto_rrc"),
+                rs.getString("defeito_anterior"),
+                rs.getString("ocorrencia_chamado_anterior"),
+                rs.getString("texto_encerrado_anterior"),
+                rs.getString("aplicado_peca_anterior")
+        ), params.toArray());
     }
 
     private String formatarLabelMes(LocalDate mesAno) {

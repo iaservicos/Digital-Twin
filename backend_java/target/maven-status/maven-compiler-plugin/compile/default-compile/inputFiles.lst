@@ -24,6 +24,7 @@
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/controllers/TecnicoController.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/AuthRequest.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/AuthResponse.java
+/app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/ChamadoReincidenteDTO.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/ChamadoResumoDTO.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/ChangePasswordRequest.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/HistoricoDTO.java
