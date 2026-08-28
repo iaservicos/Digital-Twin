@@ -91,7 +91,7 @@ public class DashboardController {
     @GetMapping("/tecnico/{id}/reincidentes")
     public ResponseEntity<List<ChamadoReincidenteDTO>> getReincidentesTecnico(
             @PathVariable("id") Integer id,
-            @RequestParam(name = "mesAno", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate mesAno) {
+            @RequestParam(name = "mesAno", required = false) String mesAno) {
         return ResponseEntity.ok(dashboardService.getReincidentesTecnico(id, mesAno));
     }
 

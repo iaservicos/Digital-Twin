@@ -65,8 +65,8 @@ export default function ModalChamadosReincidentes({
       setLoading(true);
       try {
         let url = `/dashboard/tecnico/${tecnicoId}/reincidentes`;
-        if (selectedMonth) {
-          url += `?mesAno=${selectedMonth}`;
+        if (selectedMonth && selectedMonth !== 'Campanha Inteira' && selectedMonth !== 'Média Final') {
+          url += `?mesAno=${encodeURIComponent(selectedMonth)}`;
         }
         const res = await api.get(url);
         if (Array.isArray(res.data)) {

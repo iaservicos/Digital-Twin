@@ -153,7 +153,7 @@ public class DashboardService {
         return resultado;
     }
 
-    public List<ChamadoReincidenteDTO> getReincidentesTecnico(Integer idTecnico, LocalDate mesAno) {
+    public List<ChamadoReincidenteDTO> getReincidentesTecnico(Integer idTecnico, String mesAnoStr) {
         StringBuilder sql = new StringBuilder("""
             SELECT 
                 r.chamado_anterior,
@@ -183,18 +183,19 @@ public class DashboardService {
         List<Object> params = new ArrayList<>();
         params.add(idTecnico);
 
-        if (mesAno != null) {
-            if (mesAno.getDayOfMonth() > 27) {
-                Campanha camp = campanhaRepository.findFirstByAtivaTrueOrderByIdCampanhaDesc().orElse(null);
-                if (camp != null && camp.getDataInicio() != null && camp.getDataFim() != null) {
-                    sql.append(" AND r.ft_rrc >= ? AND r.ft_rrc <= ?");
-                    params.add(camp.getDataInicio().atStartOfDay());
-                    params.add(camp.getDataFim().atTime(23, 59, 59));
-                }
-            } else {
-                String anoMes = String.format("%04d-%02d", mesAno.getYear(), mesAno.getMonthValue());
-                sql.append(" AND TO_CHAR(r.ft_rrc, 'YYYY-MM') = ?");
-                params.add(anoMes);
+        String mesFiltro = mesAnoStr != null ? mesAnoStr.trim().toLowerCase() : "";
+
+        if (mesFiltro.contains("jul") || mesFiltro.contains("2026-07") || "7".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(r.ft_rrc, 'YYYY-MM') = '2026-07'");
+        } else if (mesFiltro.contains("ago") || mesFiltro.contains("2026-08") || "8".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(r.ft_rrc, 'YYYY-MM') = '2026-08'");
+        } else {
+            // Campanha Inteira / Média Final: filtra todo o intervalo da campanha ativa
+            Campanha camp = campanhaRepository.findFirstByAtivaTrueOrderByIdCampanhaDesc().orElse(null);
+            if (camp != null && camp.getDataInicio() != null && camp.getDataFim() != null) {
+                sql.append(" AND r.ft_rrc >= ? AND r.ft_rrc <= ?");
+                params.add(camp.getDataInicio().atStartOfDay());
+                params.add(camp.getDataFim().atTime(23, 59, 59));
             }
         }
 

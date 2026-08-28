@@ -32,6 +32,9 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   const percentualReincidencia = displayMetricas.percentualReincidencia || 0;
   const pontuacaoTotal = displayMetricas.pontosTotal || 0;
 
+  const selLower = (selectedMonth || '').trim().toLowerCase();
+  const isCampanhaInteira = !selLower || selLower === 'campanha inteira' || selLower === 'média final' || selLower === '2026-08-31';
+
   return (
     <div className="space-y-6 pb-6 w-full">
       {/* Header do Dashboard */}
@@ -46,14 +49,14 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
           {displayMetricas.elegivel ? (
             <button
               onClick={() => setIsElegivelModalOpen(true)}
-              className="flex items-center space-x-2 bg-transparent border border-accent-emerald text-accent-emerald px-4 py-2 rounded-full font-medium text-sm hover:bg-accent-emerald/10 transition-colors">
+              className="flex items-center space-x-2 bg-transparent border border-accent-emerald text-accent-emerald px-4 py-2 rounded-full font-medium text-sm hover:bg-accent-emerald/10 transition-colors cursor-pointer">
               <CheckCircle2 size={16} />
               <span>Elegível para Premiação</span>
             </button>
           ) : (
             <button
               onClick={() => setIsInelegivelModalOpen(true)}
-              className="flex items-center space-x-2 bg-transparent border border-status-danger text-status-danger px-4 py-2 rounded-full font-medium text-sm hover:bg-status-danger/10 transition-colors">
+              className="flex items-center space-x-2 bg-transparent border border-status-danger text-status-danger px-4 py-2 rounded-full font-medium text-sm hover:bg-status-danger/10 transition-colors cursor-pointer">
               <XCircle size={16} />
               <span>Não Elegível</span>
             </button>
@@ -61,15 +64,15 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         </div>
       </div>
 
-      {/* Seletor de Mês (Segmented Control) */}
+      {/* Seletor de Mês em Pílula (Segmented Control) */}
       {metricas?.historico && metricas.historico.length > 0 && (
         <div className="flex justify-center mt-2 mb-8">
           <div className="inline-flex bg-slate-100 dark:bg-background/80 p-1.5 rounded-full border border-light-borderStrong dark:border-border/50 shadow-inner overflow-x-auto max-w-full scrollbar-hide">
             <button
-              key="media-final"
-              onClick={() => setSelectedMonth('')}
-              className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap ${
-                !selectedMonth || selectedMonth === 'Média Final'
+              key="campanha-inteira"
+              onClick={() => setSelectedMonth('Campanha Inteira')}
+              className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${
+                isCampanhaInteira
                   ? 'bg-light-surface dark:bg-surface text-accent-teal shadow-md border border-light-borderStrong/50 dark:border-border transform scale-105'
                   : 'text-light-text-muted dark:text-light-text-muted hover:text-light-text-secondary dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-surface/50'
               }`}
@@ -79,19 +82,22 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
             {metricas.historico
               .filter((h: any) => h.mes !== 'Média Final')
               .map((h: any, idx: number) => {
-                const targetValue = h.mesReferencia || h.mes;
-                const isSelected = selectedMonth === targetValue || selectedMonth === h.mes;
+                const labelMes = h.mes; // 'Julho', 'Agosto'
+                const isSelected = !isCampanhaInteira && (
+                  selLower === labelMes.toLowerCase() || 
+                  selLower === (h.mesReferencia || '').toLowerCase()
+                );
                 return (
                   <button
                     key={`${h.mes}-${h.mesReferencia || idx}`}
-                    onClick={() => setSelectedMonth(targetValue)}
-                    className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap ${
+                    onClick={() => setSelectedMonth(labelMes)}
+                    className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${
                       isSelected
                         ? 'bg-light-surface dark:bg-surface text-accent-teal shadow-md border border-light-borderStrong/50 dark:border-border transform scale-105'
                         : 'text-light-text-muted dark:text-light-text-muted hover:text-light-text-secondary dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-surface/50'
                     }`}
                   >
-                    {h.mes}
+                    {labelMes}
                   </button>
                 );
               })}
@@ -247,7 +253,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         isOpen={isReincidentesModalOpen}
         onClose={() => setIsReincidentesModalOpen(false)}
         tecnicoId={displayMetricas.idTecnico}
-        tecnicoNome={displayMetricas.nomeCompleto}
+        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto}
         selectedMonth={selectedMonth}
         percentualReincidencia={percentualReincidencia}
         pontosReincidencia={displayMetricas.pontosReincidencia || 0}

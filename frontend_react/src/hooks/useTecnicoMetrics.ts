@@ -9,23 +9,18 @@ export function useTecnicoMetrics(
   const metricas = useMemo(() => {
     if (!selectedTecnicoIdentifier || selectedTecnicoIdentifier === 'all') return null;
     
-    // Procura o técnico selecionado na lista bruta
     const tecnicoInfo = tecnicosVisiveis.find(t => 
         (t.matricula && t.matricula === selectedTecnicoIdentifier) || 
         t.idTecnico?.toString() === selectedTecnicoIdentifier
     );
     if (!tecnicoInfo) return null;
     
-    // Procura os resultados dele no motor de calculo
-    // O motor de calculo retorna a matricula (string). 
-    // Em alguns casos pode retornar String(idTecnico) como fallback se a matricula for nula.
     const rankingData = rankingOriginal.find(r => 
         (r.matricula && String(r.matricula) === selectedTecnicoIdentifier) || 
         (r.idTecnico && String(r.idTecnico) === selectedTecnicoIdentifier) ||
         (r.tecnico && String(r.tecnico).toUpperCase() === String(tecnicoInfo.nomeCompleto).toUpperCase())
     );
     
-    // Se não tiver dados no ranking (ex: mes vazio ou novo tecnico), retorna um stub zerado
     if (!rankingData) {
       return {
          idTecnico: tecnicoInfo.idTecnico,
@@ -54,10 +49,42 @@ export function useTecnicoMetrics(
 
   const displayMetricas = useMemo(() => {
     if (!metricas) return null;
-    if (selectedMonth === 'Média Final') return metricas;
-    const monthData = metricas.historico?.find((h: any) => h.mes === selectedMonth);
+    
+    const sel = (selectedMonth || '').trim().toLowerCase();
+    
+    // Se for Campanha Inteira / Média Final / Vazio -> Retorna a Média Consolidada da Campanha
+    if (!sel || sel === 'média final' || sel === 'campanha inteira' || sel === 'campanha' || sel === '2026-08-31') {
+      return metricas;
+    }
+    
+    // Busca no histórico do técnico pelo mês selecionado
+    const monthData = metricas.historico?.find((h: any) => {
+      const hMes = (h.mes || '').trim().toLowerCase();
+      const hRef = (h.mesReferencia || '').trim().toLowerCase();
+      
+      if (sel === 'julho' || sel === '2026-07-01' || sel.includes('2026-07') || sel === '7') {
+        return hMes.includes('jul') || hRef.startsWith('2026-07');
+      }
+      if (sel === 'agosto' || sel === '2026-08-01' || sel.includes('2026-08') || sel === '8') {
+        return hMes.includes('ago') || hRef.startsWith('2026-08');
+      }
+      return hMes === sel || hRef === sel;
+    });
+
     if (!monthData) return metricas;
-    return { ...metricas, ...monthData };
+
+    return { 
+      ...metricas, 
+      ...monthData,
+      pontosTotal: monthData.pontosTotal !== undefined ? monthData.pontosTotal : metricas.pontosTotal,
+      percentualSla: monthData.percentualSla !== undefined ? monthData.percentualSla : metricas.percentualSla,
+      percentualReincidencia: monthData.percentualReincidencia !== undefined ? monthData.percentualReincidencia : metricas.percentualReincidencia,
+      percentualEficienciaPecas: monthData.percentualEficienciaPecas !== undefined ? monthData.percentualEficienciaPecas : metricas.percentualEficienciaPecas,
+      percentualPerdidos: monthData.percentualPerdidos !== undefined ? monthData.percentualPerdidos : metricas.percentualPerdidos,
+      npsScore: monthData.npsScore !== undefined ? monthData.npsScore : metricas.npsScore,
+      elegivel: monthData.elegivel !== undefined ? monthData.elegivel : metricas.elegivel,
+      motivoInelegibilidade: monthData.motivoInelegibilidade || metricas.motivoInelegibilidade
+    };
   }, [metricas, selectedMonth]);
 
   return { metricas, displayMetricas };
