@@ -186,9 +186,9 @@ export default function TecnicosManager() {
     setError('');
 
     try {
-            await api.patch(`/tecnicos/${selectedTecnico.idTecnico}/senha`, 
-      { novaSenha: newPassword }, 
-      { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/tecnicos/${selectedTecnico.idTecnico}/reset-senha`, 
+        { novaSenha: newPassword }, 
+        { headers: { Authorization: `Bearer ${token}` } });
       
       setIsPasswordModalOpen(false);
       alert('Senha redefinida com sucesso!');

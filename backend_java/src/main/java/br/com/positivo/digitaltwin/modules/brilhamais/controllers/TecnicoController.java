@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -122,9 +123,19 @@ public class TecnicoController {
                 .build());
     }
 
-    @PutMapping("/{id}/reset-senha")
+    @PutMapping(value = {"/{id}/reset-senha", "/{id}/senha"})
     @PreAuthorize("hasRole('ADMIN') or hasRole('MODERADOR')")
-    public ResponseEntity<Void> resetSenha(@PathVariable Integer id, @RequestBody(required = false) ResetSenhaRequest req) {
+    public ResponseEntity<Void> resetSenhaPut(@PathVariable Integer id, @RequestBody(required = false) ResetSenhaRequest req) {
+        return processarResetSenha(id, req);
+    }
+
+    @PatchMapping(value = {"/{id}/reset-senha", "/{id}/senha"})
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MODERADOR')")
+    public ResponseEntity<Void> resetSenhaPatch(@PathVariable Integer id, @RequestBody(required = false) ResetSenhaRequest req) {
+        return processarResetSenha(id, req);
+    }
+
+    private ResponseEntity<Void> processarResetSenha(Integer id, ResetSenhaRequest req) {
         Tecnico tecnico = tecnicoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Técnico não encontrado."));
 

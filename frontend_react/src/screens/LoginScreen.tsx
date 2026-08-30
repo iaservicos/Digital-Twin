@@ -59,9 +59,19 @@ export default function LoginScreen() {
           navigate('/dashboard');
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       setLoading(false);
-      setError('ID ou Senha inválidos. Verifique suas credenciais.');
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setError('O servidor está inicializando (Cold Start). Por favor, aguarde alguns segundos e clique em Entrar novamente.');
+      } else if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.response?.status === 401) {
+        setError('ID ou Senha inválidos. Verifique suas credenciais.');
+      } else if (!err.response) {
+        setError('Falha de conexão com o servidor. Verifique sua rede e tente novamente.');
+      } else {
+        setError(err.response?.data?.message || 'Erro ao realizar login. Verifique suas credenciais.');
+      }
       console.error('Erro de login:', err);
     }
   };

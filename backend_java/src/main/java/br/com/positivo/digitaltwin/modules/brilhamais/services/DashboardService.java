@@ -2,6 +2,7 @@ package br.com.positivo.digitaltwin.modules.brilhamais.services;
 
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoResumoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoReincidenteDTO;
+import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoSlaPerdidoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.HistoricoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.RankingDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.mappers.DashboardMapper;
@@ -20,6 +21,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -226,4 +229,134 @@ public class DashboardService {
         String mesNome = mesAno.getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
         return mesNome.substring(0, 1).toUpperCase() + mesNome.substring(1);
     }
+
+
+    public List<ChamadoSlaPerdidoDTO> getChamadosSlaPerdidos(Integer idTecnico, String mesAnoStr) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSupervisorOrAdmin = auth != null && auth.getAuthorities().stream().anyMatch(a -> {
+            String name = a.getAuthority().toUpperCase();
+            return name.contains("SUPERVISOR") || name.contains("MODERADOR") || name.contains("ADMIN");
+        });
+
+        StringBuilder sql = new StringBuilder("""
+            SELECT 
+                c.chamado,
+                c.ft,
+                c.tecnico_nome,
+                c.assistencia_centro_trabalho AS ct,
+                c.assistencia_nome,
+                c.equipamento,
+                c.projeto,
+                c.sla_status,
+                COALESCE(NULLIF(TRIM(c.classifica_chamado), ''), 'EXPIRADO EM CAMPO / FORA DO SLA') AS causa_perda,
+                c.texto_encerrado
+            FROM tb_chamado c
+            JOIN tb_tecnico_base tb ON tb.ct_codigo = c.assistencia_centro_trabalho
+            JOIN tb_tecnico t ON t.id_tecnico = tb.id_tecnico
+            WHERE tb.id_tecnico = ?
+              AND (c.sla_status = 'FORA' OR (c.classifica_chamado IS NOT NULL AND TRIM(c.classifica_chamado) NOT IN ('', 'DENTRO DO SLA')))
+        """);
+
+        List<Object> params = new ArrayList<>();
+        params.add(idTecnico);
+
+        if (!isSupervisorOrAdmin) {
+            sql.append(" AND UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(t.nome_completo))");
+        }
+
+        String mesFiltro = mesAnoStr != null ? mesAnoStr.trim().toLowerCase() : "";
+
+        if (mesFiltro.contains("jul") || mesFiltro.contains("2026-07") || "7".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(c.ft, 'YYYY-MM') = '2026-07'");
+        } else if (mesFiltro.contains("ago") || mesFiltro.contains("2026-08") || "8".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(c.ft, 'YYYY-MM') = '2026-08'");
+        } else {
+            Campanha camp = campanhaRepository.findFirstByAtivaTrueOrderByIdCampanhaDesc().orElse(null);
+            if (camp != null && camp.getDataInicio() != null && camp.getDataFim() != null) {
+                sql.append(" AND c.ft >= ? AND c.ft <= ?");
+                params.add(camp.getDataInicio().atStartOfDay());
+                params.add(camp.getDataFim().atTime(23, 59, 59));
+            }
+        }
+
+        sql.append(" ORDER BY c.ft DESC");
+
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> new ChamadoSlaPerdidoDTO(
+                rs.getString("chamado"),
+                rs.getTimestamp("ft") != null ? rs.getTimestamp("ft").toLocalDateTime() : null,
+                rs.getString("tecnico_nome"),
+                rs.getString("ct"),
+                rs.getString("assistencia_nome"),
+                rs.getString("equipamento"),
+                rs.getString("projeto"),
+                rs.getString("sla_status"),
+                rs.getString("causa_perda"),
+                rs.getString("texto_encerrado")
+        ), params.toArray());
+    }
+
+    public List<ChamadoSlaPerdidoDTO> getChamadosPerdas(Integer idTecnico, String mesAnoStr) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSupervisorOrAdmin = auth != null && auth.getAuthorities().stream().anyMatch(a -> {
+            String name = a.getAuthority().toUpperCase();
+            return name.contains("SUPERVISOR") || name.contains("MODERADOR") || name.contains("ADMIN");
+        });
+
+        StringBuilder sql = new StringBuilder("""
+            SELECT 
+                c.chamado,
+                c.ft,
+                c.tecnico_nome,
+                c.assistencia_centro_trabalho AS ct,
+                c.assistencia_nome,
+                c.equipamento,
+                c.projeto,
+                c.sla_status,
+                COALESCE(NULLIF(TRIM(c.classifica_chamado), ''), 'PERFORMANCE FALHA GESTAO') AS causa_perda,
+                c.texto_encerrado
+            FROM tb_chamado c
+            JOIN tb_tecnico_base tb ON tb.ct_codigo = c.assistencia_centro_trabalho
+            JOIN tb_tecnico t ON t.id_tecnico = tb.id_tecnico
+            WHERE tb.id_tecnico = ?
+              AND c.classifica_chamado IN ('PERFORMANCE FALHA GESTAO', 'TRANSFERENCIA ENTRE BASES')
+        """);
+
+        List<Object> params = new ArrayList<>();
+        params.add(idTecnico);
+
+        if (!isSupervisorOrAdmin) {
+            sql.append(" AND UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(t.nome_completo))");
+        }
+
+        String mesFiltro = mesAnoStr != null ? mesAnoStr.trim().toLowerCase() : "";
+
+        if (mesFiltro.contains("jul") || mesFiltro.contains("2026-07") || "7".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(c.ft, 'YYYY-MM') = '2026-07'");
+        } else if (mesFiltro.contains("ago") || mesFiltro.contains("2026-08") || "8".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(c.ft, 'YYYY-MM') = '2026-08'");
+        } else {
+            Campanha camp = campanhaRepository.findFirstByAtivaTrueOrderByIdCampanhaDesc().orElse(null);
+            if (camp != null && camp.getDataInicio() != null && camp.getDataFim() != null) {
+                sql.append(" AND c.ft >= ? AND c.ft <= ?");
+                params.add(camp.getDataInicio().atStartOfDay());
+                params.add(camp.getDataFim().atTime(23, 59, 59));
+            }
+        }
+
+        sql.append(" ORDER BY c.ft DESC");
+
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> new ChamadoSlaPerdidoDTO(
+                rs.getString("chamado"),
+                rs.getTimestamp("ft") != null ? rs.getTimestamp("ft").toLocalDateTime() : null,
+                rs.getString("tecnico_nome"),
+                rs.getString("ct"),
+                rs.getString("assistencia_nome"),
+                rs.getString("equipamento"),
+                rs.getString("projeto"),
+                rs.getString("sla_status"),
+                rs.getString("causa_perda"),
+                rs.getString("texto_encerrado")
+        ), params.toArray());
+    }
+
 }

@@ -4,6 +4,7 @@ import {
   Search, Cpu, ArrowRight, UserCheck, Wrench, ShieldAlert, Sparkles, Filter
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 
 export interface ChamadoReincidenteDTO {
   chamadoAnterior: string;
@@ -44,6 +45,90 @@ const formatDate = (dateStr?: string | null): string => {
   }
 };
 
+
+// Helper de formatação de data e hora no padrão 'DD/MM/AAAA HH:mm' (sem segundos)
+const formatDateTime = (dateStr?: string | null): string => {
+  if (!dateStr) return 'Data não informada';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const ano = d.getFullYear();
+    const horas = String(d.getHours()).padStart(2, '0');
+    const minutos = String(d.getMinutes()).padStart(2, '0');
+    return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
+  } catch {
+    return dateStr;
+  }
+};
+
+// Helper de classificação de segmento de projeto: Governo ou Corporativo
+const formatProjeto = (proj?: string | null): string => {
+  if (!proj || proj.trim() === '-' || proj.trim() === '') return 'Corporativo';
+  const p = proj.toUpperCase().trim();
+  if (p.startsWith('H3-') || p.includes('GOV') || p.includes('GOVERNO') || p.includes('EDUC')) {
+    return 'Governo';
+  }
+  return 'Corporativo';
+};
+
+// Helper para obter a cidade limpa da base ATP (ex: Rio de Janeiro, São Paulo, Curitiba, etc.)
+const formatCidadeBase = (assistenciaNome?: string | null, ctCodigo?: string | null): string => {
+  const ct = String(ctCodigo || '').trim();
+  const nome = String(assistenciaNome || '').trim().toUpperCase();
+
+  // Mapeamento direto por CT de técnicos
+  const ctMap: Record<string, string> = {
+    '2791005': 'Curitiba',
+    '2791006': 'Belo Horizonte',
+    '2791040': 'São Paulo',
+    '7004721': 'Brasília',
+    '7004722': 'Brasília',
+    '7812231': 'Porto Alegre',
+    '8788160': 'Salvador',
+    '8788601': 'Goiânia',
+    '8788711': 'Fortaleza',
+    '8789471': 'Rio de Janeiro',
+    '89000650': 'Manaus',
+    '89000940': 'Fortaleza',
+    '89001630': 'Rio de Janeiro',
+    '89001910': 'Porto Velho',
+    '89007090': 'Recife',
+    '89007091': 'Maceió',
+    '89009100': 'João Pessoa',
+    '89009120': 'Palmas',
+    '89009160': 'Natal',
+    '89009511': 'Cuiabá',
+    '89009670': 'Florianópolis'
+  };
+
+  if (ct && ctMap[ct]) return ctMap[ct];
+
+  // Extração se contiver parênteses ex: "ICLIENT INFORMATICA - (RIO DE JANEIRO)"
+  const matchParen = nome.match(/\(([^)]+)\)/);
+  if (matchParen && matchParen[1]) {
+    const rawCity = matchParen[1].trim();
+    return rawCity.charAt(0).toUpperCase() + rawCity.slice(1).toLowerCase();
+  }
+
+  // Detecção por palavras-chave comuns de capitais
+  if (nome.includes('RIO DE JANEIRO') || nome.includes('ICLIENT')) return 'Rio de Janeiro';
+  if (nome.includes('CURITIBA')) return 'Curitiba';
+  if (nome.includes('BELO HORIZONTE') || nome.includes('POSITIVO MG')) return 'Belo Horizonte';
+  if (nome.includes('SÃO PAULO') || nome.includes('SAO PAULO') || nome.includes('POSITIVO SP')) return 'São Paulo';
+  if (nome.includes('PORTO ALEGRE') || nome.includes('METHA')) return 'Porto Alegre';
+  if (nome.includes('SALVADOR') || nome.includes('FULL TIME')) return 'Salvador';
+  if (nome.includes('BRASILIA') || nome.includes('PC LINK')) return 'Brasília';
+  if (nome.includes('FORTALEZA') || nome.includes('FIELD CE')) return 'Fortaleza';
+  if (nome.includes('MANAUS') || nome.includes('FIELD AM')) return 'Manaus';
+  if (nome.includes('RECIFE') || nome.includes('FIELD PE')) return 'Recife';
+  if (nome.includes('GOIANIA') || nome.includes('CM DIGITAL')) return 'Goiânia';
+  if (nome.includes('FLORIANOPOLIS') || nome.includes('FLORIANÓPOLIS')) return 'Florianópolis';
+
+  return assistenciaNome || ctCodigo || 'Base Local';
+};
+
 export default function ModalChamadosReincidentes({
   isOpen,
   onClose,
@@ -57,6 +142,8 @@ export default function ModalChamadosReincidentes({
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterWithParts, setFilterWithParts] = useState<'all' | 'with_parts' | 'without_parts'>('all');
+  const { user } = useAuthStore();
+  const isSupervisorOrAdmin = user?.role === 'SUPERVISOR' || user?.role === 'MODERADOR' || user?.role === 'ADMINISTRADOR' || user?.cargo === 'Administrador' || user?.cargo === 'Super Administrador';
 
   useEffect(() => {
     if (!isOpen || !tecnicoId) return;
@@ -125,12 +212,12 @@ export default function ModalChamadosReincidentes({
         {/* HEADER */}
         <div className="relative p-6 bg-gradient-to-r from-pink-950/40 via-slate-900 to-slate-900 border-b border-slate-800 flex items-start justify-between">
           <div className="flex items-center gap-3.5">
-            <div className="p-3 bg-pink-500/20 text-pink-400 border border-pink-500/30 rounded-2xl shadow-lg shadow-pink-500/10">
+            <div className="p-3 bg-pink-500/20 text-cyan-400 border border-cyan-500/30 rounded-2xl shadow-lg shadow-pink-500/10">
               <ShieldAlert size={26} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest bg-pink-500/20 text-pink-300 border border-pink-500/30 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest bg-pink-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full">
                   KPI Individual
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
@@ -156,7 +243,7 @@ export default function ModalChamadosReincidentes({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-950/60 border-b border-slate-800 text-xs">
           <div className="bg-slate-900/80 p-3 rounded-2xl border border-slate-800/80 flex flex-col items-center text-center">
             <span className="text-slate-400 font-medium uppercase text-[10px]">Taxa Reincidência</span>
-            <span className={`text-xl font-black mt-0.5 ${isDentroMeta ? 'text-emerald-400' : 'text-pink-400'}`}>
+            <span className={`text-xl font-black mt-0.5 ${isDentroMeta ? 'text-emerald-400' : 'text-cyan-400'}`}>
               {percentualReincidencia.toFixed(1)}%
             </span>
             <span className="text-[10px] text-slate-500">Meta: ≤ 7.0%</span>
@@ -193,10 +280,10 @@ export default function ModalChamadosReincidentes({
             <Search className="absolute left-3 top-2.5 text-slate-500" size={16} />
             <input
               type="text"
-              placeholder="Buscar por chamado, defeito ou laudo..."
+              placeholder={isSupervisorOrAdmin ? "Buscar por chamados ou nome do técnico..." : "Buscar por chamado..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pink-500/50"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
             />
             {searchTerm && (
               <button 
@@ -213,19 +300,19 @@ export default function ModalChamadosReincidentes({
             <div className="flex bg-slate-950 p-0.5 rounded-xl border border-slate-800 text-[11px]">
               <button
                 onClick={() => setFilterWithParts('all')}
-                className={`px-3 py-1 rounded-lg font-semibold transition-all ${filterWithParts === 'all' ? 'bg-pink-500/20 text-pink-300' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1 rounded-lg font-semibold transition-all ${filterWithParts === 'all' ? 'bg-pink-500/20 text-cyan-300' : 'text-slate-400 hover:text-white'}`}
               >
                 Todos ({reincidentes.length})
               </button>
               <button
                 onClick={() => setFilterWithParts('with_parts')}
-                className={`px-3 py-1 rounded-lg font-semibold transition-all ${filterWithParts === 'with_parts' ? 'bg-pink-500/20 text-pink-300' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1 rounded-lg font-semibold transition-all ${filterWithParts === 'with_parts' ? 'bg-pink-500/20 text-cyan-300' : 'text-slate-400 hover:text-white'}`}
               >
                 Com Peça
               </button>
               <button
                 onClick={() => setFilterWithParts('without_parts')}
-                className={`px-3 py-1 rounded-lg font-semibold transition-all ${filterWithParts === 'without_parts' ? 'bg-pink-500/20 text-pink-300' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1 rounded-lg font-semibold transition-all ${filterWithParts === 'without_parts' ? 'bg-pink-500/20 text-cyan-300' : 'text-slate-400 hover:text-white'}`}
               >
                 Sem Peça
               </button>
@@ -237,7 +324,7 @@ export default function ModalChamadosReincidentes({
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-3">
-              <div className="w-10 h-10 border-3 border-pink-500/30 border-t-pink-500 rounded-full animate-spin" />
+              <div className="w-10 h-10 border-3 border-cyan-500/30 border-t-pink-500 rounded-full animate-spin" />
               <p className="text-xs text-slate-400 font-medium">Carregando histórico de reincidências...</p>
             </div>
           ) : filteredList.length === 0 ? (
@@ -267,7 +354,7 @@ export default function ModalChamadosReincidentes({
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-xl border border-slate-700/60">
                         <span className="text-[10px] text-slate-400 uppercase font-bold">1º Atendimento:</span>
-                        <strong className="text-xs font-mono text-pink-300">#{item.chamadoAnterior || 'N/D'}</strong>
+                        <strong className="text-xs font-mono text-cyan-300">#{item.chamadoAnterior || 'N/D'}</strong>
                       </div>
 
                       <ArrowRight size={14} className="text-slate-500 hidden sm:block" />
@@ -298,7 +385,7 @@ export default function ModalChamadosReincidentes({
                     <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 space-y-2">
                       <div className="flex items-center justify-between text-[11px] text-slate-400">
                         <span className="flex items-center gap-1 font-semibold text-slate-300">
-                          <Calendar size={13} className="text-pink-400" />
+                          <Calendar size={13} className="text-cyan-400" />
                           Data: {formatDate(item.ftAnterior)}
                         </span>
                         <span>CT: {item.ctAnterior || '—'}</span>

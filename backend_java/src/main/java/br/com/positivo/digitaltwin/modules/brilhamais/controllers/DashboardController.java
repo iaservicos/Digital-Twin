@@ -2,6 +2,7 @@ package br.com.positivo.digitaltwin.modules.brilhamais.controllers;
 
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoResumoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoReincidenteDTO;
+import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoSlaPerdidoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.RankingDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.models.Campanha;
 import br.com.positivo.digitaltwin.modules.brilhamais.repositories.ApuracaoMensalRepository;
@@ -102,5 +103,20 @@ public class DashboardController {
             @RequestParam(name = "dataFim", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
             Pageable pageable) {
         return ResponseEntity.ok(dashboardService.getChamadosPaginados(id, dataInicio, dataFim, pageable));
+    }
+
+
+    @GetMapping("/tecnico/{id}/sla-perdidos")
+    public ResponseEntity<List<ChamadoSlaPerdidoDTO>> getChamadosSlaPerdidos(
+            @PathVariable("id") Integer id,
+            @RequestParam(name = "mesAno", required = false) String mesAno) {
+        return ResponseEntity.ok(dashboardService.getChamadosSlaPerdidos(id, mesAno));
+    }
+
+    @GetMapping("/tecnico/{idTecnico}/perdas")
+    public ResponseEntity<List<ChamadoSlaPerdidoDTO>> getChamadosPerdas(
+            @PathVariable("idTecnico") Integer idTecnico,
+            @RequestParam(name = "mesAno", required = false) String mesAno) {
+        return ResponseEntity.ok(dashboardService.getChamadosPerdas(idTecnico, mesAno));
     }
 }

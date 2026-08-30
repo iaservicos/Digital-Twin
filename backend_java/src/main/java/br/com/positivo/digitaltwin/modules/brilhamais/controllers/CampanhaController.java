@@ -28,7 +28,6 @@ public class CampanhaController {
     }
 
     @GetMapping("/todas")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MODERADOR')")
     public ResponseEntity<List<Campanha>> getTodasCampanhas() {
         return ResponseEntity.ok(campanhaRepository.findAll());
     }

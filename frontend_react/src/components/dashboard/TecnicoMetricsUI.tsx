@@ -6,6 +6,8 @@ import { ModalDetalhesPontuacao } from './ModalDetalhesPontuacao';
 import { ModalElegivel } from './ModalElegivel';
 import { ModalInelegivel } from './ModalInelegivel';
 import ModalChamadosReincidentes from './ModalChamadosReincidentes';
+import ModalChamadosSlaPerdidos from './ModalChamadosSlaPerdidos';
+import ModalChamadosPerdas from './ModalChamadosPerdas';
 
 interface TecnicoMetricsUIProps {
   metricas: any;
@@ -22,6 +24,8 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
 }) => {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isReincidentesModalOpen, setIsReincidentesModalOpen] = useState(false);
+  const [isSlaModalOpen, setIsSlaModalOpen] = useState(false);
+  const [isPerdasModalOpen, setIsPerdasModalOpen] = useState(false);
   const [isElegivelModalOpen, setIsElegivelModalOpen] = useState(false);
   const [isInelegivelModalOpen, setIsInelegivelModalOpen] = useState(false);
 
@@ -141,106 +145,142 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
       </div>
 
       {/* Grid Inferior: 6 KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* 1. Card SLA */}
-        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-accent-teal/30 transition-colors">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* 1. Card SLA - INTERATIVO */}
+        <div 
+          onClick={() => setIsSlaModalOpen(true)}
+          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          title="Clique para ver os chamados perdidos e causas de estouro do SLA"
+        >
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-slate-100 dark:bg-surface text-light-text-muted px-2 py-0.5 rounded-full mb-1">EQUIPE</span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">SLA</h3>
+            <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
+              EQUIPE
+            </span>
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-cyan-400 transition-colors">
+              SLA
+            </h3>
           </div>
           <CircularProgress
             value={percentualSla}
             maxValue={100}
-            color="#0891b2"
+            color={percentualSla < 90.0 ? '#EF4444' : '#0891b2'}
             label={percentualSla.toFixed(1)}
             isPercentage={true}
           />
-          <p className="text-[10px] text-light-text-muted mt-1">Meta: ≥ 90%</p>
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-cyan-400 font-semibold group-hover:underline">
+            <span>Ver perdas</span>
+            <span className="text-[11px]">→</span>
+          </div>
+          <p className="text-[9px] text-light-text-muted">Meta: ≥ 90%</p>
         </div>
 
         {/* 2. Card Reincidência (Equipe) */}
-        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-status-danger/30 transition-colors">
+        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/30 transition-colors">
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-slate-100 dark:bg-surface text-light-text-muted px-2 py-0.5 rounded-full mb-1">EQUIPE</span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">Reincidência</h3>
+            <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1">
+              EQUIPE
+            </span>
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">
+              Reincidência
+            </h3>
           </div>
           <CircularProgress
             value={displayMetricas.percentualReincidenciaEquipe || 0}
             maxValue={100}
-            color="#EF4444"
+            color={(displayMetricas.percentualReincidenciaEquipe || 0) > 7.0 ? '#EF4444' : '#0891b2'}
             label={(displayMetricas.percentualReincidenciaEquipe || 0).toFixed(1)}
             isPercentage={true}
           />
-          <p className="text-[10px] text-light-text-muted mt-1">Meta: {'<'} 7%</p>
+          <p className="text-[10px] text-light-text-muted mt-1">Meta: &lt; 7%</p>
         </div>
 
         {/* 3. Card Reincidência (Individual) - INTERATIVO */}
         <div 
           onClick={() => setIsReincidentesModalOpen(true)}
-          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-pink-500/60 hover:shadow-lg hover:shadow-pink-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
           title="Clique para ver os chamados reincidentes e análise de falhas"
         >
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-pink-500/10 text-pink-500 px-2 py-0.5 rounded-full mb-1 group-hover:bg-pink-500 group-hover:text-white transition-colors">
+            <span className="text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full mb-1 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
               INDIVIDUAL
             </span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-pink-400 transition-colors">
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-cyan-400 transition-colors">
               REINC. (IND)
             </h3>
           </div>
           <CircularProgress
             value={percentualReincidencia}
             maxValue={100}
-            color="#ec4899"
+            color={percentualReincidencia > 7.0 ? '#EF4444' : '#0891b2'}
             label={percentualReincidencia.toFixed(1)}
             isPercentage={true}
           />
-          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-pink-400 font-semibold group-hover:underline">
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-cyan-400 font-semibold group-hover:underline">
             <span>Ver falhas</span>
             <span className="text-[11px]">→</span>
           </div>
           <p className="text-[9px] text-light-text-muted">Meta: ≤ 7.0%</p>
         </div>
 
-        {/* 4. Card Perdas SLA */}
-        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-orange-400/30 transition-colors">
+        {/* 4. Card Perdas SLA - INTERATIVO */}
+        <div 
+          onClick={() => setIsPerdasModalOpen(true)}
+          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          title="Clique para ver os chamados de falhas de gestão e perdas de SLA"
+        >
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-slate-100 dark:bg-surface text-light-text-muted px-2 py-0.5 rounded-full mb-1">EQUIPE</span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">Perdas</h3>
+            <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
+              EQUIPE
+            </span>
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-cyan-400 transition-colors">
+              Perdas
+            </h3>
           </div>
           <CircularProgress
             value={displayMetricas.percentualPerdidos || 0}
             maxValue={100}
-            color="#fb923c"
+            color={(displayMetricas.percentualPerdidos || 0) > 1.0 ? '#F59E0B' : '#0891b2'}
             label={(displayMetricas.percentualPerdidos || 0).toFixed(1)}
             isPercentage={true}
           />
-          <p className="text-[10px] text-light-text-muted mt-1">Meta: ≤ 1%</p>
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-cyan-400 font-semibold group-hover:underline">
+            <span>Ver falhas</span>
+            <span className="text-[11px]">→</span>
+          </div>
+          <p className="text-[9px] text-light-text-muted">Meta: ≤ 1%</p>
         </div>
 
         {/* 5. Card Avaliação NPS */}
-        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-indigo-400/30 transition-colors">
+        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/30 transition-colors">
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-full mb-1">INDIVIDUAL</span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">NPS</h3>
+            <span className="text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full mb-1">
+              INDIVIDUAL
+            </span>
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">
+              NPS
+            </h3>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center py-2">
-            <p className="text-4xl font-bold text-indigo-400">{displayMetricas.npsScore?.toFixed(1) || '0.0'}</p>
+            <p className="text-4xl font-bold text-cyan-400">{displayMetricas.npsScore?.toFixed(1) || '0.0'}</p>
             <p className="text-xs text-status-success font-medium mt-1">+{displayMetricas.pontosNps || 0} pts</p>
           </div>
           <p className="text-[10px] text-light-text-muted mt-1">Meta: ≥ 85</p>
         </div>
 
         {/* 6. Card Peças */}
-        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-accent-teal/30 transition-colors">
+        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/30 transition-colors">
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-slate-100 dark:bg-surface text-light-text-muted px-2 py-0.5 rounded-full mb-1">EQUIPE</span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">Peças</h3>
+            <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1">
+              EQUIPE
+            </span>
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">
+              Peças
+            </h3>
           </div>
           <CircularProgress
             value={percentualConsumo}
             maxValue={100}
-            color="#0891b2"
+            color={percentualConsumo < 25.0 ? '#F59E0B' : '#0891b2'}
             label={percentualConsumo.toFixed(1)}
             isPercentage={true}
           />
@@ -257,6 +297,27 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         selectedMonth={selectedMonth}
         percentualReincidencia={percentualReincidencia}
         pontosReincidencia={displayMetricas.pontosReincidencia || 0}
+      />
+
+            {/* MODAL DE CHAMADOS PERDIDOS DE SLA E CAUSAS */}
+      <ModalChamadosSlaPerdidos
+        isOpen={isSlaModalOpen}
+        onClose={() => setIsSlaModalOpen(false)}
+        tecnicoId={displayMetricas.idTecnico}
+        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto}
+        selectedMonth={selectedMonth}
+        percentualSla={percentualSla}
+        pontosSla={displayMetricas.pontosSla || 0}
+      />
+
+      {/* MODAL DE PERDAS (FALHAS DE GESTÃO & TRANSFERÊNCIA ENTRE BASES) */}
+      <ModalChamadosPerdas
+        isOpen={isPerdasModalOpen}
+        onClose={() => setIsPerdasModalOpen(false)}
+        tecnicoId={displayMetricas.idTecnico}
+        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto}
+        selectedMonth={selectedMonth}
+        percentualPerdidos={displayMetricas.percentualPerdidos || 0}
       />
 
       <ModalDetalhesPontuacao 
