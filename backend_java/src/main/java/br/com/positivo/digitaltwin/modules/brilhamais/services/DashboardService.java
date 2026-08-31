@@ -170,16 +170,25 @@ public class DashboardService {
                 END AS dias_entre,
                 r.tecnico_nome_anterior,
                 r.tecnico_nome_rrc,
-                r.ct_anterior,
-                r.ct_rrc,
-                r.projeto_anterior,
-                r.projeto_rrc,
+                COALESCE((SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = r.ct_anterior LIMIT 1), r.ct_anterior) AS ct_anterior,
+                COALESCE((SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = r.ct_rrc LIMIT 1), r.ct_rrc) AS ct_rrc,
+                CASE 
+                    WHEN r.projeto_anterior LIKE 'H3-%' OR r.projeto_anterior LIKE '%GOV%' THEN 'Governo'
+                    ELSE 'Corporativo'
+                END AS projeto_anterior,
+                CASE 
+                    WHEN r.projeto_rrc LIKE 'H3-%' OR r.projeto_rrc LIKE '%GOV%' THEN 'Governo'
+                    ELSE 'Corporativo'
+                END AS projeto_rrc,
                 r.defeito_anterior,
                 r.ocorrencia_chamado_anterior,
                 r.texto_encerrado_anterior,
                 r.aplicado_peca_anterior
             FROM reincidentes r
-            JOIN tb_tecnico t ON UPPER(TRIM(r.tecnico_nome_anterior)) = UPPER(TRIM(t.nome_completo))
+            JOIN tb_tecnico t ON (
+                UPPER(TRIM(r.tecnico_nome_anterior)) = UPPER(TRIM(t.nome_completo))
+                OR TRANSLATE(UPPER(TRIM(r.tecnico_nome_anterior)), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC') = TRANSLATE(UPPER(TRIM(t.nome_completo)), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC')
+            )
             WHERE t.id_tecnico = ?
         """);
 
@@ -244,15 +253,23 @@ public class DashboardService {
                 c.ft,
                 c.tecnico_nome,
                 c.assistencia_centro_trabalho AS ct,
-                c.assistencia_nome,
+                COALESCE(
+                    (SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = c.assistencia_centro_trabalho AND b.cidade IS NOT NULL LIMIT 1),
+                    c.assistencia_nome,
+                    c.assistencia_centro_trabalho
+                ) AS assistencia_nome,
                 c.equipamento,
-                c.projeto,
+                CASE 
+                    WHEN ch.gp_segmento = 'GOV' OR ch.gp_desc LIKE '%GOVERNO%' OR c.projeto LIKE 'H3-%' THEN 'Governo'
+                    ELSE 'Corporativo'
+                END AS projeto,
                 c.sla_status,
                 COALESCE(NULLIF(TRIM(c.classifica_chamado), ''), 'EXPIRADO EM CAMPO / FORA DO SLA') AS causa_perda,
                 c.texto_encerrado
             FROM tb_chamado c
             JOIN tb_tecnico_base tb ON tb.ct_codigo = c.assistencia_centro_trabalho
             JOIN tb_tecnico t ON t.id_tecnico = tb.id_tecnico
+            LEFT JOIN chamados ch ON ch.chamado = c.chamado::text
             WHERE tb.id_tecnico = ?
               AND (c.sla_status = 'FORA' OR (c.classifica_chamado IS NOT NULL AND TRIM(c.classifica_chamado) NOT IN ('', 'DENTRO DO SLA')))
         """);
@@ -261,7 +278,7 @@ public class DashboardService {
         params.add(idTecnico);
 
         if (!isSupervisorOrAdmin) {
-            sql.append(" AND UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(t.nome_completo))");
+            sql.append(" AND (UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(t.nome_completo)) OR TRANSLATE(UPPER(TRIM(c.tecnico_nome)), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC') = TRANSLATE(UPPER(TRIM(t.nome_completo)), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC'))");
         }
 
         String mesFiltro = mesAnoStr != null ? mesAnoStr.trim().toLowerCase() : "";
@@ -308,15 +325,23 @@ public class DashboardService {
                 c.ft,
                 c.tecnico_nome,
                 c.assistencia_centro_trabalho AS ct,
-                c.assistencia_nome,
+                COALESCE(
+                    (SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = c.assistencia_centro_trabalho AND b.cidade IS NOT NULL LIMIT 1),
+                    c.assistencia_nome,
+                    c.assistencia_centro_trabalho
+                ) AS assistencia_nome,
                 c.equipamento,
-                c.projeto,
+                CASE 
+                    WHEN ch.gp_segmento = 'GOV' OR ch.gp_desc LIKE '%GOVERNO%' OR c.projeto LIKE 'H3-%' THEN 'Governo'
+                    ELSE 'Corporativo'
+                END AS projeto,
                 c.sla_status,
                 COALESCE(NULLIF(TRIM(c.classifica_chamado), ''), 'PERFORMANCE FALHA GESTAO') AS causa_perda,
                 c.texto_encerrado
             FROM tb_chamado c
             JOIN tb_tecnico_base tb ON tb.ct_codigo = c.assistencia_centro_trabalho
             JOIN tb_tecnico t ON t.id_tecnico = tb.id_tecnico
+            LEFT JOIN chamados ch ON ch.chamado = c.chamado::text
             WHERE tb.id_tecnico = ?
               AND c.classifica_chamado IN ('PERFORMANCE FALHA GESTAO', 'TRANSFERENCIA ENTRE BASES')
         """);
@@ -325,7 +350,7 @@ public class DashboardService {
         params.add(idTecnico);
 
         if (!isSupervisorOrAdmin) {
-            sql.append(" AND UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(t.nome_completo))");
+            sql.append(" AND (UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(t.nome_completo)) OR TRANSLATE(UPPER(TRIM(c.tecnico_nome)), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC') = TRANSLATE(UPPER(TRIM(t.nome_completo)), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC'))");
         }
 
         String mesFiltro = mesAnoStr != null ? mesAnoStr.trim().toLowerCase() : "";
