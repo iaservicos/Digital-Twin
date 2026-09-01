@@ -169,6 +169,20 @@ class CalculoPontuacaoService:
                 FROM tb_base_atp
             ) b ON r.ct_rrc = b.ct_codigo
             WHERE TO_CHAR(r.ft_rrc, 'YYYY-MM') = '{ano_mes_str}'
+              AND NOT (
+                  COALESCE(UPPER(TRIM(r.aplicado_peca_anterior)), 'NÃO') IN ('NÃO', 'NAO', 'N')
+                  AND COALESCE(UPPER(TRIM(r.aplicado_peca_rrc)), 'NÃO') IN ('NÃO', 'NAO', 'N')
+                  AND (
+                      UPPER(COALESCE(r.defeito_anterior, '')) IN ('SEM DEFEITO', 'DEFEITO NÃO LOCALIZADO', 'CANCELADO')
+                      OR UPPER(COALESCE(r.defeito_rrc, '')) IN ('SEM DEFEITO', 'DEFEITO NÃO LOCALIZADO', 'CANCELADO')
+                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%SEM DEFEITO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%DEFEITO N%O LOCALIZADO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%CANCELAD%'
+                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%SEM DEFEITO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%DEFEITO N%O LOCALIZADO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%CANCELAD%'
+                  )
+              )
             GROUP BY 
                 CASE 
                     WHEN b.uf IN ('PE', 'AL') THEN 'PE'
@@ -204,6 +218,7 @@ class CalculoPontuacaoService:
         """
         Calcula a Reincidência Individual: Reincidências do 1º Atendimento / Total de Chamados do Técnico.
         Meta: <= 7.0% -> 15.0 pts | <= 10.0% -> 10.0 pts | > 10.0% -> 0.0 pts.
+        Exclui reincidências sem peça com defeito não localizado/cancelamento/sem defeito.
         """
         query = f"""
             SELECT 
@@ -211,6 +226,20 @@ class CalculoPontuacaoService:
                 COUNT(*) AS total_reinc_tec
             FROM reincidentes r
             WHERE TO_CHAR(r.ft_rrc, 'YYYY-MM') = '{ano_mes_str}'
+              AND NOT (
+                  COALESCE(UPPER(TRIM(r.aplicado_peca_anterior)), 'NÃO') IN ('NÃO', 'NAO', 'N')
+                  AND COALESCE(UPPER(TRIM(r.aplicado_peca_rrc)), 'NÃO') IN ('NÃO', 'NAO', 'N')
+                  AND (
+                      UPPER(COALESCE(r.defeito_anterior, '')) IN ('SEM DEFEITO', 'DEFEITO NÃO LOCALIZADO', 'CANCELADO')
+                      OR UPPER(COALESCE(r.defeito_rrc, '')) IN ('SEM DEFEITO', 'DEFEITO NÃO LOCALIZADO', 'CANCELADO')
+                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%SEM DEFEITO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%DEFEITO N%O LOCALIZADO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%CANCELAD%'
+                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%SEM DEFEITO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%DEFEITO N%O LOCALIZADO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%CANCELAD%'
+                  )
+              )
             GROUP BY UPPER(TRIM(r.tecnico_nome_anterior));
         """
         cur.execute(query)

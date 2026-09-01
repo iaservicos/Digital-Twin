@@ -139,15 +139,18 @@ public class DashboardService {
     private Map<Long, Map<String, String>> fetchPecasETextosChamados(List<Long> chamadosIds) {
         if (chamadosIds.isEmpty()) return Collections.emptyMap();
 
-        String inClause = chamadosIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+                String inClause = chamadosIds.stream().map(id -> "'" + id + "'").collect(Collectors.joining(","));
         Map<Long, Map<String, String>> resultado = new HashMap<>();
 
         try {
-            String sqlPecas = "SELECT chamado, string_agg(DISTINCT grupo_mercadoria_desc, ', ') as pecas " +
+            String sqlPecas = "SELECT chamado, string_agg(DISTINCT COALESCE(cod_aplic_desc, cod_solic_desc), ', ') as pecas " +
                               "FROM pecas WHERE chamado IN (" + inClause + ") GROUP BY chamado";
             jdbcTemplate.query(sqlPecas, rs -> {
-                long ch = rs.getLong("chamado");
-                resultado.computeIfAbsent(ch, k -> new HashMap<>()).put("pecas", rs.getString("pecas"));
+                String chStr = rs.getString("chamado");
+                if (chStr != null && chStr.matches("\\d+")) {
+                    long ch = Long.parseLong(chStr);
+                    resultado.computeIfAbsent(ch, k -> new HashMap<>()).put("pecas", rs.getString("pecas"));
+                }
             });
         } catch (Exception e) {
             log.warn("Aviso ao buscar peças vinculadas aos chamados: {}", e.getMessage());
@@ -157,6 +160,12 @@ public class DashboardService {
     }
 
     public List<ChamadoReincidenteDTO> getReincidentesTecnico(Integer idTecnico, String mesAnoStr) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSupervisorOrAdmin = auth != null && auth.getAuthorities().stream().anyMatch(a -> {
+            String name = a.getAuthority().toUpperCase();
+            return name.contains("SUPERVISOR") || name.contains("MODERADOR") || name.contains("ADMIN");
+        });
+
         StringBuilder sql = new StringBuilder("""
             SELECT 
                 r.chamado_anterior,
@@ -183,17 +192,50 @@ public class DashboardService {
                 r.defeito_anterior,
                 r.ocorrencia_chamado_anterior,
                 r.texto_encerrado_anterior,
-                r.aplicado_peca_anterior
+                r.aplicado_peca_anterior,
+                r.defeito_rrc,
+                r.ocorrencia_chamado_rrc,
+                r.texto_encerrado_rrc,
+                r.aplicado_peca_rrc,
+                COALESCE(
+                    (SELECT STRING_AGG(DISTINCT p.cod_aplic_desc, ' | ') 
+                     FROM pecas p 
+                     WHERE p.chamado = r.chamado_anterior AND p.cod_aplic_desc IS NOT NULL),
+                    CASE 
+                        WHEN r.trocou_plm_anterior = 'Sim' THEN 'PLACA MÃE (PLM)' 
+                        WHEN r.aplicado_peca_anterior = 'Sim' THEN 'PEÇA APLICADA (Ver laudo)'
+                        ELSE 'Nenhuma peça aplicada' 
+                    END
+                ) AS peca_nome_anterior,
+                COALESCE(
+                    (SELECT STRING_AGG(DISTINCT p.cod_aplic_desc, ' | ') 
+                     FROM pecas p 
+                     WHERE p.chamado = r.chamado_rrc AND p.cod_aplic_desc IS NOT NULL),
+                    CASE 
+                        WHEN r.trocou_plm_rrc = 'Sim' THEN 'PLACA MÃE (PLM)' 
+                        WHEN r.aplicado_peca_rrc = 'Sim' THEN COALESCE(r.material_descricao_rrc, 'PEÇA APLICADA (Ver laudo)')
+                        ELSE 'Nenhuma peça aplicada' 
+                    END
+                ) AS peca_nome_rrc
             FROM reincidentes r
-            JOIN tb_tecnico t ON (
-                UPPER(TRIM(r.tecnico_nome_anterior)) = UPPER(TRIM(t.nome_completo))
-                OR TRANSLATE(UPPER(TRIM(r.tecnico_nome_anterior)), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC') = TRANSLATE(UPPER(TRIM(t.nome_completo)), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC')
-            )
-            WHERE t.id_tecnico = ?
         """);
 
         List<Object> params = new ArrayList<>();
-        params.add(idTecnico);
+
+        String nomeTecnico = null;
+        try {
+            nomeTecnico = jdbcTemplate.queryForObject(
+                "SELECT nome_completo FROM tb_tecnico WHERE id_tecnico = ?", String.class, idTecnico);
+        } catch (Exception e) {
+            // fallback caso não encontre
+        }
+        if (nomeTecnico != null) {
+            sql.append(" WHERE (r.tecnico_nome_anterior = ? OR UPPER(TRIM(r.tecnico_nome_anterior)) = UPPER(TRIM(?)))");
+            params.add(nomeTecnico);
+            params.add(nomeTecnico);
+        } else {
+            sql.append(" WHERE 1=0");
+        }
 
         String mesFiltro = mesAnoStr != null ? mesAnoStr.trim().toLowerCase() : "";
 
@@ -228,7 +270,13 @@ public class DashboardService {
                 rs.getString("defeito_anterior"),
                 rs.getString("ocorrencia_chamado_anterior"),
                 rs.getString("texto_encerrado_anterior"),
-                rs.getString("aplicado_peca_anterior")
+                rs.getString("aplicado_peca_anterior"),
+                rs.getString("defeito_rrc"),
+                rs.getString("ocorrencia_chamado_rrc"),
+                rs.getString("texto_encerrado_rrc"),
+                rs.getString("aplicado_peca_rrc"),
+                rs.getString("peca_nome_anterior"),
+                rs.getString("peca_nome_rrc")
         ), params.toArray());
     }
 

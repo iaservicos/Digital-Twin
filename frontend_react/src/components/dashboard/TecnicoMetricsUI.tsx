@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuthStore } from '../../store/authStore';
 import { Award, TrendingUp, CheckCircle2, Medal, XCircle, ShieldAlert } from 'lucide-react';
 import { CircularProgress } from '../ui/CircularProgress';
 import ChamadosHistoryCard from './ChamadosHistoryCard';
@@ -22,6 +23,9 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   selectedMonth,
   setSelectedMonth
 }) => {
+  const user = useAuthStore(state => state.user);
+  const isSupervisorOrAdmin = ['SUPERVISOR', 'MODERADOR', 'ADMIN', 'ROLE_SUPERVISOR', 'ROLE_MODERADOR', 'ROLE_ADMIN'].includes((user?.role || '').toUpperCase());
+
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isReincidentesModalOpen, setIsReincidentesModalOpen] = useState(false);
   const [isSlaModalOpen, setIsSlaModalOpen] = useState(false);
@@ -139,7 +143,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
 
         <div className="lg:col-span-2">
           {displayMetricas.idTecnico && (
-            <ChamadosHistoryCard tecnicoId={displayMetricas.idTecnico} />
+            <ChamadosHistoryCard tecnicoId={displayMetricas.idTecnico || (displayMetricas as any).id || (user as any)?.idTecnico || (user as any)?.id} />
           )}
         </div>
       </div>
@@ -174,13 +178,17 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
           <p className="text-[9px] text-light-text-muted">Meta: ≥ 90%</p>
         </div>
 
-        {/* 2. Card Reincidência (Equipe) */}
-        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/30 transition-colors">
+                {/* 2. Card Reincidência (Equipe) - INTERATIVO */}
+        <div 
+          onClick={() => setIsReincidentesModalOpen(true)}
+          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          title={isSupervisorOrAdmin ? "Clique para ver todas as reincidências da equipe/base" : "Clique para ver as reincidências da equipe"}
+        >
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1">
+            <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
               EQUIPE
             </span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-cyan-400 transition-colors">
               Reincidência
             </h3>
           </div>
@@ -191,14 +199,18 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
             label={(displayMetricas.percentualReincidenciaEquipe || 0).toFixed(1)}
             isPercentage={true}
           />
-          <p className="text-[10px] text-light-text-muted mt-1">Meta: &lt; 7%</p>
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-cyan-400 font-semibold group-hover:underline">
+            <span>Ver falhas</span>
+            <span className="text-[11px]">→</span>
+          </div>
+          <p className="text-[9px] text-light-text-muted">Meta: &lt; 7%</p>
         </div>
 
         {/* 3. Card Reincidência (Individual) - INTERATIVO */}
         <div 
           onClick={() => setIsReincidentesModalOpen(true)}
           className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
-          title="Clique para ver os chamados reincidentes e análise de falhas"
+          title={isSupervisorOrAdmin ? "Clique para ver todas as reincidências da equipe/base" : "Clique para ver suas reincidências e análise de falhas"}
         >
           <div className="flex flex-col items-center mb-2">
             <span className="text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full mb-1 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
@@ -226,7 +238,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         <div 
           onClick={() => setIsPerdasModalOpen(true)}
           className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
-          title="Clique para ver os chamados de falhas de gestão e perdas de SLA"
+          title={isSupervisorOrAdmin ? "Clique para ver todas as perdas da equipe/base" : "Clique para ver suas perdas por falhas de gestão / transferência"}
         >
           <div className="flex flex-col items-center mb-2">
             <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
@@ -292,8 +304,8 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
       <ModalChamadosReincidentes
         isOpen={isReincidentesModalOpen}
         onClose={() => setIsReincidentesModalOpen(false)}
-        tecnicoId={displayMetricas.idTecnico}
-        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto}
+        tecnicoId={displayMetricas.idTecnico || (displayMetricas as any).id || (user as any)?.idTecnico || (user as any)?.id}
+        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto || user?.nomeCompleto}
         selectedMonth={selectedMonth}
         percentualReincidencia={percentualReincidencia}
         pontosReincidencia={displayMetricas.pontosReincidencia || 0}
@@ -303,8 +315,8 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
       <ModalChamadosSlaPerdidos
         isOpen={isSlaModalOpen}
         onClose={() => setIsSlaModalOpen(false)}
-        tecnicoId={displayMetricas.idTecnico}
-        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto}
+        tecnicoId={displayMetricas.idTecnico || (displayMetricas as any).id || (user as any)?.idTecnico || (user as any)?.id}
+        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto || user?.nomeCompleto}
         selectedMonth={selectedMonth}
         percentualSla={percentualSla}
         pontosSla={displayMetricas.pontosSla || 0}
@@ -314,8 +326,8 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
       <ModalChamadosPerdas
         isOpen={isPerdasModalOpen}
         onClose={() => setIsPerdasModalOpen(false)}
-        tecnicoId={displayMetricas.idTecnico}
-        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto}
+        tecnicoId={displayMetricas.idTecnico || (displayMetricas as any).id || (user as any)?.idTecnico || (user as any)?.id}
+        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto || user?.nomeCompleto}
         selectedMonth={selectedMonth}
         percentualPerdidos={displayMetricas.percentualPerdidos || 0}
       />

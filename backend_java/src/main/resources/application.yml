@@ -21,6 +21,7 @@ spring:
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
+      connection-init-sql: "SET default_transaction_read_only = off"
   jpa:
     hibernate:
       ddl-auto: none

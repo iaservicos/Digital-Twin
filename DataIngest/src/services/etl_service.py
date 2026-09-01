@@ -272,7 +272,10 @@ class ETLService:
             cols_reinc = """
                 chamado_rrc, chamado_anterior, ft_rrc, ft_anterior, ct_anterior, ct_rrc,
                 tecnico_nome_anterior, tecnico_nome_rrc, projeto_anterior, projeto_rrc,
-                aplicado_peca_anterior, defeito_anterior, texto_encerrado_anterior, ocorrencia_chamado_anterior
+                aplicado_peca_anterior, defeito_anterior, texto_encerrado_anterior, ocorrencia_chamado_anterior,
+                defeito_rrc, texto_encerrado_rrc, texto_abertura_rrc, texto_abertura_anterior, ocorrencia_chamado_rrc,
+                aplicado_peca_rrc, trocou_plm_anterior, trocou_plm_rrc, encerramento_anterior, encerramento_rrc,
+                abertura_anterior, abertura_rrc, meses_rrc, classificacao, material_descricao_rrc, serie, segmento_rrc
             """
             q_reincidentes = f"SELECT {cols_reinc} FROM reincidentes WHERE chamado_rrc IS NOT NULL{date_clause_rrc}{limit_clause};"
             res_reincidentes = self.run_pipeline(query=q_reincidentes, target_table="reincidentes")

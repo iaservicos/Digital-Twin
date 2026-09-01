@@ -26,7 +26,10 @@ class PostgreSQLClient:
 
     def _get_connection(self):
         """Abre uma conexão com o PostgreSQL."""
-        return psycopg.connect(self.conn_info)
+        conn = psycopg.connect(self.conn_info, autocommit=True)
+        with conn.cursor() as cur:
+            cur.execute("SET default_transaction_read_only = off;")
+        return conn
 
     def execute_query(self, query: str) -> None:
         """
@@ -102,22 +105,29 @@ class PostgreSQLClient:
                     cur.execute(create_table_sql)
                     conn.commit()
 
-                # 2. Criar tabela temporária de staging idêntica à de destino
-                temp_table = f"temp_staging_{table_name}"
-                cur.execute(f"CREATE TEMP TABLE {temp_table} (LIKE {target_table} INCLUDING DEFAULTS) ON COMMIT DROP;")
-
-                # 3. Carregamento ultra-rápido via COPY FROM STDIN na tabela temporária
                 buffer = io.BytesIO()
                 formatted_df.write_csv(buffer)
                 buffer.seek(0)
 
-                copy_query = f"COPY {temp_table} ({columns_formatted}) FROM STDIN WITH (FORMAT csv, HEADER true, NULL '')"
-                with cur.copy(copy_query) as copy:
-                    while data := buffer.read(65536):
-                        copy.write(data)
+                if not conflict_column:
+                    # Carregamento direto ultra-rápido via COPY sem necessidade de tabela temporária
+                    copy_query = f"COPY {target_table} ({columns_formatted}) FROM STDIN WITH (FORMAT csv, HEADER true, NULL '')"
+                    with cur.copy(copy_query) as copy:
+                        while data := buffer.read(65536):
+                            copy.write(data)
+                    conn.commit()
+                else:
+                    # 2. Criar tabela temporária de staging idêntica à de destino para upsert
+                    temp_table = f"temp_staging_{table_name}"
+                    cur.execute(f"CREATE TEMP TABLE IF NOT EXISTS {temp_table} (LIKE {target_table} INCLUDING DEFAULTS);")
+                    cur.execute(f"TRUNCATE TABLE {temp_table};")
 
-                # 4. Transferência da tabela temporária para a tabela oficial com ON CONFLICT
-                if conflict_column and conflict_column in formatted_df.columns:
+                    copy_query = f"COPY {temp_table} ({columns_formatted}) FROM STDIN WITH (FORMAT csv, HEADER true, NULL '')"
+                    with cur.copy(copy_query) as copy:
+                        while data := buffer.read(65536):
+                            copy.write(data)
+
+                    # Transferência com ON CONFLICT
                     non_conflict_cols = [c for c in formatted_df.columns if c != conflict_column]
                     update_assignments = ", ".join([f'"{c}" = EXCLUDED."{c}"' for c in non_conflict_cols])
                     
@@ -126,14 +136,8 @@ class PostgreSQLClient:
                         SELECT {columns_formatted} FROM {temp_table}
                         ON CONFLICT ("{conflict_column}") DO UPDATE SET {update_assignments};
                     """
-                else:
-                    merge_sql = f"""
-                        INSERT INTO {target_table} ({columns_formatted})
-                        SELECT {columns_formatted} FROM {temp_table};
-                    """
-                
-                cur.execute(merge_sql)
-                conn.commit()
+                    cur.execute(merge_sql)
+                    conn.commit()
 
         logger.info(f"Gravados/Atualizados {rows_count} registros com sucesso na tabela '{target_table}'.")
         return rows_count

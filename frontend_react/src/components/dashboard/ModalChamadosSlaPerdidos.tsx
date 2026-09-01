@@ -195,48 +195,49 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
     const c = (causa || '').toUpperCase();
     if (c.includes('PEÇA') || c.includes('PECA')) {
       return {
-        bg: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-        icon: <Package size={14} className="text-amber-400" />
+        bg: 'bg-slate-800 text-slate-300 border-slate-700',
+        icon: <Package size={14} className="text-slate-400" />
       };
     }
     if (c.includes('GESTAO') || c.includes('GESTÃO')) {
       return {
-        bg: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
-        icon: <ShieldAlert size={14} className="text-purple-400" />
+        bg: 'bg-slate-800 text-slate-300 border-slate-700',
+        icon: <ShieldAlert size={14} className="text-slate-400" />
       };
     }
     if (c.includes('TRANSFERENCIA') || c.includes('TRANSFERÊNCIA')) {
       return {
-        bg: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
-        icon: <ArrowRight size={14} className="text-blue-400" />
+        bg: 'bg-slate-800 text-slate-300 border-slate-700',
+        icon: <ArrowRight size={14} className="text-slate-400" />
       };
     }
     return {
-      bg: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
-      icon: <Clock size={14} className="text-rose-400" />
+      bg: 'bg-slate-800 text-slate-300 border-slate-700',
+      icon: <Clock size={14} className="text-slate-400" />
     };
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-slate-100 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-slate-100 relative">
         
         {/* Top Header */}
-        <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-cyan-950/20 to-slate-900">
+        <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-950/60">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center gap-1"><Clock size={12} /> SLA</span>
+              <span className="text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
+                <Clock size={12} /> SLA
+              </span>
               <span className="text-xs text-slate-400 font-medium">
                 • {periodoLabel}
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">Chamados encerrados fora do SLA</h2>
-            
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer self-end sm:self-center"
+            className="p-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer self-end sm:self-center"
             title="Fechar Modal"
           >
             <X size={20} />
@@ -244,9 +245,9 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
         </div>
 
         {/* Mini-Dashboard de Estatísticas de SLA */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 sm:p-6 bg-slate-950/50 border-b border-slate-800/80">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 sm:p-6 bg-slate-950/40 border-b border-slate-800/80">
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col">
-            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Atingimento SLA</span>
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Atingimento SLA</span>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className={`text-2xl font-black ${percentualSla >= 90 ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {percentualSla.toFixed(1)}%
@@ -256,27 +257,27 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
           </div>
 
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col">
-            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Chamados Perdidos</span>
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Chamados Fora SLA</span>
             <div className="flex items-baseline gap-1.5 mt-1">
-              <span className="text-2xl font-black text-rose-400">
+              <span className="text-2xl font-black text-white">
                 {chamados.length}
               </span>
-              <span className="text-xs text-slate-500 font-semibold">ocorrências</span>
+              <span className="text-xs text-slate-500 font-semibold">chamados</span>
             </div>
           </div>
 
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col">
-            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Pontuação do KPI</span>
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Pontuação do KPI</span>
             <div className="flex items-baseline gap-1.5 mt-1">
-              <span className="text-2xl font-black text-cyan-400">
+              <span className="text-2xl font-black text-white">
                 {pontosSla.toFixed(1)}
               </span>
-              <span className="text-xs text-slate-500 font-semibold">/ 15.0 pts</span>
+              <span className="text-xs text-slate-500 font-semibold">/ 32.5 pts</span>
             </div>
           </div>
 
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-center">
-            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Status da Base</span>
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1">Status da Base</span>
             {percentualSla >= 90 ? (
               <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
                 <CheckCircle2 size={14} /> Meta Atingida
@@ -290,17 +291,17 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
         </div>
 
         {/* Barra de Filtros e Busca */}
-        <div className="p-4 sm:p-6 pb-2 border-b border-slate-800/80 flex flex-col gap-3 bg-slate-900/40">
+        <div className="p-4 sm:p-6 pb-2 border-b border-slate-800/80 flex flex-col gap-3 bg-slate-900/80">
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             {/* Input de Busca */}
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
                 placeholder={isSupervisorOrAdmin ? "Buscar por chamados ou nome do técnico..." : "Buscar por chamado..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/50 transition-all"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50 transition-all"
               />
               {searchTerm && (
                 <button
@@ -314,30 +315,29 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
           </div>
 
           {/* Filtros em Pílulas por Causa da Perda */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide text-xs">
-            <span className="text-slate-400 font-semibold flex items-center gap-1 whitespace-nowrap mr-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-hide text-xs">
+            <span className="text-slate-500 font-bold uppercase text-[11px] flex items-center gap-1 whitespace-nowrap mr-1">
               <Filter size={12} /> Causas:
             </span>
             <button
               onClick={() => setSelectedCausa('TODOS')}
-              className={`px-3 py-1 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedCausa === 'TODOS'
-                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
                   : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
               }`}
             >
               Todas ({chamados.length})
             </button>
-            {causasDisponiveis.map((causa) => {
+            {causasDisponiveis.map(causa => {
               const count = chamados.filter(c => c.causaPerda === causa).length;
-              const isSel = selectedCausa === causa;
               return (
                 <button
                   key={causa}
                   onClick={() => setSelectedCausa(causa)}
-                  className={`px-3 py-1 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
-                    isSel
-                      ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                  className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
+                    selectedCausa === causa
+                      ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
                       : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
                   }`}
                 >
@@ -373,12 +373,12 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
               return (
                 <div
                   key={`${item.chamado}-${index}`}
-                  className="bg-slate-950/80 border border-slate-800/90 hover:border-cyan-500/40 rounded-xl p-4 sm:p-5 transition-all shadow-md flex flex-col gap-3 group"
+                  className="bg-slate-950/80 border border-slate-800 hover:border-slate-700 rounded-xl p-4 sm:p-5 transition-all shadow-md flex flex-col gap-3 group"
                 >
                   {/* Linha Superior: Número do Chamado + Badge da Causa */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-mono font-black text-cyan-400 bg-cyan-950/60 px-2.5 py-1 rounded-lg border border-cyan-800/40">
+                      <span className="text-xs font-mono font-bold text-slate-200 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
                         #{item.chamado}
                       </span>
                       <div className="text-xs text-slate-400 flex items-center gap-1.5">
@@ -387,7 +387,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                       </div>
                     </div>
 
-                    <div className={`px-3 py-1 rounded-full border text-xs font-bold flex items-center gap-1.5 w-fit ${causaStyle.bg}`}>
+                    <div className={`px-3 py-1 rounded-full border text-xs font-semibold flex items-center gap-1.5 w-fit ${causaStyle.bg}`}>
                       {causaStyle.icon}
                       <span>Causa: {item.causaPerda}</span>
                     </div>
@@ -395,34 +395,34 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
 
                   {/* Informações Centrais: Técnico, Equipamento, Projeto e Base */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs py-1">
-                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/50">
-                      <span className="text-slate-500 font-medium block">Técnico</span>
-                      <span className="text-slate-200 font-bold flex items-center gap-1 mt-0.5">
-                        <User size={13} className="text-cyan-400 shrink-0" />
+                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60">
+                      <span className="text-slate-500 font-medium block text-[10px] uppercase">Técnico</span>
+                      <span className="text-slate-200 font-semibold flex items-center gap-1 mt-0.5">
+                        <User size={13} className="text-slate-400 shrink-0" />
                         <span className="truncate">{item.tecnicoNome || 'Não informado'}</span>
                       </span>
                     </div>
 
-                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/50">
-                      <span className="text-slate-500 font-medium block">Equipamento / Modelo</span>
-                      <span className="text-slate-200 font-bold flex items-center gap-1 mt-0.5">
-                        <Wrench size={13} className="text-amber-400 shrink-0" />
+                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60">
+                      <span className="text-slate-500 font-medium block text-[10px] uppercase">Equipamento / Modelo</span>
+                      <span className="text-slate-200 font-semibold flex items-center gap-1 mt-0.5">
+                        <Wrench size={13} className="text-slate-400 shrink-0" />
                         <span className="truncate">{item.equipamento || 'Equipamento padrão'}</span>
                       </span>
                     </div>
 
-                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/50">
-                      <span className="text-slate-500 font-medium block">Projeto</span>
-                      <span className="text-slate-200 font-bold flex items-center gap-1 mt-0.5">
-                        <Layers size={13} className="text-indigo-400 shrink-0" />
+                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60">
+                      <span className="text-slate-500 font-medium block text-[10px] uppercase">Projeto</span>
+                      <span className="text-slate-200 font-semibold flex items-center gap-1 mt-0.5">
+                        <Layers size={13} className="text-slate-400 shrink-0" />
                         <span className="truncate">{formatProjeto(item.projeto)}</span>
                       </span>
                     </div>
 
-                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/50">
-                      <span className="text-slate-500 font-medium block">Base ATP</span>
-                      <span className="text-slate-200 font-bold flex items-center gap-1 mt-0.5">
-                        <Building2 size={13} className="text-emerald-400 shrink-0" />
+                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60">
+                      <span className="text-slate-500 font-medium block text-[10px] uppercase">Base ATP</span>
+                      <span className="text-slate-200 font-semibold flex items-center gap-1 mt-0.5">
+                        <Building2 size={13} className="text-slate-400 shrink-0" />
                         <span className="truncate">{formatCidadeBase(item.assistenciaNome, item.ctCodigo)}</span>
                       </span>
                     </div>
@@ -431,11 +431,11 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                   {/* Laudo Técnico / Texto de Encerramento */}
                   {item.textoEncerramento && (
                     <div className="mt-1 bg-slate-900/90 border border-slate-800 rounded-lg p-3">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300 mb-1.5">
-                        <FileText size={13} className="text-cyan-400" />
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 mb-1.5">
+                        <FileText size={13} className="text-slate-400" />
                         <span>Laudo Técnico & Detalhes de Encerramento:</span>
                       </div>
-                      <p className="text-xs text-slate-300 whitespace-pre-line leading-relaxed font-mono bg-slate-950/60 p-2.5 rounded border border-slate-800/60 max-h-36 overflow-y-auto">
+                      <p className="text-xs text-slate-300 whitespace-pre-line leading-relaxed font-mono bg-slate-950/90 p-2.5 rounded border border-slate-800 max-h-36 overflow-y-auto select-text">
                         {item.textoEncerramento}
                       </p>
                     </div>

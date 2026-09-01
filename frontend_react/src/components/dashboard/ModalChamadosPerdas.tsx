@@ -218,16 +218,16 @@ export default function ModalChamadosPerdas({
   const periodoLabel = selectedMonth && selectedMonth !== 'Média Final' ? selectedMonth : 'Campanha Completa';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
       <div 
-        className="bg-slate-900 border border-cyan-500/30 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl shadow-cyan-950/40 overflow-hidden"
+        className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* TOP HEADER */}
-        <div className="relative px-6 py-5 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-950/40 via-slate-900 to-slate-900 flex items-start justify-between gap-4">
+        <div className="relative px-6 py-5 border-b border-slate-800 bg-slate-950/60 flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-orange-500/10 text-cyan-400 border border-cyan-500/30 flex items-center gap-1">
+              <span className="text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
                 <AlertTriangle size={12} />
                 {visaoFiltro === 'INDIVIDUAL' ? 'SUAS PERDAS DE PERFORMANCE' : 'PERDAS DA EQUIPE (BASE COMPLETA)'}
               </span>
@@ -238,17 +238,16 @@ export default function ModalChamadosPerdas({
             <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
               Perdas por Falha de Gestão & Transferência entre Bases
             </h2>
-            
           </div>
 
           <div className="flex items-center gap-2">
             {isSupervisorOrAdmin && (
-              <div className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
                 <button
                   onClick={() => setVisaoFiltro('INDIVIDUAL')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     visaoFiltro === 'INDIVIDUAL' 
-                      ? 'bg-cyan-500 text-slate-950 shadow-sm' 
+                      ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold' 
                       : 'text-slate-400 hover:text-white'
                   }`}
                   title="Ver apenas as perdas deste técnico"
@@ -260,7 +259,7 @@ export default function ModalChamadosPerdas({
                   onClick={() => setVisaoFiltro('BASE')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     visaoFiltro === 'BASE' 
-                      ? 'bg-cyan-500 text-slate-950 shadow-sm' 
+                      ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold' 
                       : 'text-slate-400 hover:text-white'
                   }`}
                   title="Ver todas as perdas da base"
@@ -273,7 +272,7 @@ export default function ModalChamadosPerdas({
 
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors border border-transparent hover:border-slate-700"
+              className="p-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
               title="Fechar modal"
             >
               <X size={20} />
@@ -282,17 +281,17 @@ export default function ModalChamadosPerdas({
         </div>
 
         {/* MINI DASHBOARD DE MÉTRICAS NO TOPO */}
-        <div className="px-6 py-4 bg-slate-950/40 border-b border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-slate-900/80 border border-cyan-500/20 rounded-xl p-3 flex flex-col">
+        <div className="px-6 py-4 bg-slate-950/40 border-b border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
               Taxa de Perdas (Equipe)
-              <span className="text-[9px] text-cyan-400 bg-orange-500/10 px-1.5 py-0.2 rounded font-semibold">Meta ≤ 1%</span>
+              <span className="text-[9px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded font-semibold">Meta ≤ 1%</span>
             </span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className={`text-2xl font-black ${percentualPerdidos <= 1.0 ? 'text-emerald-400' : 'text-cyan-400'}`}>
+              <span className={`text-2xl font-black ${percentualPerdidos <= 1.0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {percentualPerdidos.toFixed(1)}%
               </span>
-              <span className="text-[11px] text-slate-400 font-medium">
+              <span className="text-[11px] text-slate-500 font-medium">
                 {percentualPerdidos <= 1.0 ? '✓ Dentro da Meta' : '⚠ Acima da Meta'}
               </span>
             </div>
@@ -300,38 +299,38 @@ export default function ModalChamadosPerdas({
 
           <div 
             onClick={() => setSelectedClassificacao('FALHA_GESTAO')}
-            className={`bg-slate-900/80 border rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
-              selectedClassificacao === 'FALHA_GESTAO' ? 'border-amber-500 bg-amber-500/10' : 'border-slate-800 hover:border-slate-700'
+            className={`bg-slate-900/90 border rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
+              selectedClassificacao === 'FALHA_GESTAO' ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-slate-800 hover:border-slate-700'
             }`}
           >
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Falhas de Gestão
             </span>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-2xl font-black text-white">{stats.falhaGestao}</span>
-              <span className="text-[11px] text-slate-400">chamados</span>
+              <span className="text-[11px] text-slate-500">chamados</span>
             </div>
           </div>
 
           <div 
             onClick={() => setSelectedClassificacao('TRANSFERENCIA')}
-            className={`bg-slate-900/80 border rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
-              selectedClassificacao === 'TRANSFERENCIA' ? 'border-orange-500 bg-orange-500/10' : 'border-slate-800 hover:border-slate-700'
+            className={`bg-slate-900/90 border rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
+              selectedClassificacao === 'TRANSFERENCIA' ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-slate-800 hover:border-slate-700'
             }`}
           >
-            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Transferência de Bases
             </span>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-2xl font-black text-white">{stats.transferenciaBases}</span>
-              <span className="text-[11px] text-slate-400">chamados</span>
+              <span className="text-[11px] text-slate-500">chamados</span>
             </div>
           </div>
 
           <div 
             onClick={() => setSelectedClassificacao('TODOS')}
-            className={`bg-slate-900/80 border rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
-              selectedClassificacao === 'TODOS' ? 'border-slate-400 bg-slate-800/40' : 'border-slate-800 hover:border-slate-700'
+            className={`bg-slate-900/90 border rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
+              selectedClassificacao === 'TODOS' ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-slate-800 hover:border-slate-700'
             }`}
           >
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -339,51 +338,51 @@ export default function ModalChamadosPerdas({
             </span>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-2xl font-black text-white">{stats.total}</span>
-              <span className="text-[11px] text-slate-400">{visaoFiltro === 'INDIVIDUAL' ? 'do técnico' : 'na base'}</span>
+              <span className="text-[11px] text-slate-500">{visaoFiltro === 'INDIVIDUAL' ? 'do técnico' : 'na base'}</span>
             </div>
           </div>
         </div>
 
         {/* BARRA DE FILTROS E BUSCA */}
-        <div className="px-6 py-3 bg-slate-900/60 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="px-6 py-3 bg-slate-900/80 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-80">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
               placeholder={isSupervisorOrAdmin ? "Buscar por chamados ou nome do técnico..." : "Buscar por chamado..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-950 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 text-xs">
             <button
               onClick={() => setSelectedClassificacao('TODOS')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedClassificacao === 'TODOS'
-                  ? 'bg-cyan-500 text-slate-950'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
+                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
               }`}
             >
               Todos ({stats.total})
             </button>
             <button
               onClick={() => setSelectedClassificacao('FALHA_GESTAO')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedClassificacao === 'FALHA_GESTAO'
-                  ? 'bg-amber-500 text-slate-950'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
+                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
               }`}
             >
               Falha Gestão ({stats.falhaGestao})
             </button>
             <button
               onClick={() => setSelectedClassificacao('TRANSFERENCIA')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedClassificacao === 'TRANSFERENCIA'
-                  ? 'bg-cyan-500 text-slate-950'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
+                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
               }`}
             >
               Transferência ({stats.transferenciaBases})

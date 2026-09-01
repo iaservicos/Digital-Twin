@@ -17,5 +17,11 @@ public record ChamadoReincidenteDTO(
     String defeitoAnterior,
     String ocorrenciaChamadoAnterior,
     String textoEncerradoAnterior,
-    String aplicadoPecaAnterior
+    String aplicadoPecaAnterior,
+    String defeitoRrc,
+    String ocorrenciaChamadoRrc,
+    String textoEncerradoRrc,
+    String aplicadoPecaRrc,
+    String pecaNomeAnterior,
+    String pecaNomeRrc
 ) {}
