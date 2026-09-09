@@ -3,6 +3,7 @@ package br.com.positivo.digitaltwin.modules.brilhamais.services;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoResumoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoReincidenteDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoSlaPerdidoDTO;
+import br.com.positivo.digitaltwin.modules.brilhamais.dto.PecaAplicadaDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.HistoricoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.RankingDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.mappers.DashboardMapper;
@@ -428,6 +429,85 @@ public class DashboardService {
                 rs.getString("projeto"),
                 rs.getString("sla_status"),
                 rs.getString("causa_perda"),
+                rs.getString("texto_encerrado")
+        ), params.toArray());
+    }
+
+    public List<PecaAplicadaDTO> getChamadosPecas(Integer idTecnico, String mesAnoStr) {
+        String nomeTecnico = null;
+        try {
+            nomeTecnico = jdbcTemplate.queryForObject(
+                "SELECT nome_completo FROM tb_tecnico WHERE id_tecnico = ?", String.class, idTecnico);
+        } catch (Exception e) {
+            // fallback
+        }
+
+        StringBuilder sql = new StringBuilder("""
+            SELECT 
+                p.chamado,
+                p.ft,
+                COALESCE(p.tipo_equipamento, c.tipo_equipamento) AS tipo_equipamento,
+                p.acao,
+                p.cod_solic_desc,
+                p.cod_aplic_desc,
+                p.grupo_mercadoria,
+                p.grupo_mercadoria_desc,
+                COALESCE(p.tecnico_nome, c.tecnico_nome) AS tecnico_nome,
+                CASE 
+                    WHEN c.gp_segmento = 'GOV' OR c.gp_desc LIKE '%GOVERNO%' OR c.projeto LIKE 'H3-%' THEN 'Governo'
+                    ELSE COALESCE(c.projeto, 'Corporativo')
+                END AS projeto,
+                COALESCE(
+                    (SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = c.assistencia_centro_trabalho AND b.cidade IS NOT NULL LIMIT 1),
+                    c.assistencia_razao_social,
+                    c.assistencia_centro_trabalho
+                ) AS assistencia_cidade,
+                c.ocorrencia_chamado,
+                c.texto_encerrado
+            FROM pecas p
+            LEFT JOIN chamados c ON p.chamado = c.chamado
+            WHERE p.acao NOT LIKE '%SEM NECESSIDADE%' 
+              AND p.acao NOT LIKE '%A009%'
+        """);
+
+        List<Object> params = new ArrayList<>();
+
+        if (nomeTecnico != null && !nomeTecnico.isEmpty()) {
+            sql.append(" AND (UPPER(TRIM(p.tecnico_nome)) LIKE UPPER(TRIM(?)) || '%' OR UPPER(TRIM(c.tecnico_nome)) LIKE UPPER(TRIM(?)) || '%')");
+            params.add(nomeTecnico);
+            params.add(nomeTecnico);
+        }
+
+        String mesFiltro = mesAnoStr != null ? mesAnoStr.trim().toLowerCase() : "";
+
+        if (mesFiltro.contains("jul") || mesFiltro.contains("2026-07") || "7".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(p.ft, 'YYYY-MM') = '2026-07'");
+        } else if (mesFiltro.contains("ago") || mesFiltro.contains("2026-08") || "8".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(p.ft, 'YYYY-MM') = '2026-08'");
+        } else {
+            Campanha camp = campanhaRepository.findFirstByAtivaTrueOrderByIdCampanhaDesc().orElse(null);
+            if (camp != null && camp.getDataInicio() != null && camp.getDataFim() != null) {
+                sql.append(" AND p.ft >= ? AND p.ft <= ?");
+                params.add(camp.getDataInicio().atStartOfDay());
+                params.add(camp.getDataFim().atTime(23, 59, 59));
+            }
+        }
+
+        sql.append(" ORDER BY p.ft DESC");
+
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> new PecaAplicadaDTO(
+                rs.getString("chamado"),
+                rs.getTimestamp("ft") != null ? rs.getTimestamp("ft").toLocalDateTime() : null,
+                rs.getString("tipo_equipamento"),
+                rs.getString("acao"),
+                rs.getString("cod_solic_desc"),
+                rs.getString("cod_aplic_desc"),
+                rs.getString("grupo_mercadoria"),
+                rs.getString("grupo_mercadoria_desc"),
+                rs.getString("tecnico_nome"),
+                rs.getString("projeto"),
+                rs.getString("assistencia_cidade"),
+                rs.getString("ocorrencia_chamado"),
                 rs.getString("texto_encerrado")
         ), params.toArray());
     }

@@ -1,18 +1,14 @@
-from src.api.security import verify_api_key
-from fastapi import Depends
-"""
-Rotas e endpoints da API REST utilizando FastAPI.
-Define rotas GET para consulta ao Databricks, status em tempo real e POST /api/v1/sync com filtro por bimestre.
-"""
-
 import logging
 import time
+import uuid
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, Query, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Query, HTTPException, BackgroundTasks, UploadFile, File, Depends
 from pydantic import BaseModel
+from src.api.security import verify_api_key
 from src.services.etl_service import ETLService, sync_status_tracker
 from src.connectors.databricks_client import DatabricksClient
 from src.services.calculo_pontuacao import CalculoPontuacaoService
+from src.services.spreadsheet_service import SpreadsheetIngestService, task_progress
 from src.connectors.postgres_client import PostgreSQLClient
 import polars as pl
 
@@ -377,3 +373,80 @@ def recalcular_campanha_ativa() -> Dict[str, Any]:
             status_code=500,
             detail=f"Erro interno no motor de cálculo de campanha: {str(e)}"
         )
+
+
+# ==============================================================================
+# INGESTÃO DE PLANILHAS (EXCEL / CSV) - DUAL-PATH INGESTION
+# ==============================================================================
+
+@router.post("/ingestion/upload", response_model=Dict[str, Any], tags=["Planilhas"])
+async def upload_planilha(
+    type: str = Query(..., description="Tipo da planilha: BaseDL | Parts | Reincidencia | EncerradosRRC"),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    file: UploadFile = File(...),
+) -> Dict[str, Any]:
+    """
+    Endpoint principal para upload de planilhas Excel (.xlsx/.xls) ou CSV.
+    Recebe o arquivo e despacha o processamento para uma BackgroundTask assíncrona.
+    Retorna o task_id imediatamente para permitir acompanhamento de progresso no frontend.
+    """
+    valid_types = ['BaseDL', 'Parts', 'Reincidencia', 'EncerradosRRC']
+    if type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tipo de planilha inválido: '{type}'. Tipos permitidos: {valid_types}"
+        )
+
+    try:
+        contents = await file.read()
+        if not contents:
+            raise HTTPException(status_code=400, detail="Arquivo vazio recebido.")
+
+        task_id = str(uuid.uuid4())
+        task_progress[task_id] = {
+            "status": "queued",
+            "progress": 0,
+            "message": f"Arquivo '{file.filename}' enfileirado para processamento...",
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        }
+
+        service = SpreadsheetIngestService()
+
+        if type == 'BaseDL':
+            background_tasks.add_task(service.process_base_dl, task_id, contents)
+        elif type == 'Parts':
+            background_tasks.add_task(service.process_parts, task_id, contents)
+        elif type == 'Reincidencia':
+            background_tasks.add_task(service.process_reincidencia, task_id, contents)
+        elif type == 'EncerradosRRC':
+            background_tasks.add_task(service.process_encerrados_rrc, task_id, contents)
+
+        logger.info(f"Upload de planilha recebido: tipo={type}, arquivo={file.filename}, task_id={task_id}")
+
+        return {
+            "status": "success",
+            "task_id": task_id,
+            "filename": file.filename,
+            "type": type,
+            "message": "Processamento da planilha iniciado em segundo plano."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao receber upload da planilha: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno no upload da planilha: {str(e)}"
+        )
+
+
+@router.get("/ingestion/progress/{task_id}", response_model=Dict[str, Any], tags=["Planilhas"])
+def get_ingestion_progress(task_id: str) -> Dict[str, Any]:
+    """
+    Endpoint de polling para acompanhar o progresso (0% a 100%) do processamento de uma planilha.
+    """
+    if task_id not in task_progress:
+        raise HTTPException(status_code=404, detail="Task ID não encontrado.")
+    return task_progress[task_id]
+

@@ -37,4 +37,7 @@ public interface ApuracaoMensalRepository extends JpaRepository<ApuracaoMensal, 
 
     @Query("SELECT MAX(a.mesAno) FROM ApuracaoMensal a")
     Optional<LocalDate> findMaxMesAno();
+
+    @Query("SELECT MAX(a.mesAno) FROM ApuracaoMensal a WHERE a.mesAno BETWEEN :dataInicio AND :dataFim AND a.totalChamados > 0")
+    Optional<LocalDate> findMaxMesAnoComChamados(@Param("dataInicio") LocalDate dataInicio, @Param("dataFim") LocalDate dataFim);
 }

@@ -11,6 +11,9 @@ python-dotenv>=1.0.0
 # API REST (FastAPI + Uvicorn)
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
+python-multipart>=0.0.9
+pandas>=2.2.0
+openpyxl>=3.1.2
 
 # Ferramentas de Desenvolvimento e Testes
 pytest>=8.0.0

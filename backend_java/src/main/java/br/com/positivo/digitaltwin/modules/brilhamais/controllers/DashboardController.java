@@ -52,21 +52,29 @@ public class DashboardController {
 
         if (mesAno == null) {
             if (campanha != null && campanha.getDataFim() != null) {
-                mesAno = campanha.getDataFim();
-            } else {
-                mesAno = apuracaoRepository.findMaxMesAno().orElse(LocalDate.now().minusMonths(1).withDayOfMonth(1));
+                // 1. Tenta buscar o ranking da data final consolidada da campanha (se já houver com dados)
+                List<RankingDTO> rankingConsolidado = dashboardService.getRankingMensal(campanha.getDataFim());
+                if (rankingConsolidado != null && !rankingConsolidado.isEmpty() && 
+                    rankingConsolidado.stream().anyMatch(r -> r.getQuantidadeProdutividade() != null && r.getQuantidadeProdutividade() > 0)) {
+                    return ResponseEntity.ok(rankingConsolidado);
+                }
+
+                // 2. Se a campanha estiver em andamento (mês seguinte ainda sem chamados),
+                // busca o mês mais recente da campanha ativa que efetivamente possui atendimentos
+                LocalDate mesValido = apuracaoRepository.findMaxMesAnoComChamados(campanha.getDataInicio(), campanha.getDataFim()).orElse(null);
+                if (mesValido != null) {
+                    List<RankingDTO> rankingMes = dashboardService.getRankingMensal(mesValido);
+                    if (rankingMes != null && !rankingMes.isEmpty()) {
+                        return ResponseEntity.ok(rankingMes);
+                    }
+                }
             }
+
+            // 3. Fallback geral
+            mesAno = apuracaoRepository.findMaxMesAno().orElse(LocalDate.now().withDayOfMonth(1));
         }
 
         List<RankingDTO> ranking = dashboardService.getRankingMensal(mesAno);
-
-        if ((ranking == null || ranking.isEmpty()) && campanha != null) {
-            LocalDate maxData = apuracaoRepository.findMaxMesAno().orElse(null);
-            if (maxData != null && !maxData.equals(mesAno)) {
-                ranking = dashboardService.getRankingMensal(maxData);
-            }
-        }
-
         return ResponseEntity.ok(ranking);
     }
 
@@ -118,5 +126,12 @@ public class DashboardController {
             @PathVariable("idTecnico") Integer idTecnico,
             @RequestParam(name = "mesAno", required = false) String mesAno) {
         return ResponseEntity.ok(dashboardService.getChamadosPerdas(idTecnico, mesAno));
+    }
+
+    @GetMapping("/tecnico/{id}/pecas")
+    public ResponseEntity<List<br.com.positivo.digitaltwin.modules.brilhamais.dto.PecaAplicadaDTO>> getChamadosPecas(
+            @PathVariable("id") Integer id,
+            @RequestParam(name = "mesAno", required = false) String mesAno) {
+        return ResponseEntity.ok(dashboardService.getChamadosPecas(id, mesAno));
     }
 }

@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chamados")
+@Table(name = "tb_chamado")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,6 +16,9 @@ public class Chamado {
     @Id
     @Column(name = "chamado")
     private Long numeroChamado;
+
+    @Column(name = "id_tecnico")
+    private Integer idTecnico;
 
     @Transient
     private Tecnico tecnico;
@@ -29,30 +32,30 @@ public class Chamado {
     @Column(name = "sla_status")
     private String statusSla;
 
-    @Column(name = "tipo_equipamento")
+    @Column(name = "equipamento")
     private String equipamento;
 
-    @Column(name = "descricao_material")
+    @Column(name = "material_descricao")
     private String materialDescricao;
 
-    @Transient
+    @Column(name = "comercial")
     private String comercial;
 
     @Column(name = "assistencia_centro_trabalho")
     private String ctBase;
 
-    @Column(name = "assistencia_razao_social")
+    @Column(name = "assistencia_nome")
     private String assistenciaNome;
 
     @Column(name = "tecnico_nome")
     private String tecnicoNome;
 
-    @Transient
+    @Column(name = "classifica_chamado")
     private String classificacaoChamado;
 
     @Column(name = "texto_encerrado")
     private String textoEncerrado;
 
-    @Transient
+    @Column(name = "reincidente")
     private String reincidente;
 }

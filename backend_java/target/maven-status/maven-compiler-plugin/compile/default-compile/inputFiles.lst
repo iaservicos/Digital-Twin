@@ -29,6 +29,7 @@
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/ChamadoSlaPerdidoDTO.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/ChangePasswordRequest.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/HistoricoDTO.java
+/app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/PecaAplicadaDTO.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/RankingDTO.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/ResetSenhaRequest.java
 /app/src/main/java/br/com/positivo/digitaltwin/modules/brilhamais/dto/VerificarTecnicoRequest.java

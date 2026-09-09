@@ -53,7 +53,7 @@ export function useTecnicoMetrics(
     const sel = (selectedMonth || '').trim().toLowerCase();
     
     // Se for Campanha Inteira / Média Final / Vazio -> Retorna a Média Consolidada da Campanha
-    if (!sel || sel === 'média final' || sel === 'campanha inteira' || sel === 'campanha' || sel === '2026-08-31') {
+    if (!sel || sel === 'média final' || sel === 'campanha inteira' || sel === 'campanha' || sel.includes('final')) {
       return metricas;
     }
     
@@ -62,13 +62,19 @@ export function useTecnicoMetrics(
       const hMes = (h.mes || '').trim().toLowerCase();
       const hRef = (h.mesReferencia || '').trim().toLowerCase();
       
-      if (sel === 'julho' || sel === '2026-07-01' || sel.includes('2026-07') || sel === '7') {
+      if (sel === 'julho' || sel.includes('2026-07') || sel === '7') {
         return hMes.includes('jul') || hRef.startsWith('2026-07');
       }
-      if (sel === 'agosto' || sel === '2026-08-01' || sel.includes('2026-08') || sel === '8') {
+      if (sel === 'agosto' || sel.includes('2026-08') || sel === '8') {
         return hMes.includes('ago') || hRef.startsWith('2026-08');
       }
-      return hMes === sel || hRef === sel;
+      if (sel === 'setembro' || sel.includes('2026-09') || sel === '9') {
+        return hMes.includes('set') || hRef.startsWith('2026-09');
+      }
+      if (sel === 'outubro' || sel.includes('2026-10') || sel === '10') {
+        return hMes.includes('out') || hRef.startsWith('2026-10');
+      }
+      return hMes === sel || hRef === sel || hMes.includes(sel) || hRef.includes(sel);
     });
 
     if (!monthData) return metricas;

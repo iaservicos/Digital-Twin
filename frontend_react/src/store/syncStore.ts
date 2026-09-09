@@ -40,15 +40,14 @@ interface SyncStore {
   tickSeconds: () => void;
 }
 
-const getPythonHeaders = () => {
+export const getPythonHeaders = () => {
   const apiKey = import.meta.env.VITE_DATA_INGEST_API_KEY || 'pos-data-token-2026';
   return {
     'X-API-Key': apiKey,
-    'Content-Type': 'application/json',
   };
 };
 
-const getPythonApiUrl = () => {
+export const getPythonApiUrl = () => {
   const envUrl = import.meta.env.VITE_DATA_INGEST_URL || import.meta.env.VITE_PYTHON_API_URL;
   if (envUrl) {
     return envUrl.trim().replace(/\/+$/, '');

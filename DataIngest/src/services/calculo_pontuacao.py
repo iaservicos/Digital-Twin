@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, date
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import psycopg
 from psycopg.rows import dict_row
 
@@ -508,18 +508,49 @@ class CalculoPontuacaoService:
     # =========================================================================
     # 8. CONSOLIDAÇÃO BIMESTRAL DA CAMPANHA (FASE 6)
     # =========================================================================
-    def calcular_media_campanha_fase6(self, ano: int = 2026) -> Dict[str, Any]:
+    def consolidar_campanha(self, camp: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Consolida a média aritmética bimestral da campanha (Julho e Agosto)
-        gerando o registro final de elegibilidade em 31/08/2026.
+        Consolida a média da campanha ativa em tb_campanha gerando o registro
+        final de elegibilidade na data_fim da campanha (ex: 2026-10-31).
         """
         start_time = time.time()
-        mes_julho = date(ano, 7, 1)
-        mes_agosto = date(ano, 8, 1)
-        mes_consolidado = date(ano, 8, 31)
-
         conn = self.pg_client._get_connection()
         with conn.cursor(row_factory=dict_row) as cur:
+            if not camp:
+                cur.execute("SELECT id_campanha, data_inicio, data_fim FROM tb_campanha WHERE ativa = true LIMIT 1;")
+                camp = cur.fetchone()
+            
+            if not camp:
+                conn.close()
+                return {"status": "skipped", "message": "Nenhuma campanha ativa encontrada."}
+
+            dt_inicio: date = camp["data_inicio"]
+            dt_fim: date = camp["data_fim"]
+
+            # Identificar todos os meses da campanha (excluindo a própria data final se já existir)
+            cur.execute("""
+                SELECT DISTINCT mes_ano 
+                FROM tb_apuracao_mensal 
+                WHERE mes_ano >= %s AND mes_ano <= %s AND mes_ano != %s
+                ORDER BY mes_ano;
+            """, (dt_inicio, dt_fim, dt_fim))
+            meses_camp = [r["mes_ano"] for r in cur.fetchall()]
+
+            # Prioriza meses que possuem atendimentos reais (> 0)
+            cur.execute("""
+                SELECT DISTINCT mes_ano 
+                FROM tb_apuracao_mensal 
+                WHERE mes_ano = ANY(%s) AND total_chamados > 0
+                ORDER BY mes_ano;
+            """, (meses_camp,))
+            meses_com_dados = [r["mes_ano"] for r in cur.fetchall()]
+            if not meses_com_dados:
+                meses_com_dados = meses_camp
+
+            if not meses_com_dados:
+                conn.close()
+                return {"status": "skipped", "message": "Nenhum mês para consolidar."}
+
             cur.execute("""
                 SELECT 
                     id_tecnico,
@@ -538,9 +569,9 @@ class CalculoPontuacaoService:
                     AVG(pontuacao_total) AS media_pontuacao_total,
                     SUM(total_chamados) AS total_chamados_campanha
                 FROM tb_apuracao_mensal
-                WHERE mes_ano IN (%s, %s)
+                WHERE mes_ano = ANY(%s)
                 GROUP BY id_tecnico;
-            """, (mes_julho, mes_agosto))
+            """, (meses_com_dados,))
             medias = cur.fetchall()
 
             records_consolidado = []
@@ -556,7 +587,7 @@ class CalculoPontuacaoService:
 
                 records_consolidado.append((
                     m["id_tecnico"],
-                    mes_consolidado,
+                    dt_fim,
                     round(min(1.0, max(0.0, float(m["media_sla"] or 0.0))), 4),
                     round(float(m["media_pontos_sla"] or 0.0), 2),
                     round(min(1.0, max(0.0, float(m["media_rrc_ind"] or 0.0))), 4),
@@ -614,8 +645,11 @@ class CalculoPontuacaoService:
 
         elapsed = time.time() - start_time
         print(f"[MOTOR ANALÍTICO MODULAR] Consolidação da Campanha concluída em {elapsed:.2f}s para {len(records_consolidado)} técnicos.")
+        return {"status": "ok", "tipo": "consolidacao_campanha", "mes_consolidado": str(dt_fim), "tecnicos_consolidados": len(records_consolidado), "tempo_segundos": round(elapsed, 2)}
 
-        return {"status": "ok", "tecnicos_consolidados": len(records_consolidado), "tempo_segundos": round(elapsed, 2)}
+    # Compatibilidade retroativa
+    def calcular_media_campanha_fase6(self, ano: int = 2026) -> Dict[str, Any]:
+        return self.consolidar_campanha()
 
     # =========================================================================
     # 9. GESTÃO E CÁLCULO DA CAMPANHA ATIVA
@@ -662,8 +696,8 @@ class CalculoPontuacaoService:
             else:
                 mes_corrente += 1
 
-        # Executar consolidação bimestral
-        res_consolidacao = self.calcular_media_campanha_fase6(ano=dt_fim.year)
+        # Executar consolidação bimestral da campanha ativa
+        res_consolidacao = self.consolidar_campanha(camp=camp)
 
         elapsed = round(time.time() - start_time, 2)
         print(f"[MOTOR ANALÍTICO MODULAR] Recálculo da Campanha Ativa #{camp['id_campanha']} concluído em {elapsed}s.")

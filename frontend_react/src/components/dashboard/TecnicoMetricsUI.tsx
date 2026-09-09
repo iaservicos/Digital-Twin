@@ -9,6 +9,7 @@ import { ModalInelegivel } from './ModalInelegivel';
 import ModalChamadosReincidentes from './ModalChamadosReincidentes';
 import ModalChamadosSlaPerdidos from './ModalChamadosSlaPerdidos';
 import ModalChamadosPerdas from './ModalChamadosPerdas';
+import ModalChamadosPecas from './ModalChamadosPecas';
 
 interface TecnicoMetricsUIProps {
   metricas: any;
@@ -30,6 +31,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   const [isReincidentesModalOpen, setIsReincidentesModalOpen] = useState(false);
   const [isSlaModalOpen, setIsSlaModalOpen] = useState(false);
   const [isPerdasModalOpen, setIsPerdasModalOpen] = useState(false);
+  const [isPecasModalOpen, setIsPecasModalOpen] = useState(false);
   const [isElegivelModalOpen, setIsElegivelModalOpen] = useState(false);
   const [isInelegivelModalOpen, setIsInelegivelModalOpen] = useState(false);
 
@@ -41,7 +43,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   const pontuacaoTotal = displayMetricas.pontosTotal || 0;
 
   const selLower = (selectedMonth || '').trim().toLowerCase();
-  const isCampanhaInteira = !selLower || selLower === 'campanha inteira' || selLower === 'média final' || selLower === '2026-08-31';
+  const isCampanhaInteira = !selLower || selLower === 'campanha inteira' || selLower === 'média final' || selLower.includes('final') || selLower.includes('campanha');
 
   return (
     <div className="space-y-6 pb-6 w-full">
@@ -142,9 +144,9 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         </div>
 
         <div className="lg:col-span-2">
-          {displayMetricas.idTecnico && (
-            <ChamadosHistoryCard tecnicoId={displayMetricas.idTecnico || (displayMetricas as any).id || (user as any)?.idTecnico || (user as any)?.id} />
-          )}
+          <ChamadosHistoryCard 
+            tecnicoId={displayMetricas.idTecnico || (displayMetricas as any).id || (user as any)?.idTecnico || (user as any)?.id || 0} 
+          />
         </div>
       </div>
 
@@ -279,24 +281,32 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
           <p className="text-[10px] text-light-text-muted mt-1">Meta: ≥ 85</p>
         </div>
 
-        {/* 6. Card Peças */}
-        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/30 transition-colors">
+        {/* 6. Card Peças - INTERATIVO */}
+        <div 
+          onClick={() => setIsPecasModalOpen(true)}
+          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          title="Clique para ver o detalhamento de peças aplicadas"
+        >
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1">
+            <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
               EQUIPE
             </span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-cyan-400 transition-colors">
               Peças
             </h3>
           </div>
           <CircularProgress
             value={percentualConsumo}
             maxValue={100}
-            color={percentualConsumo < 25.0 ? '#F59E0B' : '#0891b2'}
+            color={percentualConsumo > 25.0 ? '#EF4444' : '#0891b2'}
             label={percentualConsumo.toFixed(1)}
             isPercentage={true}
           />
-          <p className="text-[10px] text-light-text-muted mt-1">Meta: ≥ 25%</p>
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-cyan-400 font-semibold group-hover:underline">
+            <span>Ver peças</span>
+            <span className="text-[11px]">→</span>
+          </div>
+          <p className="text-[9px] text-light-text-muted">Meta: ≤ 25%</p>
         </div>
       </div>
 
@@ -311,7 +321,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         pontosReincidencia={displayMetricas.pontosReincidencia || 0}
       />
 
-            {/* MODAL DE CHAMADOS PERDIDOS DE SLA E CAUSAS */}
+      {/* MODAL DE CHAMADOS PERDIDOS DE SLA E CAUSAS */}
       <ModalChamadosSlaPerdidos
         isOpen={isSlaModalOpen}
         onClose={() => setIsSlaModalOpen(false)}
@@ -330,6 +340,17 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto || user?.nomeCompleto}
         selectedMonth={selectedMonth}
         percentualPerdidos={displayMetricas.percentualPerdidos || 0}
+      />
+
+      {/* MODAL DE DETALHAMENTO DE PEÇAS APLICADAS */}
+      <ModalChamadosPecas
+        isOpen={isPecasModalOpen}
+        onClose={() => setIsPecasModalOpen(false)}
+        tecnicoId={displayMetricas.idTecnico || (displayMetricas as any).id || (user as any)?.idTecnico || (user as any)?.id}
+        tecnicoNome={displayMetricas.tecnico || displayMetricas.nomeCompleto || user?.nomeCompleto}
+        selectedMonth={selectedMonth}
+        percentualConsumo={percentualConsumo}
+        pontosPecas={displayMetricas.pontosPecas || 12.5}
       />
 
       <ModalDetalhesPontuacao 
