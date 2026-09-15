@@ -526,35 +526,44 @@ public class DashboardService {
             SELECT 
                 p.chamado,
                 p.ft,
-                COALESCE(p.tipo_equipamento, c.tipo_equipamento) AS tipo_equipamento,
+                p.equipamento AS tipo_equipamento,
                 p.acao,
-                p.cod_solic_desc,
-                p.cod_aplic_desc,
+                p.codigo_solicitado_desc AS cod_solic_desc,
+                p.codigo_aplicado_desc AS cod_aplic_desc,
+                p.subgrupo,
                 p.grupo_mercadoria,
                 p.grupo_mercadoria_desc,
-                COALESCE(p.tecnico_nome, c.tecnico_nome) AS tecnico_nome,
+                p.tecnico_nome,
                 CASE 
-                    WHEN c.gp_segmento = 'GOV' OR c.gp_desc LIKE '%GOVERNO%' OR c.projeto LIKE 'H3-%' THEN 'Governo'
-                    ELSE COALESCE(c.projeto, 'Corporativo')
+                    WHEN UPPER(COALESCE(p.segmento, '')) LIKE '%GOV%' OR p.projeto LIKE 'H3-%' THEN 'Governo'
+                    ELSE COALESCE(p.projeto, 'Corporativo')
                 END AS projeto,
-                COALESCE(
-                    (SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = c.assistencia_centro_trabalho AND b.cidade IS NOT NULL LIMIT 1),
-                    c.assistencia_razao_social,
-                    c.assistencia_centro_trabalho
-                ) AS assistencia_cidade,
-                c.ocorrencia_chamado,
-                c.texto_encerrado
-            FROM pecas p
-            LEFT JOIN chamados c ON p.chamado = c.chamado
-            WHERE p.acao NOT LIKE '%SEM NECESSIDADE%' 
-              AND p.acao NOT LIKE '%A009%'
+                COALESCE(p.atp, p.cliente_cidade, p.ct) AS assistencia_cidade,
+                p.ocorrencia_chamado,
+                p.texto_encerrado
+            FROM tb_consumo_peca p
+            WHERE UPPER(COALESCE(p.acao, '')) NOT LIKE '%SEM NECESSIDADE%'
+              AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%A009%'
+              AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%ORÇAMENTO%'
+              AND (
+                  UPPER(COALESCE(p.subgrupo, '')) IN ('PLACA MÃE', 'PLACA MAE', 'PLM', 'SSD', 'HD', 'HDD', 'TAMPA FRONTAL/LCD', 'PAINEL LCD', 'LCD', 'LCD ALFANUM')
+                  OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%PLACA MAE%'
+                  OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%PLM%'
+                  OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%SSD%'
+                  OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%HARD DISK%'
+                  OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%LCD%'
+                  OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%TELA%'
+                  OR UPPER(COALESCE(p.codigo_aplicado_desc, '')) LIKE '%PLM%'
+                  OR UPPER(COALESCE(p.codigo_aplicado_desc, '')) LIKE '%SSD%'
+                  OR UPPER(COALESCE(p.codigo_aplicado_desc, '')) LIKE '%HDD%'
+                  OR UPPER(COALESCE(p.codigo_aplicado_desc, '')) LIKE '%LCD%'
+              )
         """);
 
         List<Object> params = new ArrayList<>();
 
         if (nomeTecnico != null && !nomeTecnico.isEmpty()) {
-            sql.append(" AND (UPPER(TRIM(p.tecnico_nome)) LIKE UPPER(TRIM(?)) || '%' OR UPPER(TRIM(c.tecnico_nome)) LIKE UPPER(TRIM(?)) || '%')");
-            params.add(nomeTecnico);
+            sql.append(" AND UPPER(TRIM(p.tecnico_nome)) LIKE UPPER(TRIM(?)) || '%'");
             params.add(nomeTecnico);
         }
 
@@ -564,6 +573,10 @@ public class DashboardService {
             sql.append(" AND TO_CHAR(p.ft, 'YYYY-MM') = '2026-07'");
         } else if (mesFiltro.contains("ago") || mesFiltro.contains("2026-08") || "8".equals(mesFiltro)) {
             sql.append(" AND TO_CHAR(p.ft, 'YYYY-MM') = '2026-08'");
+        } else if (mesFiltro.contains("set") || mesFiltro.contains("2026-09") || "9".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(p.ft, 'YYYY-MM') = '2026-09'");
+        } else if (mesFiltro.contains("out") || mesFiltro.contains("2026-10") || "10".equals(mesFiltro)) {
+            sql.append(" AND TO_CHAR(p.ft, 'YYYY-MM') = '2026-10'");
         } else {
             Campanha camp = campanhaRepository.findFirstByAtivaTrueOrderByIdCampanhaDesc().orElse(null);
             if (camp != null && camp.getDataInicio() != null && camp.getDataFim() != null) {
@@ -582,6 +595,7 @@ public class DashboardService {
                 rs.getString("acao"),
                 rs.getString("cod_solic_desc"),
                 rs.getString("cod_aplic_desc"),
+                rs.getString("subgrupo"),
                 rs.getString("grupo_mercadoria"),
                 rs.getString("grupo_mercadoria_desc"),
                 rs.getString("tecnico_nome"),

@@ -285,11 +285,11 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         <div 
           onClick={() => setIsPecasModalOpen(true)}
           className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
-          title="Clique para ver o detalhamento de peças aplicadas"
+          title="Clique para ver o detalhamento de peças da campanha (Placa Mãe, SSD, HD/HDD e Tela LCD)"
         >
           <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full mb-1 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
-              EQUIPE
+            <span className="text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full mb-1 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
+              INDIVIDUAL
             </span>
             <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-cyan-400 transition-colors">
               Peças

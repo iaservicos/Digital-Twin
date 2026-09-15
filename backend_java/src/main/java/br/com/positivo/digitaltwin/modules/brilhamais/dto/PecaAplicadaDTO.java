@@ -18,6 +18,7 @@ public class PecaAplicadaDTO {
     private String acao;
     private String codSolicDesc;
     private String codAplicDesc;
+    private String subgrupo;
     private String grupoMercadoria;
     private String grupoMercadoriaDesc;
     private String tecnicoNome;
