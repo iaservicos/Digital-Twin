@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Users, Filter, CheckCircle2, XCircle, Medal, RefreshCw } from 'lucide-react';
+import { Users, Filter, CheckCircle2, XCircle, Medal, RefreshCw, UserX, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import { CircularProgress } from '../components/ui/CircularProgress';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import ChamadosHistoryCard from '../components/dashboard/ChamadosHistoryCard';
 import { TecnicoMetricsUI } from '../components/dashboard/TecnicoMetricsUI';
+import { ModalChamadosSemTecnico } from '../components/dashboard/ModalChamadosSemTecnico';
 import { useTecnicoMetrics } from '../hooks/useTecnicoMetrics';
 import { toTitleCase } from '../utils/stringFormatters';
 
@@ -21,6 +22,8 @@ export default function AdminDashboardScreen() {
   const [todasBases, setTodasBases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isModalSemTecnicoOpen, setIsModalSemTecnicoOpen] = useState(false);
+  const [semTecnicoResumo, setSemTecnicoResumo] = useState<{ totalGeral: number; regioesQtd: number } | null>(null);
   
   // Filtros
   const [selectedSupervisor, setSelectedSupervisor] = useState<string>('all');
@@ -106,6 +109,34 @@ export default function AdminDashboardScreen() {
     const sup = listaSupervisores.find(s => s.matricula === supervisorEfetivo || s.idSupervisor?.toString() === supervisorEfetivo);
     return sup ? sup.idSupervisor : 'all';
   }, [supervisorEfetivo, listaSupervisores]);
+
+  // Busca resumo de chamados sem técnico exclusivamente para a moderação
+  useEffect(() => {
+    if (!isModerador) {
+      setSemTecnicoResumo(null);
+      return;
+    }
+    let mounted = true;
+    const fetchSemTecnicoResumo = async () => {
+      try {
+        const params: Record<string, any> = {};
+        if (supervisorEfetivoId !== 'all') {
+          params.idSupervisor = supervisorEfetivoId;
+        }
+        const resp = await api.get('/dashboard/chamados-sem-tecnico', { params });
+        if (mounted && resp.data) {
+          setSemTecnicoResumo({
+            totalGeral: resp.data.totalGeral || 0,
+            regioesQtd: resp.data.regioes?.length || 0
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao buscar resumo de chamados sem técnico:', err);
+      }
+    };
+    fetchSemTecnicoResumo();
+    return () => { mounted = false; };
+  }, [isModerador, supervisorEfetivoId]);
 
   // 2. Lógica de Equipes (Base ATP)
   const equipesDisponiveis = useMemo(() => {
@@ -277,10 +308,42 @@ export default function AdminDashboardScreen() {
         </div>
       </div>
 
+      {/* Alerta de Chamados Sem Técnico Atribuído Exclusivo para Moderação */}
+      {isModerador && semTecnicoResumo && semTecnicoResumo.totalGeral > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-positivo-lg p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 sm:mt-0">
+              <UserX size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold text-light-text-main dark:text-text-main">
+                  Atenção Moderação: Chamados Sem Técnico Atribuído
+                </h3>
+                <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                  {semTecnicoResumo.totalGeral} {semTecnicoResumo.totalGeral === 1 ? 'chamado' : 'chamados'}
+                </span>
+              </div>
+              <p className="text-xs text-light-text-muted dark:text-text-muted mt-1">
+                Identificados atendimentos sem identificação de técnico distribuídos em {semTecnicoResumo.regioesQtd} regiões/bases operacionais.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsModalSemTecnicoOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-positivo-md bg-amber-600 hover:bg-amber-700 text-white transition-colors shadow-sm self-start sm:self-auto shrink-0 cursor-pointer"
+          >
+            Analisar por Região
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      )}
+
       {/* JSDoc: Visão Global (Team Dashboard) quando nenhum técnico específico está selecionado */}
       {selectedTecnicoIdentifier === 'all' && teamSummary && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${isModerador ? 'lg:grid-cols-3 xl:grid-cols-6' : 'lg:grid-cols-5'} gap-4`}>
             <div className="bg-light-surface dark:bg-surface p-5 rounded-positivo-lg shadow-sm border border-light-borderStrong dark:border-border">
               <p className="text-sm font-medium text-light-text-muted dark:text-text-muted">Volume de Chamados</p>
               <p className="text-3xl font-bold text-light-text-main dark:text-text-main mt-1">{teamSummary.volumeChamados}</p>
@@ -301,6 +364,33 @@ export default function AdminDashboardScreen() {
               <p className="text-sm font-medium text-light-text-muted dark:text-text-muted">Perdas SLA (Qtd)</p>
               <p className="text-3xl font-bold text-status-error mt-1">{teamSummary.perdasQtd}</p>
             </div>
+
+            {/* JSDoc: Indicador específico de Chamados Sem Técnico exclusivo para Moderadores */}
+            {isModerador && (
+              <div 
+                onClick={() => setIsModalSemTecnicoOpen(true)}
+                className="bg-light-surface dark:bg-surface p-5 rounded-positivo-lg shadow-sm border border-amber-500/30 hover:border-amber-500 transition-all cursor-pointer group flex flex-col justify-between"
+                title="Clique para auditar chamados sem técnico por região"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-light-text-muted dark:text-text-muted">Sem Técnico</p>
+                    <span className="p-1 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                      <UserX size={16} />
+                    </span>
+                  </div>
+                  <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+                    {semTecnicoResumo?.totalGeral ?? 0}
+                  </p>
+                </div>
+                <p className="text-xs text-light-text-muted dark:text-text-muted mt-2 flex items-center justify-between group-hover:text-amber-600 dark:group-hover:text-amber-400">
+                  <span>{semTecnicoResumo?.regioesQtd ?? 0} bases</span>
+                  <span className="inline-flex items-center gap-0.5 font-medium">
+                    Auditar <ArrowRight size={12} />
+                  </span>
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="bg-light-surface dark:bg-surface p-6 rounded-positivo-lg shadow-sm border border-light-borderStrong dark:border-border text-center">
@@ -323,6 +413,15 @@ export default function AdminDashboardScreen() {
             setSelectedMonth={setSelectedMonth}
           />
         </div>
+      )}
+
+      {/* Modal de Detalhamento de Chamados Sem Técnico exclusivo para a Moderação */}
+      {isModerador && (
+        <ModalChamadosSemTecnico
+          isOpen={isModalSemTecnicoOpen}
+          onClose={() => setIsModalSemTecnicoOpen(false)}
+          idSupervisor={supervisorEfetivoId !== 'all' ? supervisorEfetivoId : undefined}
+        />
       )}
     </div>
   );

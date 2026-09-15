@@ -3,6 +3,7 @@ package br.com.positivo.digitaltwin.modules.brilhamais.controllers;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoResumoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoReincidenteDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoSlaPerdidoDTO;
+import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadosSemTecnicoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.RankingDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.models.Campanha;
 import br.com.positivo.digitaltwin.modules.brilhamais.repositories.ApuracaoMensalRepository;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -133,5 +135,13 @@ public class DashboardController {
             @PathVariable("id") Integer id,
             @RequestParam(name = "mesAno", required = false) String mesAno) {
         return ResponseEntity.ok(dashboardService.getChamadosPecas(id, mesAno));
+    }
+
+    @GetMapping("/chamados-sem-tecnico")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMINISTRADOR', 'MODERADOR')")
+    public ResponseEntity<ChamadosSemTecnicoDTO> getChamadosSemTecnico(
+            @RequestParam(name = "mesAno", required = false) String mesAno,
+            @RequestParam(name = "idSupervisor", required = false) Integer idSupervisor) {
+        return ResponseEntity.ok(dashboardService.getChamadosSemTecnicoPorRegiao(mesAno, idSupervisor));
     }
 }

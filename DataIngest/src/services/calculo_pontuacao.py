@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, date
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import psycopg
 from psycopg.rows import dict_row
 
@@ -150,25 +150,61 @@ class CalculoPontuacaoService:
     # =========================================================================
     # 4. KPI 4: REINCIDÊNCIA DA EQUIPE (Peso: 15.0 pts)
     # =========================================================================
-    def _calcular_reincidencia_equipe(self, cur: psycopg.Cursor, ano_mes_str: str, sla_dict: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str, float]]:
+    def _calcular_reincidencia_equipe(self, cur: psycopg.Cursor, ano_mes_str: str, sla_dict: Dict[str, Dict[str, float]]) -> Tuple[Dict[str, Dict[str, float]], Dict[str, int]]:
         """
-        Calcula a Reincidência da Base ATP: Reincidências da Base / Total de Chamados da Base.
+        Calcula a Reincidência da Base ATP: TCBCT / TCAC
+        Onde:
+          - TCBCT (Reincidencia): Total de chamados por Base CT na coluna ct_anterior (validado por encerramento_rrc)
+          - TCAC (EncerradosRRC): Total de chamados por Base CT na coluna assistencia_codigo (validado por COALESCE(encerramento, ft))
         Meta: <= 7.0% -> 15.0 pts | <= 10.0% -> 10.0 pts | > 10.0% -> 0.0 pts.
         """
-        query = f"""
+        # 1. Obter TCAC (Denominador oficial de chamados por Base CT a partir de tb_encerrados_rrc)
+        cur.execute(f"""
+            SELECT COUNT(*) AS total
+            FROM tb_encerrados_rrc
+            WHERE TO_CHAR(COALESCE(encerramento, ft), 'YYYY-MM') = '{ano_mes_str}';
+        """)
+        row_enc = cur.fetchone()
+        has_encerrados = bool(row_enc and row_enc["total"] > 0)
+
+        tcac_dict: Dict[str, int] = {}
+        if has_encerrados:
+            cur.execute(f"""
+                SELECT 
+                    CASE 
+                        WHEN COALESCE(b.uf, e.assistencia_uf) IN ('PE', 'AL') THEN 'PE'
+                        WHEN COALESCE(b.uf, e.assistencia_uf) IN ('RO', 'AC') THEN 'RO'
+                        ELSE COALESCE(b.atp_resumidas, b.uf, e.assistencia_uf)
+                    END AS base_atp,
+                    COUNT(*) AS tcac
+                FROM tb_encerrados_rrc e
+                LEFT JOIN (
+                    SELECT DISTINCT ON (ct_codigo) ct_codigo, atp_resumidas, uf 
+                    FROM tb_base_atp
+                ) b ON e.assistencia_codigo = b.ct_codigo
+                WHERE TO_CHAR(COALESCE(e.encerramento, e.ft), 'YYYY-MM') = '{ano_mes_str}'
+                GROUP BY 1;
+            """)
+            tcac_dict = {r["base_atp"]: int(r["tcac"] or 0) for r in cur.fetchall()}
+        else:
+            # Fallback de resiliência: caso o mês não possua planilha de encerrados, utiliza tb_chamado (sla_dict)
+            tcac_dict = {b: int(data.get("total_chamados_base", 0)) for b, data in sla_dict.items()}
+
+        # 2. Obter TCBCT (Numerador oficial de reincidências por Base CT a partir de reincidentes.ct_anterior)
+        query_reinc = f"""
             SELECT 
                 CASE 
                     WHEN b.uf IN ('PE', 'AL') THEN 'PE'
                     WHEN b.uf IN ('RO', 'AC') THEN 'RO'
-                    ELSE COALESCE(b.atp_resumidas, b.uf)
+                    ELSE COALESCE(b.atp_resumidas, b.uf, r.cliente_uf_rrc)
                 END AS base_atp,
-                COUNT(*) AS total_reinc_base
+                COUNT(*) AS tcbct
             FROM reincidentes r
-            JOIN (
+            LEFT JOIN (
                 SELECT DISTINCT ON (ct_codigo) ct_codigo, atp_resumidas, uf 
                 FROM tb_base_atp
-            ) b ON r.ct_rrc = b.ct_codigo
-            WHERE TO_CHAR(r.ft_rrc, 'YYYY-MM') = '{ano_mes_str}'
+            ) b ON r.ct_anterior = b.ct_codigo
+            WHERE TO_CHAR(r.encerramento_rrc, 'YYYY-MM') = '{ano_mes_str}'
               AND NOT (
                   COALESCE(UPPER(TRIM(r.aplicado_peca_anterior)), 'NÃO') IN ('NÃO', 'NAO', 'N')
                   AND COALESCE(UPPER(TRIM(r.aplicado_peca_rrc)), 'NÃO') IN ('NÃO', 'NAO', 'N')
@@ -183,74 +219,19 @@ class CalculoPontuacaoService:
                       OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%CANCELAD%'
                   )
               )
-            GROUP BY 
-                CASE 
-                    WHEN b.uf IN ('PE', 'AL') THEN 'PE'
-                    WHEN b.uf IN ('RO', 'AC') THEN 'RO'
-                    ELSE COALESCE(b.atp_resumidas, b.uf)
-                END;
+            GROUP BY 1;
         """
-        cur.execute(query)
-        resultado = {}
-        for row in cur.fetchall():
-            base = row["base_atp"]
-            total_reinc = int(row["total_reinc_base"] or 0)
-            total_ch = sla_dict.get(base, {}).get("total_chamados_base", 0)
-            perc = round((total_reinc / total_ch * 100), 2) if total_ch > 0 else 0.0
-            
-            if perc <= 7.0:
-                pontos = 15.0
-            elif perc <= 10.0:
-                pontos = 10.0
-            else:
-                pontos = 0.0
-            resultado[base] = {
-                "perc_reinc_equipe": perc,
-                "pontos_reinc_equipe": pontos,
-                "total_reinc_base": total_reinc
-            }
-        return resultado
+        cur.execute(query_reinc)
+        tcbct_dict = {r["base_atp"]: int(r["tcbct"] or 0) for r in cur.fetchall()}
 
-    # =========================================================================
-    # 5. KPI 5: REINCIDÊNCIA INDIVIDUAL (Peso: 15.0 pts)
-    # =========================================================================
-    def _calcular_reincidencia_individual(self, cur: psycopg.Cursor, ano_mes_str: str, tec_chamados_dict: Dict[str, int]) -> Dict[str, Dict[str, float]]:
-        """
-        Calcula a Reincidência Individual: Reincidências do 1º Atendimento / Total de Chamados do Técnico.
-        Meta: <= 7.0% -> 15.0 pts | <= 10.0% -> 10.0 pts | > 10.0% -> 0.0 pts.
-        Exclui reincidências sem peça com defeito não localizado/cancelamento/sem defeito.
-        """
-        query = f"""
-            SELECT 
-                UPPER(TRIM(r.tecnico_nome_anterior)) AS tecnico_nome,
-                COUNT(*) AS total_reinc_tec
-            FROM reincidentes r
-            WHERE TO_CHAR(r.ft_rrc, 'YYYY-MM') = '{ano_mes_str}'
-              AND NOT (
-                  COALESCE(UPPER(TRIM(r.aplicado_peca_anterior)), 'NÃO') IN ('NÃO', 'NAO', 'N')
-                  AND COALESCE(UPPER(TRIM(r.aplicado_peca_rrc)), 'NÃO') IN ('NÃO', 'NAO', 'N')
-                  AND (
-                      UPPER(COALESCE(r.defeito_anterior, '')) IN ('SEM DEFEITO', 'DEFEITO NÃO LOCALIZADO', 'CANCELADO')
-                      OR UPPER(COALESCE(r.defeito_rrc, '')) IN ('SEM DEFEITO', 'DEFEITO NÃO LOCALIZADO', 'CANCELADO')
-                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%SEM DEFEITO%'
-                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%DEFEITO N%O LOCALIZADO%'
-                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%CANCELAD%'
-                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%SEM DEFEITO%'
-                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%DEFEITO N%O LOCALIZADO%'
-                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%CANCELAD%'
-                  )
-              )
-            GROUP BY UPPER(TRIM(r.tecnico_nome_anterior));
-        """
-        cur.execute(query)
-        resultado = {}
-        for row in cur.fetchall():
-            tec = row["tecnico_nome"]
-            total_reinc = int(row["total_reinc_tec"] or 0)
-            total_ch = tec_chamados_dict.get(tec, 0)
-            perc = round((total_reinc / total_ch * 100), 2) if total_ch > 0 else 0.0
+        resultado: Dict[str, Dict[str, float]] = {}
+        all_bases = set(tcac_dict.keys()).union(set(tcbct_dict.keys()))
+        for base in all_bases:
+            tcbct = tcbct_dict.get(base, 0)
+            tcac = tcac_dict.get(base, 0)
+            perc = round((tcbct / tcac * 100), 2) if tcac > 0 else 0.0
 
-            if total_ch == 0:
+            if tcac == 0:
                 pontos = 0.0
             elif perc <= 7.0:
                 pontos = 15.0
@@ -258,63 +239,169 @@ class CalculoPontuacaoService:
                 pontos = 10.0
             else:
                 pontos = 0.0
+
+            resultado[base] = {
+                "perc_reinc_equipe": perc,
+                "pontos_reinc_equipe": pontos,
+                "total_reinc_base": tcbct,
+                "total_chamados_base": tcac
+            }
+
+        return resultado, tcac_dict
+
+    # =========================================================================
+    # 5. KPI 5: REINCIDÊNCIA INDIVIDUAL (Peso: 15.0 pts)
+    # =========================================================================
+    def _calcular_reincidencia_individual(
+        self, 
+        cur: psycopg.Cursor, 
+        ano_mes_str: str, 
+        tec_chamados_dict: Dict[str, int],
+        tcac_dict: Optional[Dict[str, int]] = None
+    ) -> Dict[str, Dict[str, float]]:
+        """
+        Calcula a Reincidência Individual: TCTNA / TCAC
+        Onde:
+          - TCTNA (Reincidencia): Total de chamados por técnico em tecnico_nome_anterior (validado por encerramento_rrc)
+          - TCAC (EncerradosRRC): Total de chamados por Base CT na coluna assistencia_codigo
+        Meta: <= 7.0% -> 15.0 pts | <= 10.0% -> 10.0 pts | > 10.0% -> 0.0 pts.
+        Exclui reincidências sem peça com defeito não localizado/cancelamento/sem defeito.
+        """
+        query = f"""
+            SELECT 
+                UPPER(TRIM(r.tecnico_nome_anterior)) AS tecnico_nome,
+                CASE 
+                    WHEN b.uf IN ('PE', 'AL') THEN 'PE'
+                    WHEN b.uf IN ('RO', 'AC') THEN 'RO'
+                    ELSE COALESCE(b.atp_resumidas, b.uf, r.cliente_uf_rrc)
+                END AS base_atp,
+                COUNT(*) AS total_reinc_tec
+            FROM reincidentes r
+            LEFT JOIN (
+                SELECT DISTINCT ON (ct_codigo) ct_codigo, atp_resumidas, uf 
+                FROM tb_base_atp
+            ) b ON r.ct_anterior = b.ct_codigo
+            WHERE TO_CHAR(r.encerramento_rrc, 'YYYY-MM') = '{ano_mes_str}'
+              AND NOT (
+                  COALESCE(UPPER(TRIM(r.aplicado_peca_anterior)), 'NÃO') IN ('NÃO', 'NAO', 'N')
+                  AND COALESCE(UPPER(TRIM(r.aplicado_peca_rrc)), 'NÃO') IN ('NÃO', 'NAO', 'N')
+                  AND (
+                      UPPER(COALESCE(r.defeito_anterior, '')) IN ('SEM DEFEITO', 'DEFEITO NÃO LOCALIZADO', 'CANCELADO')
+                      OR UPPER(COALESCE(r.defeito_rrc, '')) IN ('SEM DEFEITO', 'DEFEITO NÃO LOCALIZADO', 'CANCELADO')
+                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%SEM DEFEITO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%DEFEITO N%O LOCALIZADO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_anterior, '')) LIKE '%CANCELAD%'
+                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%SEM DEFEITO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%DEFEITO N%O LOCALIZADO%'
+                      OR UPPER(COALESCE(r.texto_encerrado_rrc, '')) LIKE '%CANCELAD%'
+                  )
+              )
+            GROUP BY 1, 2;
+        """
+        cur.execute(query)
+        resultado = {}
+        for row in cur.fetchall():
+            tec = row["tecnico_nome"]
+            base = row["base_atp"]
+            total_reinc = int(row["total_reinc_tec"] or 0)
+            
+            # Se houver tcac_dict da Base CT oficial, usa TCAC. Caso contrário, usa chamados do técnico
+            tcac = tcac_dict.get(base, 0) if tcac_dict else tec_chamados_dict.get(tec, 0)
+            perc = round((total_reinc / tcac * 100), 2) if tcac > 0 else 0.0
+
+            if tcac == 0:
+                pontos = 0.0
+            elif perc <= 7.0:
+                pontos = 15.0
+            elif perc <= 10.0:
+                pontos = 10.0
+            else:
+                pontos = 0.0
+
             resultado[tec] = {
                 "perc_reinc_indiv": perc,
                 "pontos_reinc_indiv": pontos,
-                "total_reinc_tec": total_reinc
+                "total_reinc_tec": total_reinc,
+                "tcac": tcac,
+                "base": base
             }
         return resultado
 
     # =========================================================================
     # 6. KPI 6: CONSUMO DE PEÇAS INDIVIDUAL (Peso: 12.5 pts)
     # =========================================================================
-    def _calcular_consumo_pecas_individual(self, cur: psycopg.Cursor, ano_mes_str: str, tec_chamados_comp_dict: Dict[str, int]) -> Dict[str, Dict[str, float]]:
+    def _calcular_consumo_pecas_individual(self, cur: psycopg.Cursor, ano_mes_str: str, tec_chamados_dict: Dict[str, int]) -> Dict[str, Dict[str, float]]:
         """
         Calcula o Consumo de Peças por Técnico:
-        Chamados com aplicação das 5 Peças Principais (PLM, SSD, HDD, HD, Tela LCD) / Total Chamados do Técnico.
-        Exclui: A009 (sem necessidade de peça), A016 (orçamento), cabos e periféricos.
+        Quantidade de Peças Elegíveis (Placa Mãe, SSD, HD, HDD, Tela LCD) / Total de Chamados Atendidos (BaseDL).
+        Exclui: A009 (sem necessidade de peça) e peças fora do grupo das 5 elegíveis.
         Meta: <= 25.0% -> 12.5 pts | > 25.0% -> 0.0 pts.
         """
-        query = f"""
-            SELECT 
-                UPPER(TRIM(p.tecnico_nome)) AS tecnico_nome,
-                COUNT(DISTINCT p.chamado) AS total_chamados_com_peca
-            FROM pecas p
-            WHERE TO_CHAR(p.ft, 'YYYY-MM') = '{ano_mes_str}'
-              AND UPPER(p.acao) NOT LIKE '%SEM NECESSIDADE%'
-              AND UPPER(p.acao) NOT LIKE '%A009%'
-              AND UPPER(p.acao) NOT LIKE '%ORÇAMENTO%'
-              AND (
-                  UPPER(p.grupo_mercadoria_desc) LIKE '%PLACA%' OR
-                  UPPER(p.grupo_mercadoria_desc) LIKE '%LCD%' OR
-                  UPPER(p.grupo_mercadoria_desc) LIKE '%TELA%' OR
-                  UPPER(p.grupo_mercadoria_desc) LIKE '%SSD%' OR
-                  UPPER(p.grupo_mercadoria_desc) LIKE '%HARD DISK%' OR
-                  UPPER(p.grupo_mercadoria_desc) LIKE '%DISCO%' OR
-                  UPPER(p.cod_aplic_desc) LIKE '%PLM%' OR
-                  UPPER(p.cod_aplic_desc) LIKE '%PLACA%' OR
-                  UPPER(p.cod_aplic_desc) LIKE '%LCD%' OR
-                  UPPER(p.cod_aplic_desc) LIKE '%TELA%' OR
-                  UPPER(p.cod_aplic_desc) LIKE '%SSD%' OR
-                  UPPER(p.cod_aplic_desc) LIKE '%HD%' OR
-                  UPPER(p.cod_solic_desc) LIKE '%PLM%' OR
-                  UPPER(p.cod_solic_desc) LIKE '%PLACA%' OR
-                  UPPER(p.cod_solic_desc) LIKE '%LCD%' OR
-                  UPPER(p.cod_solic_desc) LIKE '%TELA%' OR
-                  UPPER(p.cod_solic_desc) LIKE '%SSD%' OR
-                  UPPER(p.cod_solic_desc) LIKE '%HD%'
-              )
-              AND UPPER(p.grupo_mercadoria_desc) NOT IN ('ACESSÓRIOS', 'TECLADO', 'MOUSE', 'CABO', 'ADAPTADOR AC', 'CARTÃO MEMÓRIA')
-              AND UPPER(p.cod_aplic_desc) NOT LIKE '%CABO%'
-              AND UPPER(p.cod_aplic_desc) NOT LIKE '%ADAPT%'
-            GROUP BY UPPER(TRIM(p.tecnico_nome));
-        """
+        # 1. Verifica se tb_consumo_peca possui dados para o período
+        cur.execute(f"SELECT COUNT(*) AS total FROM tb_consumo_peca WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}';")
+        row_pecas = cur.fetchone()
+        has_tb_consumo = bool(row_pecas and row_pecas["total"] > 0)
+
+        if has_tb_consumo:
+            query = f"""
+                SELECT 
+                    UPPER(TRIM(p.tecnico_nome)) AS tecnico_nome,
+                    COUNT(*) AS total_pecas_consumidas
+                FROM tb_consumo_peca p
+                WHERE TO_CHAR(p.ft, 'YYYY-MM') = '{ano_mes_str}'
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%SEM NECESSIDADE%'
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%A009%'
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%ORÇAMENTO%'
+                  AND (
+                      UPPER(COALESCE(p.subgrupo, '')) IN ('PLACA MÃE', 'PLACA MAE', 'PLM', 'SSD', 'HD', 'HDD', 'TAMPA FRONTAL/LCD', 'PAINEL LCD', 'LCD', 'LCD ALFANUM')
+                      OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%PLACA MAE%'
+                      OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%PLM%'
+                      OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%SSD%'
+                      OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%HARD DISK%'
+                      OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%LCD%'
+                      OR UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%TELA%'
+                      OR UPPER(COALESCE(p.codigo_aplicado_desc, '')) LIKE '%PLM%'
+                      OR UPPER(COALESCE(p.codigo_aplicado_desc, '')) LIKE '%SSD%'
+                      OR UPPER(COALESCE(p.codigo_aplicado_desc, '')) LIKE '%HDD%'
+                      OR UPPER(COALESCE(p.codigo_aplicado_desc, '')) LIKE '%LCD%'
+                  )
+                GROUP BY UPPER(TRIM(p.tecnico_nome));
+            """
+        else:
+            # Fallback de resiliência: tabela legada pecas
+            query = f"""
+                SELECT 
+                    UPPER(TRIM(p.tecnico_nome)) AS tecnico_nome,
+                    COUNT(*) AS total_pecas_consumidas
+                FROM pecas p
+                WHERE TO_CHAR(p.ft, 'YYYY-MM') = '{ano_mes_str}'
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%SEM NECESSIDADE%'
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%A009%'
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%ORÇAMENTO%'
+                  AND (
+                      UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%PLACA%' OR
+                      UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%LCD%' OR
+                      UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%TELA%' OR
+                      UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%SSD%' OR
+                      UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%HARD DISK%' OR
+                      UPPER(COALESCE(p.grupo_mercadoria_desc, '')) LIKE '%DISCO%' OR
+                      UPPER(COALESCE(p.cod_aplic_desc, '')) LIKE '%PLM%' OR
+                      UPPER(COALESCE(p.cod_aplic_desc, '')) LIKE '%PLACA%' OR
+                      UPPER(COALESCE(p.cod_aplic_desc, '')) LIKE '%LCD%' OR
+                      UPPER(COALESCE(p.cod_aplic_desc, '')) LIKE '%TELA%' OR
+                      UPPER(COALESCE(p.cod_aplic_desc, '')) LIKE '%SSD%' OR
+                      UPPER(COALESCE(p.cod_aplic_desc, '')) LIKE '%HD%'
+                  )
+                  AND UPPER(COALESCE(p.grupo_mercadoria_desc, '')) NOT IN ('ACESSÓRIOS', 'TECLADO', 'MOUSE', 'CABO', 'ADAPTADOR AC', 'CARTÃO MEMÓRIA')
+                GROUP BY UPPER(TRIM(p.tecnico_nome));
+            """
+
         cur.execute(query)
         resultado = {}
         for row in cur.fetchall():
             tec = row["tecnico_nome"]
-            total_pecas = int(row["total_chamados_com_peca"] or 0)
-            total_ch = tec_chamados_comp_dict.get(tec, 0)
+            total_pecas = int(row["total_pecas_consumidas"] or 0)
+            total_ch = tec_chamados_dict.get(tec, 0)
             perc = round((total_pecas / total_ch * 100), 2) if total_ch > 0 else 0.0
 
             if total_ch == 0:
@@ -323,6 +410,7 @@ class CalculoPontuacaoService:
                 pontos = 12.5
             else:
                 pontos = 0.0
+
             resultado[tec] = {
                 "perc_pecas_indiv": perc,
                 "pontos_pecas_indiv": pontos,
@@ -364,13 +452,29 @@ class CalculoPontuacaoService:
                 tec_chamados[tec_name] = int(r["total_chamados"] or 0)
                 tec_chamados_comp[tec_name] = int(r["chamados_computacionais"] or r["total_chamados"] or 0)
 
+            # Complementa chamados com tb_encerrados_rrc se houver registros
+            cur.execute(f"""
+                SELECT 
+                    UPPER(TRIM(tecnico_nome)) AS tecnico_nome,
+                    COUNT(*) AS total_chamados
+                FROM tb_encerrados_rrc
+                WHERE TO_CHAR(COALESCE(encerramento, ft), 'YYYY-MM') = '{ano_mes_str}'
+                  AND tecnico_nome IS NOT NULL AND TRIM(tecnico_nome) != ''
+                GROUP BY UPPER(TRIM(tecnico_nome));
+            """)
+            for r in cur.fetchall():
+                t_name = r["tecnico_nome"]
+                cnt = int(r["total_chamados"] or 0)
+                if cnt > tec_chamados.get(t_name, 0):
+                    tec_chamados[t_name] = cnt
+
             # 2. Execução Independente de Cada Módulo de KPI
             sla_data = self._calcular_sla_equipe(cur, ano_mes_str)
             perdas_data = self._calcular_perdas_equipe(cur, ano_mes_str)
             nps_data = self._calcular_nps_equipe(cur, ano_mes_str)
-            reinc_eq_data = self._calcular_reincidencia_equipe(cur, ano_mes_str, sla_data)
-            reinc_ind_data = self._calcular_reincidencia_individual(cur, ano_mes_str, tec_chamados)
-            pecas_data = self._calcular_consumo_pecas_individual(cur, ano_mes_str, tec_chamados_comp)
+            reinc_eq_data, tcac_dict = self._calcular_reincidencia_equipe(cur, ano_mes_str, sla_data)
+            reinc_ind_data = self._calcular_reincidencia_individual(cur, ano_mes_str, tec_chamados, tcac_dict)
+            pecas_data = self._calcular_consumo_pecas_individual(cur, ano_mes_str, tec_chamados)
 
             # 3. Lista de Técnicos Ativos e suas Bases Oficiais
             cur.execute("""

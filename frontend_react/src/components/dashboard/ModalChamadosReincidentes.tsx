@@ -24,12 +24,15 @@ export interface ChamadoReincidenteDTO {
   ftAnterior?: string;
   ftRrc?: string;
   diasEntreAtendimentos?: number;
+  horasEntreAtendimentos?: number;
   tecnicoNomeAnterior?: string;
   tecnicoNomeRrc?: string;
   ctAnterior?: string;
   ctRrc?: string;
   projetoAnterior?: string;
   projetoRrc?: string;
+  segmentoAnterior?: string;
+  segmentoRrc?: string;
   defeitoAnterior?: string;
   ocorrenciaChamadoAnterior?: string;
   textoEncerradoAnterior?: string;
@@ -40,6 +43,8 @@ export interface ChamadoReincidenteDTO {
   aplicadoPecaRrc?: string;
   pecaNomeAnterior?: string;
   pecaNomeRrc?: string;
+  subgrupoAnterior?: string;
+  subgrupoRrc?: string;
 }
 
 interface ModalChamadosReincidentesProps {
@@ -71,6 +76,58 @@ const formatProjeto = (proj?: string): string => {
     return 'Governo';
   }
   return 'Corporativo';
+};
+
+const formatSegmento = (seg?: string, proj?: string): string => {
+  if (seg && seg.trim() !== '' && seg.trim() !== '-') {
+    const s = seg.toUpperCase().trim();
+    if (s.includes('GOV') || s.includes('GOVERNO')) return 'Governo';
+    if (s.includes('CORP') || s.includes('CORPORATIVO')) return 'Corporativo';
+    return seg.trim();
+  }
+  return formatProjeto(proj);
+};
+
+const formatTempoReincidencia = (
+  horas?: number | null, 
+  dias?: number | null, 
+  ftAnt?: string, 
+  ftRrc?: string
+): { texto: string; isRapido: boolean } => {
+  let h = horas;
+  if ((h === null || h === undefined) && ftAnt && ftRrc) {
+    try {
+      const diffMs = new Date(ftRrc).getTime() - new Date(ftAnt).getTime();
+      if (!isNaN(diffMs)) {
+        h = Math.round(diffMs / (1000 * 60 * 60));
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (h !== null && h !== undefined && h >= 0) {
+    if (h < 24) {
+      return {
+        texto: `Reincidiu em ${h} ${h === 1 ? 'hora' : 'horas'}`,
+        isRapido: true
+      };
+    }
+    const d = dias ?? Math.floor(h / 24);
+    return {
+      texto: `Reincidiu em ${d} ${d === 1 ? 'dia' : 'dias'}`,
+      isRapido: d <= 7
+    };
+  }
+
+  if (dias !== null && dias !== undefined) {
+    return {
+      texto: `Reincidiu em ${dias} ${dias === 1 ? 'dia' : 'dias'}`,
+      isRapido: dias <= 7
+    };
+  }
+
+  return { texto: 'Tempo não calculado', isRapido: false };
 };
 
 const formatDateTime = (dateStr?: string | null): string => {
@@ -276,13 +333,13 @@ export default function ModalChamadosReincidentes({
             </div>
           </div>
 
-          <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl">
+           <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl">
             <span className="text-slate-400 font-medium uppercase text-[10px] block">Tempo Médio</span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-xl font-black text-white">
                 {tempoMedioDias !== null ? `${tempoMedioDias} dias` : '—'}
               </span>
-              <span className="text-[10px] text-slate-500 font-semibold">até reabertura</span>
+              <span className="text-[10px] text-slate-500 font-semibold">até reincidência</span>
             </div>
           </div>
         </div>
@@ -361,8 +418,14 @@ export default function ModalChamadosReincidentes({
             </div>
           ) : (
             filteredList.map((item, idx) => {
-              const dias = item.diasEntreAtendimentos;
-              const isRapido = dias !== null && dias !== undefined && dias <= 7;
+              const badgeTempo = formatTempoReincidencia(
+                item.horasEntreAtendimentos,
+                item.diasEntreAtendimentos,
+                item.ftAnterior,
+                item.ftRrc
+              );
+              const segAnterior = formatSegmento(item.segmentoAnterior, item.projetoAnterior);
+              const segRrc = formatSegmento(item.segmentoRrc, item.projetoRrc || item.projetoAnterior);
 
               return (
                 <div 
@@ -380,26 +443,26 @@ export default function ModalChamadosReincidentes({
                       <ArrowRight size={14} className="text-slate-600 hidden sm:block" />
 
                       <div className="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
-                        <span className="text-[10px] text-slate-400 uppercase font-bold">Reabertura RRC:</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold">Reincidência:</span>
                         <strong className="text-xs font-mono font-bold text-slate-200">#{item.chamadoRrc || 'N/D'}</strong>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {dias !== null && dias !== undefined && (
+                      {badgeTempo.texto !== 'Tempo não calculado' && (
                         <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 border ${
-                          isRapido 
+                          badgeTempo.isRapido 
                             ? 'bg-rose-500/10 text-rose-300 border-rose-500/20' 
                             : 'bg-slate-800 text-slate-300 border-slate-700'
                         }`}>
-                          <Clock size={12} className="text-slate-400" />
-                          Reaberto em {dias} {dias === 1 ? 'dia' : 'dias'}
+                          <Clock size={12} className={badgeTempo.isRapido ? "text-rose-400" : "text-slate-400"} />
+                          {badgeTempo.texto}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* GRID COMPARATIVO: PRIMEIRO ATENDIMENTO vs REABERTURA (RRC) */}
+                  {/* GRID COMPARATIVO: PRIMEIRO ATENDIMENTO vs REINCIDÊNCIA */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                     
                     {/* COLUNA 1: PRIMEIRO ATENDIMENTO */}
@@ -427,13 +490,24 @@ export default function ModalChamadosReincidentes({
                           </span>
                         </div>
 
-                        {/* PROJETO */}
+                        {/* SEGMENTO */}
                         <div>
-                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Projeto</span>
-                          <span className="text-slate-200 font-semibold flex items-center gap-1 mt-0.5">
+                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Segmento</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
                             <Layers size={13} className="text-slate-400 shrink-0" />
-                            <span className="truncate">{formatProjeto(item.projetoAnterior)}</span>
-                          </span>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
+                              segAnterior === 'Governo'
+                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+                            }`}>
+                              {segAnterior}
+                            </span>
+                            {item.projetoAnterior && (
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                ({item.projetoAnterior})
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* DEFEITO E OCORRÊNCIA APONTADA */}
@@ -463,24 +537,31 @@ export default function ModalChamadosReincidentes({
                       </div>
 
                       {/* PEÇA APLICADA (1º ATENDIMENTO) */}
-                      <div className="flex items-start gap-1.5 text-[11px] pt-2 border-t border-slate-800/60">
-                        <Cpu size={13} className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-cyan-400 mt-0.5 shrink-0" : "text-slate-500 mt-0.5 shrink-0"} />
-                        <div className="flex flex-col">
+                      <div className="flex items-start gap-1.5 text-[11px] pt-2.5 border-t border-slate-800/60">
+                        <Cpu size={14} className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-cyan-400 mt-0.5 shrink-0" : "text-slate-500 mt-0.5 shrink-0"} />
+                        <div className="flex flex-col gap-1 w-full">
                           <span className="text-slate-400 text-[10px] uppercase font-bold">Peça Aplicada (1º Atendimento):</span>
-                          <strong className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-cyan-300 font-semibold" : "text-slate-500 font-normal"}>
+                          {item.subgrupoAnterior && (
+                            <div className="flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-cyan-950/80 text-cyan-300 border border-cyan-800/60">
+                                Subgrupo: {item.subgrupoAnterior}
+                              </span>
+                            </div>
+                          )}
+                          <strong className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-cyan-200 font-medium leading-tight" : "text-slate-500 font-normal"}>
                             {item.pecaNomeAnterior || (item.aplicadoPecaAnterior === 'Sim' ? 'Sim (Peça Aplicada)' : 'Nenhuma peça aplicada')}
                           </strong>
                         </div>
                       </div>
                     </div>
 
-                    {/* COLUNA 2: REABERTURA (RRC) */}
+                    {/* COLUNA 2: REINCIDÊNCIA */}
                     <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/70 space-y-2.5 flex flex-col justify-between">
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800 pb-2">
                           <span className="flex items-center gap-1 font-bold text-slate-300">
                             <Calendar size={13} className="text-slate-400" />
-                            Reabertura (RRC): {formatDateTime(item.ftRrc)}
+                            Reincidência: {formatDateTime(item.ftRrc)}
                           </span>
                           {item.ctRrc && (
                             <span className="font-semibold text-slate-400 flex items-center gap-1 text-[10px]">
@@ -490,9 +571,9 @@ export default function ModalChamadosReincidentes({
                           )}
                         </div>
 
-                        {/* TÉCNICO QUE ATENDEU A REINCIDÊNCIA */}
+                        {/* TÉCNICO DA REINCIDÊNCIA */}
                         <div>
-                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Técnico (Reabertura)</span>
+                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Técnico (Reincidência)</span>
                           <div className="flex items-center gap-1 mt-0.5">
                             <UserCheck size={13} className="text-slate-400 shrink-0" />
                             <span className="font-semibold text-slate-200">
@@ -501,18 +582,29 @@ export default function ModalChamadosReincidentes({
                           </div>
                         </div>
 
-                        {/* PROJETO */}
+                        {/* SEGMENTO */}
                         <div>
-                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Projeto</span>
-                          <span className="text-slate-200 font-semibold flex items-center gap-1 mt-0.5">
+                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Segmento</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
                             <Layers size={13} className="text-slate-400 shrink-0" />
-                            <span className="truncate">{formatProjeto(item.projetoRrc || item.projetoAnterior)}</span>
-                          </span>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
+                              segRrc === 'Governo'
+                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+                            }`}>
+                              {segRrc}
+                            </span>
+                            {item.projetoRrc && item.projetoRrc !== item.projetoAnterior && (
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                ({item.projetoRrc})
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        {/* FALHA / DEFEITO APONTADO NO 2º CHAMADO */}
+                        {/* FALHA / DEFEITO APONTADO NA REINCIDÊNCIA */}
                         <div>
-                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Falha / Defeito Apontado (2º Chamado)</span>
+                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Falha / Defeito Apontado (Reincidência)</span>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <AlertTriangle size={13} className="text-slate-400 shrink-0" />
                             <span className="font-semibold text-slate-200">
@@ -521,9 +613,9 @@ export default function ModalChamadosReincidentes({
                           </div>
                         </div>
 
-                        {/* ENCERRAMENTO (REABERTURA RRC) COM BARRA DE ROLAGEM */}
+                        {/* ENCERRAMENTO (REINCIDÊNCIA) COM BARRA DE ROLAGEM */}
                         <div>
-                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Encerramento (Reabertura RRC)</span>
+                          <span className="text-slate-500 font-medium block text-[10px] uppercase">Encerramento (Reincidência)</span>
                           {item.textoEncerradoRrc ? (
                             <div className="text-[11px] text-slate-300 bg-slate-950/90 p-2.5 rounded-lg border border-slate-800/80 mt-1 max-h-28 overflow-y-auto pr-1.5 leading-relaxed font-mono select-text">
                               {item.textoEncerradoRrc}
@@ -534,23 +626,30 @@ export default function ModalChamadosReincidentes({
                             </div>
                           )}
                         </div>
+                      </div>
 
-                        {/* PEÇA APLICADA NO 2º ATENDIMENTO */}
-                        <div className="flex items-start gap-1.5 text-[11px] pt-2 border-t border-slate-800/60">
-                          <Cpu size={13} className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-cyan-400 mt-0.5 shrink-0" : "text-slate-500 mt-0.5 shrink-0"} />
-                          <div className="flex flex-col">
-                            <span className="text-slate-400 text-[10px] uppercase font-bold">Peça Aplicada (2º Chamado):</span>
-                            <strong className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-cyan-300 font-semibold" : "text-slate-500 font-normal"}>
-                              {item.pecaNomeRrc || (item.aplicadoPecaRrc === 'Sim' ? 'Sim (Peça Aplicada)' : 'Nenhuma peça aplicada')}
-                            </strong>
-                          </div>
+                      {/* PEÇA APLICADA NA REINCIDÊNCIA */}
+                      <div className="flex items-start gap-1.5 text-[11px] pt-2.5 border-t border-slate-800/60">
+                        <Cpu size={14} className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-cyan-400 mt-0.5 shrink-0" : "text-slate-500 mt-0.5 shrink-0"} />
+                        <div className="flex flex-col gap-1 w-full">
+                          <span className="text-slate-400 text-[10px] uppercase font-bold">Peça Aplicada (Reincidência):</span>
+                          {item.subgrupoRrc && (
+                            <div className="flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-cyan-950/80 text-cyan-300 border border-cyan-800/60">
+                                Subgrupo: {item.subgrupoRrc}
+                              </span>
+                            </div>
+                          )}
+                          <strong className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-cyan-200 font-medium leading-tight" : "text-slate-500 font-normal"}>
+                            {item.pecaNomeRrc || (item.aplicadoPecaRrc === 'Sim' ? 'Sim (Peça Aplicada)' : 'Nenhuma peça aplicada')}
+                          </strong>
                         </div>
                       </div>
+                    </div>
 
-                      {/* BOX DE ANÁLISE DE REINCIDÊNCIA */}
-                      <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-[11px] text-slate-300 leading-relaxed mt-2">
-                        💡 <strong className="text-slate-200">Análise de Reincidência:</strong> Falha reincidente dentro do intervalo de 30 dias. Revisar diagnósticos e conferência de testes pós-reparo para assegurar a resolução definitiva na primeira visita.
-                      </div>
+                    {/* BOX DE ANÁLISE DE REINCIDÊNCIA */}
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-[11px] text-slate-300 leading-relaxed mt-2 md:col-span-2">
+                      💡 <strong className="text-slate-200">Análise de Reincidência:</strong> Falha reincidente dentro do intervalo de 30 dias. Revisar diagnósticos e conferência de testes pós-reparo para assegurar a resolução definitiva na primeira visita.
                     </div>
 
                   </div>

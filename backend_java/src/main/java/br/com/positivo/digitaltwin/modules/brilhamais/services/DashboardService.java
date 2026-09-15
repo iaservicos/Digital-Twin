@@ -3,6 +3,7 @@ package br.com.positivo.digitaltwin.modules.brilhamais.services;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoResumoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoReincidenteDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadoSlaPerdidoDTO;
+import br.com.positivo.digitaltwin.modules.brilhamais.dto.ChamadosSemTecnicoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.PecaAplicadaDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.HistoricoDTO;
 import br.com.positivo.digitaltwin.modules.brilhamais.dto.RankingDTO;
@@ -178,18 +179,64 @@ public class DashboardService {
                     THEN EXTRACT(DAY FROM (r.ft_rrc - r.ft_anterior))::bigint 
                     ELSE NULL 
                 END AS dias_entre,
+                CASE 
+                    WHEN r.ft_rrc IS NOT NULL AND r.ft_anterior IS NOT NULL 
+                    THEN ROUND(EXTRACT(EPOCH FROM (r.ft_rrc - r.ft_anterior)) / 3600)::bigint 
+                    ELSE NULL 
+                END AS horas_entre,
                 r.tecnico_nome_anterior,
                 r.tecnico_nome_rrc,
                 COALESCE((SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = r.ct_anterior LIMIT 1), r.ct_anterior) AS ct_anterior,
                 COALESCE((SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = r.ct_rrc LIMIT 1), r.ct_rrc) AS ct_rrc,
-                CASE 
-                    WHEN r.projeto_anterior LIKE 'H3-%' OR r.projeto_anterior LIKE '%GOV%' THEN 'Governo'
-                    ELSE 'Corporativo'
-                END AS projeto_anterior,
-                CASE 
-                    WHEN r.projeto_rrc LIKE 'H3-%' OR r.projeto_rrc LIKE '%GOV%' THEN 'Governo'
-                    ELSE 'Corporativo'
-                END AS projeto_rrc,
+                r.projeto_anterior,
+                r.projeto_rrc,
+                COALESCE(
+                    (SELECT CASE 
+                        WHEN UPPER(s.segmento) LIKE '%GOV%' THEN 'Governo'
+                        WHEN UPPER(s.segmento) LIKE '%CORP%' THEN 'Corporativo'
+                        ELSE s.segmento 
+                     END 
+                     FROM tb_encerrados_rrc s 
+                     WHERE s.chamado = r.chamado_anterior LIMIT 1),
+                    (SELECT CASE 
+                        WHEN UPPER(c.comercial) LIKE '%GOV%' THEN 'Governo'
+                        WHEN UPPER(c.comercial) LIKE '%CORP%' THEN 'Corporativo'
+                        ELSE c.comercial 
+                     END 
+                     FROM tb_chamado c 
+                     WHERE c.chamado::text = r.chamado_anterior LIMIT 1),
+                    CASE 
+                        WHEN r.projeto_anterior LIKE 'H3-%' OR r.projeto_anterior LIKE '%GOV%' THEN 'Governo'
+                        WHEN r.segmento_rrc LIKE '%GOV%' THEN 'Governo'
+                        ELSE 'Corporativo'
+                    END
+                ) AS segmento_anterior,
+                COALESCE(
+                    CASE 
+                        WHEN UPPER(r.segmento_rrc) LIKE '%GOV%' THEN 'Governo'
+                        WHEN UPPER(r.segmento_rrc) LIKE '%CORP%' THEN 'Corporativo'
+                        ELSE NULL 
+                    END,
+                    (SELECT CASE 
+                        WHEN UPPER(s.segmento) LIKE '%GOV%' THEN 'Governo'
+                        WHEN UPPER(s.segmento) LIKE '%CORP%' THEN 'Corporativo'
+                        ELSE s.segmento 
+                     END 
+                     FROM tb_encerrados_rrc s 
+                     WHERE s.chamado = r.chamado_rrc LIMIT 1),
+                    (SELECT CASE 
+                        WHEN UPPER(c.comercial) LIKE '%GOV%' THEN 'Governo'
+                        WHEN UPPER(c.comercial) LIKE '%CORP%' THEN 'Corporativo'
+                        ELSE c.comercial 
+                     END 
+                     FROM tb_chamado c 
+                     WHERE c.chamado::text = r.chamado_rrc LIMIT 1),
+                    CASE 
+                        WHEN r.projeto_rrc LIKE 'H3-%' OR r.projeto_rrc LIKE '%GOV%' THEN 'Governo'
+                        WHEN r.projeto_anterior LIKE 'H3-%' OR r.projeto_anterior LIKE '%GOV%' THEN 'Governo'
+                        ELSE 'Corporativo'
+                    END
+                ) AS segmento_rrc,
                 r.defeito_anterior,
                 r.ocorrencia_chamado_anterior,
                 r.texto_encerrado_anterior,
@@ -198,7 +245,24 @@ public class DashboardService {
                 r.ocorrencia_chamado_rrc,
                 r.texto_encerrado_rrc,
                 r.aplicado_peca_rrc,
+                (SELECT STRING_AGG(DISTINCT TRIM(p.subgrupo), ' | ') 
+                 FROM tb_consumo_peca p 
+                 WHERE p.chamado::text = r.chamado_anterior AND p.subgrupo IS NOT NULL) AS subgrupo_anterior,
+                (SELECT STRING_AGG(DISTINCT TRIM(p.subgrupo), ' | ') 
+                 FROM tb_consumo_peca p 
+                 WHERE p.chamado::text = r.chamado_rrc AND p.subgrupo IS NOT NULL) AS subgrupo_rrc,
                 COALESCE(
+                    (SELECT STRING_AGG(DISTINCT 
+                        CASE 
+                            WHEN p.subgrupo IS NOT NULL AND p.codigo_aplicado_desc IS NOT NULL 
+                            THEN CONCAT(TRIM(p.subgrupo), ' - ', TRIM(p.codigo_aplicado_desc))
+                            WHEN p.subgrupo IS NOT NULL 
+                            THEN TRIM(p.subgrupo)
+                            ELSE TRIM(p.codigo_aplicado_desc)
+                        END, ' | ') 
+                     FROM tb_consumo_peca p 
+                     WHERE p.chamado::text = r.chamado_anterior 
+                       AND (p.subgrupo IS NOT NULL OR p.codigo_aplicado_desc IS NOT NULL)),
                     (SELECT STRING_AGG(DISTINCT p.cod_aplic_desc, ' | ') 
                      FROM pecas p 
                      WHERE p.chamado = r.chamado_anterior AND p.cod_aplic_desc IS NOT NULL),
@@ -209,6 +273,17 @@ public class DashboardService {
                     END
                 ) AS peca_nome_anterior,
                 COALESCE(
+                    (SELECT STRING_AGG(DISTINCT 
+                        CASE 
+                            WHEN p.subgrupo IS NOT NULL AND p.codigo_aplicado_desc IS NOT NULL 
+                            THEN CONCAT(TRIM(p.subgrupo), ' - ', TRIM(p.codigo_aplicado_desc))
+                            WHEN p.subgrupo IS NOT NULL 
+                            THEN TRIM(p.subgrupo)
+                            ELSE TRIM(p.codigo_aplicado_desc)
+                        END, ' | ') 
+                     FROM tb_consumo_peca p 
+                     WHERE p.chamado::text = r.chamado_rrc 
+                       AND (p.subgrupo IS NOT NULL OR p.codigo_aplicado_desc IS NOT NULL)),
                     (SELECT STRING_AGG(DISTINCT p.cod_aplic_desc, ' | ') 
                      FROM pecas p 
                      WHERE p.chamado = r.chamado_rrc AND p.cod_aplic_desc IS NOT NULL),
@@ -277,7 +352,12 @@ public class DashboardService {
                 rs.getString("texto_encerrado_rrc"),
                 rs.getString("aplicado_peca_rrc"),
                 rs.getString("peca_nome_anterior"),
-                rs.getString("peca_nome_rrc")
+                rs.getString("peca_nome_rrc"),
+                rs.getObject("horas_entre") != null ? rs.getLong("horas_entre") : null,
+                rs.getString("segmento_anterior"),
+                rs.getString("segmento_rrc"),
+                rs.getString("subgrupo_anterior"),
+                rs.getString("subgrupo_rrc")
         ), params.toArray());
     }
 
@@ -313,14 +393,14 @@ public class DashboardService {
                     ELSE 'Corporativo'
                 END AS projeto,
                 c.sla_status,
-                COALESCE(NULLIF(TRIM(c.classifica_chamado), ''), 'EXPIRADO EM CAMPO / FORA DO SLA') AS causa_perda,
+                COALESCE(NULLIF(TRIM(c.classifica_chamado), ''), 'FORA DO SLA') AS causa_perda,
                 c.texto_encerrado
             FROM tb_chamado c
             JOIN tb_tecnico_base tb ON tb.ct_codigo = c.assistencia_centro_trabalho
             JOIN tb_tecnico t ON t.id_tecnico = tb.id_tecnico
             LEFT JOIN chamados ch ON ch.chamado = c.chamado::text
             WHERE tb.id_tecnico = ?
-              AND (c.sla_status = 'FORA' OR (c.classifica_chamado IS NOT NULL AND TRIM(c.classifica_chamado) NOT IN ('', 'DENTRO DO SLA')))
+              AND UPPER(TRIM(c.sla_status)) = 'FORA'
         """);
 
         List<Object> params = new ArrayList<>();
@@ -512,4 +592,121 @@ public class DashboardService {
         ), params.toArray());
     }
 
+    /**
+     * Consulta e agrupa chamados que não possuem técnico atribuído (nulos, vazios ou 'Não Definido'),
+     * consolidando métricas por Região/UF e Base ATP para acompanhamento da supervisão.
+     */
+    public ChamadosSemTecnicoDTO getChamadosSemTecnicoPorRegiao(String mesAnoStr, Integer idSupervisor) {
+        StringBuilder sqlFiltroData = new StringBuilder();
+        List<Object> paramsFiltro = new ArrayList<>();
+
+        String mesFiltro = mesAnoStr != null ? mesAnoStr.trim().toLowerCase() : "";
+        if (mesFiltro.contains("jul") || mesFiltro.contains("2026-07") || "7".equals(mesFiltro)) {
+            sqlFiltroData.append(" AND TO_CHAR(c.ft, 'YYYY-MM') = '2026-07'");
+        } else if (mesFiltro.contains("ago") || mesFiltro.contains("2026-08") || "8".equals(mesFiltro)) {
+            sqlFiltroData.append(" AND TO_CHAR(c.ft, 'YYYY-MM') = '2026-08'");
+        } else if (mesFiltro.contains("set") || mesFiltro.contains("2026-09") || "9".equals(mesFiltro)) {
+            sqlFiltroData.append(" AND TO_CHAR(c.ft, 'YYYY-MM') = '2026-09'");
+        } else if (mesFiltro.contains("out") || mesFiltro.contains("2026-10") || "10".equals(mesFiltro)) {
+            sqlFiltroData.append(" AND TO_CHAR(c.ft, 'YYYY-MM') = '2026-10'");
+        } else {
+            Campanha camp = campanhaRepository.findFirstByAtivaTrueOrderByIdCampanhaDesc().orElse(null);
+            if (camp != null && camp.getDataInicio() != null && camp.getDataFim() != null) {
+                sqlFiltroData.append(" AND c.ft >= ? AND c.ft <= ?");
+                paramsFiltro.add(camp.getDataInicio().atStartOfDay());
+                paramsFiltro.add(camp.getDataFim().atTime(23, 59, 59));
+            }
+        }
+
+        StringBuilder sqlSup = new StringBuilder();
+        if (idSupervisor != null) {
+            sqlSup.append(" AND b.id_supervisor = ?");
+            paramsFiltro.add(idSupervisor);
+        }
+
+        // 1. Agrupamento por Região / Base ATP
+        String sqlRegioes = """
+            SELECT 
+                COALESCE(b.uf, 'OUTROS') AS uf,
+                COALESCE(b.atp_resumidas, b.nome_atp, 'BASE INDEFINIDA') AS atp_nome,
+                c.assistencia_centro_trabalho AS ct_codigo,
+                COUNT(*) AS total_chamados,
+                COUNT(*) FILTER (WHERE UPPER(TRIM(c.sla_status)) = 'DENTRO') AS dentro_sla,
+                COUNT(*) FILTER (WHERE UPPER(TRIM(c.sla_status)) = 'FORA') AS fora_sla,
+                ROUND((COUNT(*) FILTER (WHERE UPPER(TRIM(c.sla_status)) = 'DENTRO')::numeric / NULLIF(COUNT(*), 0)::numeric) * 100, 1) AS perc_sla
+            FROM tb_chamado c
+            LEFT JOIN (
+                SELECT DISTINCT ON (ct_codigo) ct_codigo, uf, atp_resumidas, nome_atp, id_supervisor
+                FROM tb_base_atp
+            ) b ON c.assistencia_centro_trabalho = b.ct_codigo
+            WHERE (c.id_tecnico IS NULL 
+               OR c.tecnico_nome IS NULL 
+               OR UPPER(TRIM(c.tecnico_nome)) IN ('', 'NÃO DEFINIDO', 'NAO DEFINIDO', 'SEM TECNICO', 'SEM TÉCNICO'))
+        """ + sqlFiltroData + sqlSup + """
+            GROUP BY b.uf, b.atp_resumidas, b.nome_atp, c.assistencia_centro_trabalho
+            ORDER BY total_chamados DESC;
+        """;
+
+        List<ChamadosSemTecnicoDTO.RegiaoSemTecnicoDTO> regioes = jdbcTemplate.query(
+                sqlRegioes,
+                (rs, rowNum) -> new ChamadosSemTecnicoDTO.RegiaoSemTecnicoDTO(
+                        rs.getString("uf"),
+                        rs.getString("atp_nome"),
+                        rs.getString("ct_codigo"),
+                        rs.getInt("total_chamados"),
+                        rs.getInt("dentro_sla"),
+                        rs.getInt("fora_sla"),
+                        rs.getDouble("perc_sla")
+                ),
+                paramsFiltro.toArray()
+        );
+
+        // 2. Lista Detalhada dos Chamados sem Técnico (Limitado a 500 registros para alta performance)
+        String sqlChamados = """
+            SELECT 
+                c.chamado::text AS chamado,
+                c.ft AS data_ft,
+                COALESCE(c.tecnico_nome, 'NÃO DEFINIDO') AS tecnico_nome,
+                c.assistencia_centro_trabalho AS ct_codigo,
+                COALESCE(b.nome_atp, c.assistencia_nome, c.assistencia_centro_trabalho) AS assistencia_nome,
+                c.equipamento,
+                COALESCE(c.projeto, 'Corporativo') AS projeto,
+                c.sla_status,
+                COALESCE(NULLIF(TRIM(c.classifica_chamado), ''), 'SEM TÉCNICO ATRIBUÍDO') AS causa_perda,
+                c.texto_encerrado
+            FROM tb_chamado c
+            LEFT JOIN (
+                SELECT DISTINCT ON (ct_codigo) ct_codigo, uf, atp_resumidas, nome_atp, id_supervisor
+                FROM tb_base_atp
+            ) b ON c.assistencia_centro_trabalho = b.ct_codigo
+            WHERE (c.id_tecnico IS NULL 
+               OR c.tecnico_nome IS NULL 
+               OR UPPER(TRIM(c.tecnico_nome)) IN ('', 'NÃO DEFINIDO', 'NAO DEFINIDO', 'SEM TECNICO', 'SEM TÉCNICO'))
+        """ + sqlFiltroData + sqlSup + """
+            ORDER BY c.ft DESC
+            LIMIT 500;
+        """;
+
+        List<ChamadoSlaPerdidoDTO> chamados = jdbcTemplate.query(
+                sqlChamados,
+                (rs, rowNum) -> new ChamadoSlaPerdidoDTO(
+                        rs.getString("chamado"),
+                        rs.getTimestamp("data_ft") != null ? rs.getTimestamp("data_ft").toLocalDateTime() : null,
+                        rs.getString("tecnico_nome"),
+                        rs.getString("ct_codigo"),
+                        rs.getString("assistencia_nome"),
+                        rs.getString("equipamento"),
+                        rs.getString("projeto"),
+                        rs.getString("sla_status"),
+                        rs.getString("causa_perda"),
+                        rs.getString("texto_encerrado")
+                ),
+                paramsFiltro.toArray()
+        );
+
+        int totalGeral = regioes.stream().mapToInt(ChamadosSemTecnicoDTO.RegiaoSemTecnicoDTO::totalChamados).sum();
+        int totalBases = regioes.size();
+
+        return new ChamadosSemTecnicoDTO(totalGeral, totalBases, regioes, chamados);
+    }
 }

@@ -23,5 +23,10 @@ public record ChamadoReincidenteDTO(
     String textoEncerradoRrc,
     String aplicadoPecaRrc,
     String pecaNomeAnterior,
-    String pecaNomeRrc
+    String pecaNomeRrc,
+    Long horasEntreAtendimentos,
+    String segmentoAnterior,
+    String segmentoRrc,
+    String subgrupoAnterior,
+    String subgrupoRrc
 ) {}

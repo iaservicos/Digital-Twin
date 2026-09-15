@@ -173,13 +173,22 @@ class SpreadsheetIngestService:
                     chamados_mirror_insert = []
                     for _, row in clean_df.iterrows():
                         try:
-                            ch_num = int(row['chamado'])
+                            ch_raw = row['chamado']
+                            if pd.isna(ch_raw):
+                                continue
+                            ch_num = int(float(ch_raw))
+                            ch_str = str(ch_num)
                         except Exception:
                             continue
 
-                        ch_str = str(ch_num)
-                        nome_tec = str(row['tecnico_nome']).strip().upper()
-                        id_tec = tec_map.get(nome_tec)
+                        # Tratamento de Técnico (Normalização de Nulos e 'Não Definido')
+                        nome_tec_raw = str(row.get('tecnico_nome')).strip() if pd.notna(row.get('tecnico_nome')) else ''
+                        if not nome_tec_raw or nome_tec_raw.upper() in ('NONE', 'NAN', 'NÃO DEFINIDO', 'NAO DEFINIDO', 'SEM TÉCNICO', 'SEM TECNICO'):
+                            nome_tec_final = 'NÃO DEFINIDO'
+                            id_tec = None
+                        else:
+                            nome_tec_final = nome_tec_raw.upper()
+                            id_tec = tec_map.get(nome_tec_final)
 
                         # Tratamento de Data FT
                         val_ft = row.get('ft')
@@ -192,15 +201,14 @@ class SpreadsheetIngestService:
                             except Exception:
                                 pass
 
-                        # Inferência resiliente de SLA_status com fallback para Classifica_chamado
+                        # Tratamento de SLA_status estrito (sem inferência por classifica_chamado)
+                        # Por diretriz da gestão, classifica_chamado é restrita ao KPI 2 (Perdas de Gestão)
                         val_sla_raw = str(row.get('sla_status')).strip().lower() if pd.notna(row.get('sla_status')) else ''
-                        val_classifica = str(row.get('classifica_chamado')).strip().upper() if pd.notna(row.get('classifica_chamado')) else ''
-
                         if val_sla_raw in ('dentro', 'fora'):
                             final_sla = val_sla_raw
-                        elif val_classifica == 'DENTRO DO SLA':
+                        elif 'dentro' in val_sla_raw:
                             final_sla = 'dentro'
-                        elif val_classifica != '':
+                        elif 'fora' in val_sla_raw:
                             final_sla = 'fora'
                         else:
                             final_sla = None
@@ -215,7 +223,7 @@ class SpreadsheetIngestService:
                             str(row.get('comercial'))[:255] if pd.notna(row.get('comercial')) else None,
                             str(row.get('assistencia_centro_trabalho'))[:255] if pd.notna(row.get('assistencia_centro_trabalho')) else None,
                             str(row.get('assistencia_nome'))[:255] if pd.notna(row.get('assistencia_nome')) else None,
-                            str(row.get('tecnico_nome'))[:255] if pd.notna(row.get('tecnico_nome')) else None,
+                            nome_tec_final if nome_tec_final else None,
                             str(row.get('texto_encerrado')) if pd.notna(row.get('texto_encerrado')) else None,
                             str(row.get('reincidente'))[:255] if pd.notna(row.get('reincidente')) else None,
                             str(row.get('classifica_chamado'))[:255] if pd.notna(row.get('classifica_chamado')) else None,
@@ -357,7 +365,17 @@ class SpreadsheetIngestService:
             if faltantes:
                 raise KeyError(f"Colunas obrigatórias não encontradas na planilha de Peças: {faltantes}. Colunas lidas: {list(df.columns)}")
 
-            df = df.dropna(subset=['chamado'])
+            def clean_chamado_val(val) -> Optional[int]:
+                if pd.isna(val):
+                    return None
+                try:
+                    return int(float(str(val).strip()))
+                except (ValueError, OverflowError):
+                    return None
+
+            df['clean_chamado'] = df['chamado'].apply(clean_chamado_val)
+            df = df.dropna(subset=['clean_chamado'])
+            df['clean_chamado'] = df['clean_chamado'].astype('int64')
             total_rows = len(df)
 
             with self.pg_client._get_connection() as conn:
@@ -369,9 +387,13 @@ class SpreadsheetIngestService:
                         "total_rows": total_rows
                     }
 
-                    # Proteção contra duplicidade
-                    cur.execute("SELECT chamado, COALESCE(subgrupo, '') AS subgrupo FROM tb_consumo_peca")
-                    pecas_existentes = {(str(r['chamado']), str(r['subgrupo'])) for r in cur.fetchall()}
+                    # Limpar chamados já existentes nesta planilha para atualização consistente
+                    chamados_list = list(df['clean_chamado'].unique())
+                    for i in range(0, len(chamados_list), 1000):
+                        chunk_ids = chamados_list[i:i + 1000]
+                        if chunk_ids:
+                            cur.execute("DELETE FROM tb_consumo_peca WHERE chamado = ANY(%s)", (chunk_ids,))
+                    conn.commit()
 
                     # Técnicos para desempate
                     cur.execute("""
@@ -387,82 +409,156 @@ class SpreadsheetIngestService:
                             tec_dict[n] = []
                         tec_dict[n].append(r)
 
+                    def get_date(val) -> Optional[datetime]:
+                        if pd.notna(val) and str(val).strip():
+                            try:
+                                parsed = pd.to_datetime(val, dayfirst=False) if not isinstance(val, datetime) else val
+                                return parsed if pd.notna(parsed) else None
+                            except Exception:
+                                return None
+                        return None
+
+                    def get_str(val, max_len: Optional[int] = None) -> Optional[str]:
+                        if pd.notna(val) and str(val).strip():
+                            s = str(val).strip()
+                            return s[:max_len] if max_len else s
+                        return None
+
+                    def get_numeric(val) -> Optional[float]:
+                        if pd.notna(val):
+                            try:
+                                return float(val)
+                            except Exception:
+                                return None
+                        return None
+
                     pecas_insert = []
                     pecas_mirror_insert = []
-                    alertas_moderador = []
 
                     for _, row in df.iterrows():
-                        chamado_num = str(row['chamado']).strip()
-                        sub = str(row.get('subgrupo', ''))[:255] if pd.notna(row.get('subgrupo')) else ''
+                        chamado_num = int(row['clean_chamado'])
+                        sub = get_str(row.get('subgrupo'), 150) or ''
 
-                        if (chamado_num, sub) not in pecas_existentes:
-                            tecnico_planilha = str(row.get('tecnico_nome', '')).strip().upper()
-                            matricula_planilha = str(row.get('matricula', '')).strip() if 'matricula' in row else ''
-                            ct_planilha = str(row.get('ct', '')).strip()
+                        tecnico_planilha = str(row.get('tecnico_nome', '')).strip().upper()
+                        matricula_planilha = str(row.get('matricula', '')).strip() if 'matricula' in row else ''
+                        ct_planilha = str(row.get('ct', '')).strip()
 
-                            # Desempate de técnicos
-                            matches = [t for k, t_list in tec_dict.items() if k.startswith(tecnico_planilha) for t in t_list] if tecnico_planilha else []
+                        # Desempate de técnicos
+                        matches = [t for k, t_list in tec_dict.items() if k.startswith(tecnico_planilha) for t in t_list] if tecnico_planilha else []
 
-                            if len(matches) > 1 and matricula_planilha:
-                                m_filter = [m for m in matches if m.get('matricula') == matricula_planilha]
-                                if m_filter:
-                                    matches = m_filter
+                        if len(matches) > 1 and matricula_planilha:
+                            m_filter = [m for m in matches if m.get('matricula') == matricula_planilha]
+                            if m_filter:
+                                matches = m_filter
 
-                            if len(matches) > 1 and ct_planilha:
-                                c_filter = [m for m in matches if m.get('ct_codigo') == ct_planilha]
-                                if c_filter:
-                                    matches = c_filter
+                        if len(matches) > 1 and ct_planilha:
+                            c_filter = [m for m in matches if m.get('ct_codigo') == ct_planilha]
+                            if c_filter:
+                                matches = c_filter
 
-                            nome_salvar = matches[0]['nome'] if len(matches) == 1 else tecnico_planilha
+                        nome_salvar = matches[0]['nome'] if len(matches) == 1 else tecnico_planilha
+                        ft_date = get_date(row.get('ft'))
 
-                            pecas_existentes.add((chamado_num, sub))
+                        pecas_insert.append((
+                            chamado_num,
+                            get_str(row.get('ct'), 100),
+                            get_str(row.get('atp'), 255),
+                            get_date(row.get('abertura')),
+                            ft_date,
+                            get_date(row.get('encerramento')),
+                            get_str(row.get('segmento'), 150),
+                            get_str(row.get('tipo'), 150),
+                            get_str(row.get('texto_abertura')),
+                            get_str(row.get('texto_breve')),
+                            get_str(row.get('encdesc'), 150),
+                            get_str(row.get('texto_encerrado')),
+                            get_str(row.get('projeto'), 150),
+                            get_str(row.get('cliente_codigo'), 100),
+                            get_str(row.get('cliente_nome'), 255),
+                            get_str(row.get('escritorio_vendas'), 100),
+                            get_str(row.get('cliente_uf'), 10),
+                            get_str(row.get('cliente_cidade'), 150),
+                            get_str(row.get('detentor_nome'), 255),
+                            get_str(row.get('detentor_cep'), 50),
+                            get_str(row.get('detentor_uf'), 10),
+                            get_str(row.get('detentor_cidade'), 150),
+                            get_str(row.get('detentor_bairro'), 150),
+                            get_str(row.get('detentor_logradouro'), 255),
+                            get_str(row.get('serie'), 150),
+                            get_str(row.get('sku'), 100),
+                            get_str(row.get('marca'), 150),
+                            get_str(row.get('equipamento'), 150),
+                            get_str(row.get('barebone'), 150),
+                            get_str(row.get('utiliza_peca'), 100),
+                            get_str(row.get('utiliza_peca_eng'), 100),
+                            get_str(row.get('hass'), 50),
+                            get_str(row.get('sintoma')),
+                            get_str(row.get('ocorrencia_chamado'), 255),
+                            get_numeric(row.get('tempo_falha_meses')),
+                            nome_salvar[:255] if nome_salvar else None,
+                            get_str(row.get('grupo_economico'), 150),
+                            get_str(row.get('os_cliente'), 100),
+                            get_numeric(row.get('idade_parque')),
+                            get_numeric(row.get('idade_parque_falha')),
+                            get_str(row.get('sintoma_eng')),
+                            get_str(row.get('divisao_eng'), 150),
+                            get_str(row.get('varejo'), 50),
+                            sub if sub != '' else None,
+                            get_str(row.get('codigo_solicitado'), 100),
+                            get_str(row.get('codigo_solicitado_desc')),
+                            get_str(row.get('codigo_aplicado'), 100),
+                            get_str(row.get('codigo_aplicado_desc')),
+                            get_str(row.get('causa'), 255),
+                            get_str(row.get('acao'), 255),
+                            get_str(row.get('serial_ant'), 150),
+                            get_str(row.get('serial_nov'), 150),
+                            get_date(row.get('data_inicio_garantia')),
+                            get_date(row.get('data_ativacao')),
+                            get_str(row.get('grupo_mercadoria'), 100),
+                            get_str(row.get('grupo_mercadoria_desc'), 150),
+                            get_str(row.get('tipo_posicionado'), 100),
+                            get_str(row.get('peca_control'), 50),
+                            get_str(row.get('status_chamado'), 100)
+                        ))
 
-                            # Converte data FT
-                            val_ft = row.get('ft')
-                            ft_date = None
-                            if pd.notna(val_ft) and str(val_ft).strip():
-                                try:
-                                    parsed = pd.to_datetime(val_ft, dayfirst=False) if not isinstance(val_ft, datetime) else val_ft
-                                    if pd.notna(parsed):
-                                        ft_date = parsed
-                                except Exception:
-                                    pass
-
-                            pecas_insert.append((
-                                chamado_num,
-                                str(row.get('ct', ''))[:255] if pd.notna(row.get('ct')) else None,
-                                str(row.get('atp', ''))[:255] if pd.notna(row.get('atp')) else None,
-                                ft_date,
-                                str(row.get('segmento', ''))[:255] if pd.notna(row.get('segmento')) else None,
-                                str(row.get('projeto', ''))[:255] if pd.notna(row.get('projeto')) else None,
-                                str(row.get('equipamento', ''))[:255] if pd.notna(row.get('equipamento')) else None,
-                                str(row.get('sintoma', '')) if pd.notna(row.get('sintoma')) else None,
-                                nome_salvar[:255] if nome_salvar else None,
-                                sub if sub != '' else None,
-                                str(row.get('acao', ''))[:255] if pd.notna(row.get('acao')) else None
-                            ))
-
-                            # Espelho para tabela pecas (Databricks compatibility)
-                            try:
-                                ch_bigint = int(chamado_num)
-                            except Exception:
-                                ch_bigint = None
-
-                            if ch_bigint:
-                                pecas_mirror_insert.append((
-                                    ch_bigint,
-                                    ft_date,
-                                    nome_salvar[:255] if nome_salvar else None,
-                                    sub if sub != '' else None,
-                                    str(row.get('equipamento', ''))[:255] if pd.notna(row.get('equipamento')) else None,
-                                    str(row.get('acao', ''))[:255] if pd.notna(row.get('acao')) else None
-                                ))
+                        # Espelho para tabela pecas (Databricks compatibility)
+                        pecas_mirror_insert.append((
+                            str(chamado_num),
+                            ft_date,
+                            nome_salvar[:255] if nome_salvar else None,
+                            get_str(row.get('codigo_aplicado_desc')),
+                            get_str(row.get('equipamento'), 255),
+                            get_str(row.get('acao'), 255),
+                            get_str(row.get('codigo_solicitado_desc')),
+                            get_str(row.get('grupo_mercadoria'), 100),
+                            get_str(row.get('grupo_mercadoria_desc'), 150)
+                        ))
 
                     # Inserção em lotes na tb_consumo_peca
                     insert_sql = """
                         INSERT INTO tb_consumo_peca (
-                            chamado, ct, atp, ft, segmento, projeto, equipamento, sintoma, tecnico_nome, subgrupo, acao
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            chamado, ct, atp, abertura, ft, encerramento, segmento, tipo,
+                            texto_abertura, texto_breve, encdesc, texto_encerrado, projeto,
+                            cliente_codigo, cliente_nome, escritorio_vendas, cliente_uf, cliente_cidade,
+                            detentor_nome, detentor_cep, detentor_uf, detentor_cidade, detentor_bairro, detentor_logradouro,
+                            serie, sku, marca, equipamento, barebone, utiliza_peca, utiliza_peca_eng, hass,
+                            sintoma, ocorrencia_chamado, tempo_falha_meses, tecnico_nome, grupo_economico, os_cliente,
+                            idade_parque, idade_parque_falha, sintoma_eng, divisao_eng, varejo, subgrupo,
+                            codigo_solicitado, codigo_solicitado_desc, codigo_aplicado, codigo_aplicado_desc,
+                            causa, acao, serial_ant, serial_nov, data_inicio_garantia, data_ativacao,
+                            grupo_mercadoria, grupo_mercadoria_desc, tipo_posicionado, peca_control, status_chamado
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s
+                        )
                     """
                     for i in range(0, len(pecas_insert), 1000):
                         chunk = pecas_insert[i:i + 1000]
@@ -471,7 +567,7 @@ class SpreadsheetIngestService:
 
                         pct = 20 + int(((i + len(chunk)) / max(1, len(pecas_insert))) * 75)
                         task_progress[task_id] = {
-                            "status": "processing",
+                            "status": "processing", 
                             "progress": min(95, pct),
                             "message": f"Gravando peças: {min(i + 1000, len(pecas_insert))}/{len(pecas_insert)}...",
                             "total_rows": total_rows
@@ -480,8 +576,10 @@ class SpreadsheetIngestService:
                     # Inserção espelho na tabela pecas
                     if pecas_mirror_insert:
                         mirror_sql = """
-                            INSERT INTO pecas (chamado, ft, tecnico_nome, cod_aplic_desc, tipo_equipamento, acao)
-                            VALUES (%s, %s, %s, %s, %s, %s)
+                            INSERT INTO pecas (
+                                chamado, ft, tecnico_nome, cod_aplic_desc, tipo_equipamento, acao,
+                                cod_solic_desc, grupo_mercadoria, grupo_mercadoria_desc
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                             ON CONFLICT DO NOTHING
                         """
                         for i in range(0, len(pecas_mirror_insert), 1000):
@@ -550,131 +648,132 @@ class SpreadsheetIngestService:
                     chamados_rrc_list = []
                     for c in df[col_rrc].dropna():
                         try:
-                            chamados_rrc_list.append(int(c))
+                            chamados_rrc_list.append(str(int(float(c))))
                         except Exception:
-                            pass
+                            val_str = str(c).strip()
+                            if val_str:
+                                chamados_rrc_list.append(val_str)
 
                     for i in range(0, len(chamados_rrc_list), 1000):
-                        chunk_ids = tuple(chamados_rrc_list[i:i + 1000])
+                        chunk_ids = chamados_rrc_list[i:i + 1000]
                         if chunk_ids:
-                            cur.execute("DELETE FROM tb_reincidencia WHERE chamado_rrc IN %s", (chunk_ids,))
-                            cur.execute("DELETE FROM reincidentes WHERE chamado_rrc IN %s", (chunk_ids,))
+                            cur.execute("DELETE FROM reincidentes WHERE chamado_rrc = ANY(%s)", (chunk_ids,))
                     conn.commit()
 
-                    reinc_insert = []
-                    reinc_mirror = []
+                    reinc_rows = []
+
+                    def get_date(val) -> Optional[datetime]:
+                        if pd.notna(val) and str(val).strip():
+                            try:
+                                parsed = pd.to_datetime(val, dayfirst=False) if not isinstance(val, datetime) else val
+                                return parsed if pd.notna(parsed) else None
+                            except Exception:
+                                return None
+                        return None
+
+                    def get_str(val, max_len: Optional[int] = None) -> Optional[str]:
+                        if pd.notna(val) and str(val).strip():
+                            s = str(val).strip()
+                            return s[:max_len] if max_len else s
+                        return None
+
+                    def get_int(val) -> Optional[int]:
+                        if pd.notna(val):
+                            try:
+                                return int(float(val))
+                            except Exception:
+                                return None
+                        return None
 
                     for _, row in df.iterrows():
                         try:
-                            ch_rrc = int(row[col_rrc])
+                            ch_rrc = str(int(float(row[col_rrc])))
                         except Exception:
                             continue
 
-                        def get_date(col_name: str) -> Optional[datetime]:
-                            val = row.get(col_name)
-                            if pd.notna(val) and str(val).strip():
-                                try:
-                                    parsed = pd.to_datetime(val, dayfirst=False) if not isinstance(val, datetime) else val
-                                    return parsed if pd.notna(parsed) else None
-                                except Exception:
-                                    return None
-                            return None
-
                         try:
-                            intervalo = int(row.get('intervalo_dias')) if pd.notna(row.get('intervalo_dias')) else None
-                        except Exception:
-                            intervalo = None
-
-                        try:
-                            ch_ant = int(row.get('chamado_anterior')) if pd.notna(row.get('chamado_anterior')) else None
+                            ch_ant = str(int(float(row.get('chamado_anterior')))) if pd.notna(row.get('chamado_anterior')) else None
                         except Exception:
                             ch_ant = None
 
-                        ft_ant = get_date('ft_anterior')
-                        ft_rrc = get_date('ft_rrc')
-                        enc_rrc = get_date('encerramento_rrc')
-
-                        reinc_insert.append((
+                        reinc_rows.append((
                             ch_ant,
-                            ft_ant,
-                            intervalo,
+                            get_date(row.get('abertura_anterior')),
+                            get_date(row.get('ft_anterior')),
+                            get_date(row.get('encerramento_anterior')),
                             ch_rrc,
-                            ft_rrc,
-                            enc_rrc,
-                            str(row.get('classificacao', ''))[:150] if pd.notna(row.get('classificacao')) else None,
-                            str(row.get('defeito_anterior', ''))[:255] if pd.notna(row.get('defeito_anterior')) else None,
-                            str(row.get('aplicado_peca_anterior', ''))[:255] if pd.notna(row.get('aplicado_peca_anterior')) else None,
-                            str(row.get('segmento_rrc', ''))[:100] if pd.notna(row.get('segmento_rrc')) else None,
-                            str(row.get('ct_rrc', ''))[:100] if pd.notna(row.get('ct_rrc')) else None,
-                            str(row.get('ct_anterior', ''))[:100] if pd.notna(row.get('ct_anterior')) else None,
-                            str(row.get('material_descricao_rrc', ''))[:255] if pd.notna(row.get('material_descricao_rrc')) else None,
-                            str(row.get('equipamento', ''))[:150] if pd.notna(row.get('equipamento')) else None,
-                            str(row.get('projeto_anterior', ''))[:150] if pd.notna(row.get('projeto_anterior')) else None,
-                            str(row.get('tecnico_nome_rrc', ''))[:150] if pd.notna(row.get('tecnico_nome_rrc')) else None,
-                            str(row.get('tecnico_nome_anterior', ''))[:150] if pd.notna(row.get('tecnico_nome_anterior')) else None,
-                            str(row.get('texto_encerrado_rrc', '')) if pd.notna(row.get('texto_encerrado_rrc')) else None,
-                            str(row.get('motivo_class', ''))[:150] if pd.notna(row.get('motivo_class')) else None,
-                            str(row.get('sub_class', ''))[:150] if pd.notna(row.get('sub_class')) else None,
-                            str(row.get('mesmo_motivo', ''))[:150] if pd.notna(row.get('mesmo_motivo')) else None,
-                            str(row.get('peca', ''))[:150] if pd.notna(row.get('peca')) else None,
-                            str(row.get('porque_nao_evitamos', '')) if pd.notna(row.get('porque_nao_evitamos')) else None
-                        ))
-
-                        reinc_mirror.append((
-                            ch_rrc,
-                            ch_ant,
-                            ft_rrc,
-                            ft_ant,
-                            str(row.get('ct_anterior', ''))[:100] if pd.notna(row.get('ct_anterior')) else None,
-                            str(row.get('ct_rrc', ''))[:100] if pd.notna(row.get('ct_rrc')) else None,
-                            str(row.get('tecnico_nome_anterior', ''))[:150] if pd.notna(row.get('tecnico_nome_anterior')) else None,
-                            str(row.get('tecnico_nome_rrc', ''))[:150] if pd.notna(row.get('tecnico_nome_rrc')) else None,
-                            str(row.get('projeto_anterior', ''))[:150] if pd.notna(row.get('projeto_anterior')) else None,
-                            str(row.get('aplicado_peca_anterior', ''))[:255] if pd.notna(row.get('aplicado_peca_anterior')) else None,
-                            str(row.get('defeito_anterior', ''))[:255] if pd.notna(row.get('defeito_anterior')) else None,
-                            str(row.get('classificacao', ''))[:150] if pd.notna(row.get('classificacao')) else None,
-                            str(row.get('material_descricao_rrc', ''))[:255] if pd.notna(row.get('material_descricao_rrc')) else None,
-                            str(row.get('segmento_rrc', ''))[:100] if pd.notna(row.get('segmento_rrc')) else None
+                            get_date(row.get('abertura_rrc')),
+                            get_date(row.get('ft_rrc')),
+                            get_str(row.get('tipo_rrc'), 150),
+                            get_str(row.get('tipo_anterior'), 150),
+                            get_str(row.get('serie'), 255),
+                            get_date(row.get('encerramento_rrc')),
+                            get_int(row.get('meses_rrc')),
+                            get_str(row.get('classificacao'), 150),
+                            get_str(row.get('defeito_rrc'), 255),
+                            get_str(row.get('defeito_anterior'), 255),
+                            get_str(row.get('aplicado_peca_rrc'), 255),
+                            get_str(row.get('aplicado_peca_anterior'), 255),
+                            get_str(row.get('encdesc_rrc'), 255),
+                            get_str(row.get('encdesc_anterio'), 255),
+                            get_str(row.get('segmento_rrc'), 150),
+                            get_str(row.get('ct_rrc'), 100),
+                            get_str(row.get('ct_anterior'), 100),
+                            get_str(row.get('material_rrc'), 150),
+                            get_str(row.get('material_descricao_rrc'), 255),
+                            get_str(row.get('equipamento'), 150),
+                            get_str(row.get('barebone'), 150),
+                            get_str(row.get('marca'), 150),
+                            get_str(row.get('ocorrencia_chamado_rrc'), 255),
+                            get_str(row.get('ocorrencia_chamado_anterior'), 255),
+                            get_str(row.get('projeto_anterior'), 150),
+                            get_str(row.get('cliente_nome_rrc'), 255),
+                            get_str(row.get('cliente_uf_rrc'), 10),
+                            get_str(row.get('cliente_cidade_rrc'), 150),
+                            get_str(row.get('tecnico_nome_rrc'), 150),
+                            get_str(row.get('texto_abertura_rrc')),
+                            get_str(row.get('texto_encerrado_rrc')),
+                            get_str(row.get('tecnico_nome_anterior'), 150),
+                            get_str(row.get('texto_abertura_anterior')),
+                            get_str(row.get('texto_encerrado_anterior')),
+                            get_str(row.get('prioritario'), 50)
                         ))
 
                     insert_sql = """
-                        INSERT INTO tb_reincidencia (
-                            chamado_anterior, ft_anterior, intervalo_dias, chamado_rrc, ft_rrc, encerramento_rrc, classificacao,
-                            defeito_anterior, aplicado_peca_anterior, segmento_rrc, ct_rrc, ct_anterior,
-                            material_descricao_rrc, equipamento, projeto_anterior, tecnico_nome_rrc,
-                            tecnico_nome_anterior, texto_encerrado_rrc, motivo_class, sub_class,
-                            mesmo_motivo, peca, porque_nao_evitamos
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO reincidentes (
+                            chamado_anterior, abertura_anterior, ft_anterior, encerramento_anterior,
+                            chamado_rrc, abertura_rrc, ft_rrc, tipo_rrc, tipo_anterior, serie,
+                            encerramento_rrc, meses_rrc, classificacao, defeito_rrc, defeito_anterior,
+                            aplicado_peca_rrc, aplicado_peca_anterior, encdesc_rrc, encdesc_anterio,
+                            segmento_rrc, ct_rrc, ct_anterior, material_rrc, material_descricao_rrc,
+                            equipamento, barebone, marca, ocorrencia_chamado_rrc, ocorrencia_chamado_anterior,
+                            projeto_anterior, cliente_nome_rrc, cliente_uf_rrc, cliente_cidade_rrc,
+                            tecnico_nome_rrc, texto_abertura_rrc, texto_encerrado_rrc,
+                            tecnico_nome_anterior, texto_abertura_anterior, texto_encerrado_anterior, prioritario
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        )
                     """
-                    for i in range(0, len(reinc_insert), 1000):
-                        chunk = reinc_insert[i:i + 1000]
+                    for i in range(0, len(reinc_rows), 1000):
+                        chunk = reinc_rows[i:i + 1000]
                         cur.executemany(insert_sql, chunk)
                         conn.commit()
 
-                        pct = 20 + int(((i + len(chunk)) / max(1, len(reinc_insert))) * 75)
+                        pct = 20 + int(((i + len(chunk)) / max(1, len(reinc_rows))) * 75)
                         task_progress[task_id] = {
                             "status": "processing",
                             "progress": min(95, pct),
-                            "message": f"Gravando reincidências: {min(i + 1000, len(reinc_insert))}/{len(reinc_insert)}...",
+                            "message": f"Gravando reincidências: {min(i + 1000, len(reinc_rows))}/{len(reinc_rows)}...",
                             "total_rows": total_rows
                         }
-
-                    # Inserção na tabela reincidentes (Databricks compatibility)
-                    mirror_sql = """
-                        INSERT INTO reincidentes (
-                            chamado_rrc, chamado_anterior, ft_rrc, ft_anterior, ct_anterior, ct_rrc,
-                            tecnico_nome_anterior, tecnico_nome_rrc, projeto_anterior, aplicado_peca_anterior,
-                            defeito_anterior, classificacao, material_descricao_rrc, segmento_rrc
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """
-                    for i in range(0, len(reinc_mirror), 1000):
-                        cur.executemany(mirror_sql, reinc_mirror[i:i + 1000])
-                        conn.commit()
 
             task_progress[task_id] = {
                 "status": "completed",
                 "progress": 100,
-                "message": f"Sucesso! {len(reinc_insert)} registros de reincidência foram processados com sucesso.",
+                "message": f"Sucesso! {len(reinc_rows)} registros de reincidência foram processados com sucesso.",
                 "total_rows": total_rows
             }
 
@@ -689,11 +788,12 @@ class SpreadsheetIngestService:
             }
 
     # =========================================================================
-    # 4. PROCESSAMENTO ENCERRADOS RRC (tb_reincidencia_encerrados)
+    # 4. PROCESSAMENTO ENCERRADOS RRC (tb_encerrados_rrc)
     # =========================================================================
     def process_encerrados_rrc(self, task_id: str, file_contents: bytes) -> None:
         """
-        Processa a planilha de chamados encerrados para cálculo divisor de reincidência.
+        Processa a planilha oficial de chamados encerrados que contabilizam reincidência.
+        Persiste todas as 29 colunas na tabela tb_encerrados_rrc.
         """
         try:
             task_progress[task_id] = {
@@ -730,40 +830,89 @@ class SpreadsheetIngestService:
                         "total_rows": total_rows
                     }
 
-                    chamados_list = [str(c).strip() for c in df['chamado'].dropna()]
+                    chamados_list = []
+                    for c in df['chamado'].dropna():
+                        try:
+                            chamados_list.append(str(int(float(c))))
+                        except Exception:
+                            val_str = str(c).strip()
+                            if val_str:
+                                chamados_list.append(val_str)
+
                     for i in range(0, len(chamados_list), 1000):
-                        chunk_ids = tuple(chamados_list[i:i + 1000])
+                        chunk_ids = chamados_list[i:i + 1000]
                         if chunk_ids:
-                            cur.execute("DELETE FROM tb_reincidencia_encerrados WHERE chamado IN %s", (chunk_ids,))
+                            cur.execute("DELETE FROM tb_encerrados_rrc WHERE chamado = ANY(%s)", (chunk_ids,))
                     conn.commit()
+
+                    def get_date(val) -> Optional[datetime]:
+                        if pd.notna(val) and str(val).strip():
+                            try:
+                                parsed = pd.to_datetime(val, dayfirst=False) if not isinstance(val, datetime) else val
+                                return parsed if pd.notna(parsed) else None
+                            except Exception:
+                                return None
+                        return None
+
+                    def get_str(val, max_len: Optional[int] = None) -> Optional[str]:
+                        if pd.notna(val) and str(val).strip():
+                            s = str(val).strip()
+                            return s[:max_len] if max_len else s
+                        return None
 
                     enc_insert = []
                     for _, row in df.iterrows():
-                        val_ft = row.get('ft')
-                        ft_date = None
-                        if pd.notna(val_ft) and str(val_ft).strip():
-                            try:
-                                parsed = pd.to_datetime(val_ft, dayfirst=False) if not isinstance(val_ft, datetime) else val_ft
-                                if pd.notna(parsed):
-                                    ft_date = parsed
-                            except Exception:
-                                pass
+                        try:
+                            ch_str = str(int(float(row['chamado'])))
+                        except Exception:
+                            ch_str = str(row['chamado']).strip()
 
                         enc_insert.append((
-                            str(row['chamado']).strip(),
-                            str(row.get('segmento', ''))[:150] if pd.notna(row.get('segmento')) else None,
-                            str(row.get('projeto', ''))[:150] if pd.notna(row.get('projeto')) else None,
-                            str(row.get('assistencia_codigo', ''))[:100] if pd.notna(row.get('assistencia_codigo')) else None,
-                            str(row.get('assistencia_nome', ''))[:255] if pd.notna(row.get('assistencia_nome')) else None,
-                            ft_date,
-                            str(row.get('tecnico_nome', ''))[:255] if pd.notna(row.get('tecnico_nome')) else None,
-                            str(row.get('texto_encerrado', '')) if pd.notna(row.get('texto_encerrado')) else None
+                            ch_str,
+                            get_date(row.get('abertura')),
+                            get_str(row.get('serie'), 255),
+                            get_str(row.get('sku'), 100),
+                            get_str(row.get('descricao_material'), 255),
+                            get_str(row.get('equipamento'), 150),
+                            get_str(row.get('barebone'), 150),
+                            get_str(row.get('marca'), 150),
+                            get_str(row.get('segmento'), 150),
+                            get_str(row.get('tipo'), 150),
+                            get_str(row.get('projeto'), 150),
+                            get_str(row.get('assistencia_codigo'), 100),
+                            get_str(row.get('assistencia_nome'), 255),
+                            get_str(row.get('assistencia_tipo'), 100),
+                            get_str(row.get('assistencia_uf'), 10),
+                            get_str(row.get('assistencia_cidade'), 150),
+                            get_date(row.get('ft')),
+                            get_date(row.get('encerramento')),
+                            get_str(row.get('encerramento_desc'), 255),
+                            get_str(row.get('cliente_codigo'), 100),
+                            get_str(row.get('cliente_nome'), 255),
+                            get_str(row.get('cliente_uf'), 10),
+                            get_str(row.get('cliente_cidade'), 150),
+                            get_str(row.get('tecnico_nome'), 255),
+                            get_str(row.get('texto_abertura')),
+                            get_str(row.get('texto_encerrado')),
+                            get_str(row.get('ocorrencia_chamado'), 255),
+                            get_str(row.get('reincidente'), 50),
+                            get_str(row.get('prioritario'), 50)
                         ))
 
                     insert_sql = """
-                        INSERT INTO tb_reincidencia_encerrados (
-                            chamado, segmento, projeto, assistencia_codigo, assistencia_nome, ft, tecnico_nome, texto_encerrado
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO tb_encerrados_rrc (
+                            chamado, abertura, serie, sku, descricao_material, equipamento, barebone, marca,
+                            segmento, tipo, projeto, assistencia_codigo, assistencia_nome, assistencia_tipo,
+                            assistencia_uf, assistencia_cidade, ft, encerramento, encerramento_desc,
+                            cliente_codigo, cliente_nome, cliente_uf, cliente_cidade, tecnico_nome,
+                            texto_abertura, texto_encerrado, ocorrencia_chamado, reincidente, prioritario
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s
+                        )
                         ON CONFLICT (chamado) DO NOTHING
                     """
                     for i in range(0, len(enc_insert), 1000):
