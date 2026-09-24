@@ -69,7 +69,7 @@ export default function OnboardingScreen() {
         {step === 0 && (
           <div className="bg-light-surface/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl text-center shadow-2xl">
             <div className="mx-auto w-24 h-24 bg-light-surface rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(255,255,255,0.3)]">
-              <img src="/Logo/positivo.svg" alt="Positivo" width={120} height={48} className="h-12 w-auto" />
+              <img src="/Logo/positivo_tecnologia.png" alt="Positivo Tecnologia" className="h-8 w-auto object-contain filter brightness-0" />
             </div>
             <h1 className="text-4xl font-black mb-4">Bem-vindo(a) ao<br/><span className="text-brilhamais-gold">Brilha Mais!</span></h1>
             <p className="text-slate-300 text-lg mb-8 leading-relaxed">

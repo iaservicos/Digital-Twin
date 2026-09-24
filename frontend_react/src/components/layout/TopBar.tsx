@@ -107,7 +107,11 @@ export default function TopBar() {
 
       {/* Esquerda: Logo */}
       <div className="flex items-center">
-        <img src="/Logo/positivo.svg" alt="Positivo Brilha Mais" className="h-16 md:h-28 object-contain" />
+        <img 
+          src="/Logo/positivo_tecnologia.png" 
+          alt="Positivo Tecnologia" 
+          className="h-10 md:h-12 w-auto object-contain dark:filter-none filter brightness-0 dark:brightness-100 transition-all duration-200" 
+        />
       </div>
 
       {/* Meio: Logo Brilha+ Centralizado */}
