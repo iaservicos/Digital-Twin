@@ -40,6 +40,19 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time-Ms"] = f"{process_time:.2f}"
     return response
 
+from fastapi.responses import JSONResponse
+import traceback
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"Erro interno ({type(exc).__name__}): {str(exc)}",
+            "traceback": traceback.format_exc()
+        }
+    )
+
 # Rotas de Healthcheck
 @app.get("/health")
 @app.get("/api/v1/health")
@@ -49,6 +62,29 @@ def healthcheck():
         "service": "brilha-mais-backend-python",
         "timestamp": datetime.now().isoformat()
     }
+
+@app.get("/api/v1/diagnostic")
+def diagnostic():
+    try:
+        from core import config
+        from core.database import get_db_cursor
+        with get_db_cursor() as cur:
+            cur.execute("SELECT current_database() as db, current_user as usr, version() as ver;")
+            db_info = cur.fetchone()
+        return {
+            "status": "CONECTADO",
+            "db_info": db_info,
+            "host": config.POSTGRES_HOST,
+            "port": config.POSTGRES_PORT,
+            "user": config.POSTGRES_USER
+        }
+    except Exception as e:
+        return {
+            "status": "FALHA_CONEXAO",
+            "error_type": type(e).__name__,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
 
 # Inclui os roteadores com prefixo vazio (ex: /auth/login) e prefixo /api/v1 (ex: /api/v1/auth/login)
 # Isso garante que qualquer requisição vinda do frontend (com ou sem /api/v1) funcione perfeitamente!

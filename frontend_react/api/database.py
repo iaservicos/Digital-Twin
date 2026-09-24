@@ -13,52 +13,73 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Connection pool singleton
-_pool = None
+_conn = None
 
-def get_connection_pool():
-    global _pool
-    if _pool is None or _pool.closed:
-        try:
-            _pool = pool.ThreadedConnectionPool(
-                minconn=1,
-                maxconn=10,
-                host=config.POSTGRES_HOST,
-                port=config.POSTGRES_PORT,
-                dbname=config.POSTGRES_DB,
-                user=config.POSTGRES_USER,
-                password=config.POSTGRES_PASSWORD,
-                sslmode="require",
-                connect_timeout=10
-            )
-            logger.info("Pool de conexões PostgreSQL/Supabase inicializado com sucesso.")
-        except Exception as e:
-            logger.error(f"Erro ao inicializar o pool de conexões: {e}")
-            raise
-    return _pool
+def _create_connection():
+    """Cria uma nova conexão com o PostgreSQL/Supabase com fallback de resiliência."""
+    host = config.POSTGRES_HOST
+    # Se na Vercel o host estiver configurado como localhost ou postgres, usa o Supabase
+    if host in ["localhost", "127.0.0.1", "postgres", None, ""]:
+        host = "aws-1-us-east-1.pooler.supabase.com"
 
-@contextmanager
-def get_db_connection():
-    """Obtém uma conexão do pool e devolve ao finalizar."""
-    p = get_connection_pool()
-    conn = p.getconn()
+    port = config.POSTGRES_PORT or 5432
+    user = config.POSTGRES_USER
+    if user in ["postgres", None, ""]:
+        user = "postgres.eychznasujcjfdupizfm"
+
+    password = config.POSTGRES_PASSWORD
+    if password in ["sua_senha_postgres_aqui", None, ""]:
+        password = "Br@sil#$%2026"
+
+    dbname = config.POSTGRES_DB or "postgres"
+
     try:
-        yield conn
-    finally:
-        p.putconn(conn)
+        return psycopg2.connect(
+            host=host,
+            port=port,
+            dbname=dbname,
+            user=user,
+            password=password,
+            sslmode="require",
+            connect_timeout=8
+        )
+    except Exception as err:
+        logger.warning(f"Falha ao conectar no host {host}:{port} ({err}). Tentando fallback Supabase porta 6543...")
+        return psycopg2.connect(
+            host="aws-1-us-east-1.pooler.supabase.com",
+            port=6543,
+            dbname="postgres",
+            user="postgres.eychznasujcjfdupizfm",
+            password="Br@sil#$%2026",
+            sslmode="require",
+            connect_timeout=8
+        )
 
 @contextmanager
 def get_db_cursor(commit: bool = False):
-    """Context manager para executar queries retornando resultados como dicionário (RealDictCursor)."""
-    with get_db_connection() as conn:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+    """Context manager resiliente para serverless, com auto-reconexão se a conexão cair."""
+    global _conn
+    if _conn is None or _conn.closed:
+        _conn = _create_connection()
+    else:
         try:
-            yield cursor
-            if commit:
-                conn.commit()
-        except Exception as e:
-            if commit:
-                conn.rollback()
-            raise e
-        finally:
-            cursor.close()
+            with _conn.cursor() as test_cur:
+                test_cur.execute("SELECT 1;")
+        except Exception:
+            try:
+                _conn.close()
+            except Exception:
+                pass
+            _conn = _create_connection()
+
+    cursor = _conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        yield cursor
+        if commit:
+            _conn.commit()
+    except Exception as e:
+        if commit and not _conn.closed:
+            _conn.rollback()
+        raise e
+    finally:
+        cursor.close()
