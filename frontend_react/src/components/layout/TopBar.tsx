@@ -110,7 +110,7 @@ export default function TopBar() {
         <img 
           src="/Logo/positivo_tecnologia.png" 
           alt="Positivo Tecnologia" 
-          className="h-10 md:h-12 w-auto object-contain dark:filter-none filter brightness-0 dark:brightness-100 transition-all duration-200" 
+          className="h-12 md:h-16 w-auto object-contain dark:filter-none filter brightness-0 dark:brightness-100 transition-all duration-200" 
         />
       </div>
 
