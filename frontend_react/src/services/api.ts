@@ -13,9 +13,9 @@ export const getBaseURL = () => {
     return cleanUrl;
   }
 
-  // Se em produção (Vercel/Web) sem env declarada, usa a URL oficial do Render
+  // Se em produção (Vercel/Web) sem env declarada, usa a rota relativa do Vercel Serverless
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return 'https://brilhamais-api-java.onrender.com/api/v1';
+    return '/api/v1';
   }
 
   return 'http://localhost:8080/api/v1';
