@@ -5,7 +5,13 @@ import jwt
 from typing import Optional, Dict, Any
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from backend_python.core import config
+try:
+    from core import config
+except ImportError:
+    try:
+        from api.core import config
+    except ImportError:
+        import config
 
 security_scheme = HTTPBearer(auto_error=False)
 

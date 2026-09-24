@@ -3,8 +3,12 @@ from typing import Optional, List, Dict, Any
 from datetime import date
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from backend_python.core.database import get_db_cursor
-from backend_python.core.security import get_current_user
+try:
+    from core.database import get_db_cursor
+    from core.security import get_current_user
+except ImportError:
+    from api.core.database import get_db_cursor
+    from api.core.security import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Campanhas & Regras"])

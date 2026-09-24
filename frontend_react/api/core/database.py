@@ -3,7 +3,13 @@ import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
-from backend_python.core import config
+try:
+    from core import config
+except ImportError:
+    try:
+        from api.core import config
+    except ImportError:
+        import config
 
 logger = logging.getLogger(__name__)
 

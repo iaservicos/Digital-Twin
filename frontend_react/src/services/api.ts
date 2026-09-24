@@ -3,19 +3,25 @@ import * as SecureStore from '../utils/secureStore';
 
 // Detecta a URL base do backend de forma dinâmica e resiliente
 export const getBaseURL = () => {
-  const envUrl = import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL;
+  const envUrl = (import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || '').trim();
   
-  if (envUrl) {
-    let cleanUrl = envUrl.trim().replace(/\/+$/, '');
-    if (!cleanUrl.endsWith('/api/v1')) {
-      cleanUrl += '/api/v1';
+  // Em produção / ambiente Vercel (qualquer host que não seja localhost)
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    // Se a variável de ambiente apontar para o antigo Render ou Java, ignora para usar o novo Python Serverless
+    if (envUrl && !envUrl.includes('onrender.com') && !envUrl.includes('brilhamais-api-java') && !envUrl.includes('localhost')) {
+      let cleanUrl = envUrl.replace(/\/+$/, '');
+      if (!cleanUrl.endsWith('/api/v1')) cleanUrl += '/api/v1';
+      return cleanUrl;
     }
-    return cleanUrl;
+    // Na Vercel, o backend Python Serverless responde diretamente em /api/v1
+    return '/api/v1';
   }
 
-  // Se em produção (Vercel/Web) sem env declarada, usa a rota relativa do Vercel Serverless
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return '/api/v1';
+  // Em desenvolvimento local:
+  if (envUrl) {
+    let cleanUrl = envUrl.replace(/\/+$/, '');
+    if (!cleanUrl.endsWith('/api/v1')) cleanUrl += '/api/v1';
+    return cleanUrl;
   }
 
   return 'http://localhost:8080/api/v1';

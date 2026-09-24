@@ -1,8 +1,20 @@
+import sys
+import os
+
+# Garante que o diretório da API esteja no sys.path para o runtime serverless do Vercel
+api_dir = os.path.dirname(os.path.abspath(__file__))
+if api_dir not in sys.path:
+    sys.path.insert(0, api_dir)
+
 import time
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from backend_python.routes import auth, dashboard, campanhas, tecnicos, perfil
+
+try:
+    from routes import auth, dashboard, campanhas, tecnicos, perfil
+except ImportError:
+    from api.routes import auth, dashboard, campanhas, tecnicos, perfil
 
 app = FastAPI(
     title="Brilha+ API (Python Serverless)",

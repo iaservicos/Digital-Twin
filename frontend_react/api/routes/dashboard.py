@@ -2,8 +2,12 @@ import logging
 from typing import Optional, List, Dict, Any
 from datetime import date, datetime
 from fastapi import APIRouter, Query, HTTPException, Request
-from backend_python.core.database import get_db_cursor
-from backend_python.core.security import decode_access_token
+try:
+    from core.database import get_db_cursor
+    from core.security import decode_access_token
+except ImportError:
+    from api.core.database import get_db_cursor
+    from api.core.security import decode_access_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Dashboard & KPIs"])

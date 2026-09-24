@@ -2,9 +2,14 @@ import logging
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
-from backend_python.core import config
-from backend_python.core.database import get_db_cursor
-from backend_python.core.security import verify_password, hash_password, create_access_token, get_current_user
+try:
+    from core import config
+    from core.database import get_db_cursor
+    from core.security import verify_password, hash_password, create_access_token, get_current_user
+except ImportError:
+    from api.core import config
+    from api.core.database import get_db_cursor
+    from api.core.security import verify_password, hash_password, create_access_token, get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Autenticação"])

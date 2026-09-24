@@ -2,8 +2,12 @@ import logging
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
-from backend_python.core.database import get_db_cursor
-from backend_python.core.security import hash_password, get_current_user
+try:
+    from core.database import get_db_cursor
+    from core.security import hash_password, get_current_user
+except ImportError:
+    from api.core.database import get_db_cursor
+    from api.core.security import hash_password, get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Técnicos & Equipes"])

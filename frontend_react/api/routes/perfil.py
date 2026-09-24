@@ -2,7 +2,10 @@ import logging
 from typing import Optional, Dict
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from backend_python.core.database import get_db_cursor
+try:
+    from core.database import get_db_cursor
+except ImportError:
+    from api.core.database import get_db_cursor
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Perfil & Foto"])
