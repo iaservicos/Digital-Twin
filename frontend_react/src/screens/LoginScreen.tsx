@@ -4,12 +4,19 @@ import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import { jwtDecode } from 'jwt-decode';
 import { User, ShieldCheck } from 'lucide-react';
+import IntroSplashOverlay from '../components/common/IntroSplashOverlay';
+import MatrixBackground from '../components/common/MatrixBackground';
 
 export default function LoginScreen() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Controle de reprodução da intro do vídeo BrilhaMaisV7.mp4 na abertura do site
+  const [showIntro, setShowIntro] = useState(() => {
+    return sessionStorage.getItem('brilha_intro_seen') !== 'true';
+  });
 
   // Estados do Modal de Primeiro Acesso
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -131,193 +138,208 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24 py-12 px-4 sm:px-6 lg:px-8 bg-grid-pattern">
+    <>
+      {/* Reprodução do Vídeo na abertura inicial com transição cinematográfica */}
+      {showIntro && (
+        <IntroSplashOverlay onFinish={() => setShowIntro(false)} />
+      )}
 
-      {/* Coluna Esquerda: Logo */}
-      <div className="flex flex-col items-center">
-        <div className="logo-container flex items-center justify-center relative pt-2 pb-2">
-          <div className="glow-ring"></div>
-          <h1 className="text-5xl font-black tracking-tighter text-slate-50 flex items-baseline relative z-10 uppercase" style={{ fontFamily: "'Arial Black', Impact, sans-serif", letterSpacing: "-0.05em" }}>
-            Brilha<span className="text-6xl plus-sign neon-glow ml-1 leading-none text-accent-teal">+</span>
-          </h1>
-        </div>
-        <div className="mt-1 text-center">
-          <p className="text-primary font-bold tracking-[0.3em] uppercase text-xs opacity-80">
-            Performance & Engajamento
-          </p>
-        </div>
-      </div>
+      {/* Plano de Fundo Matrix Cyber Ciano Procedural (40% de opacidade, caracteres pequenos) */}
+      <MatrixBackground opacity={0.2} fontSize={10} />
 
-      {/* Coluna Direita: Formulário */}
-      <div className="w-full max-w-sm flex flex-col z-10">
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-3 rounded-xl text-center text-sm font-medium shadow-sm mb-6">
-            {error}
-          </div>
-        )}
+      <div className="relative z-10 min-h-screen w-full flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24 py-12 px-4 sm:px-6 lg:px-8">
 
-        <form className="space-y-4" onSubmit={handleLogin}>
-          <div>
-            <label htmlFor="userId" className="sr-only">Matrícula</label>
-            <input
-              id="userId"
-              name="userId"
-              type="text"
-              required
-              autoComplete="username"
-              className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm shadow-inner"
-              placeholder="Matrícula"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="sr-only">Senha</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm shadow-inner"
-              placeholder="Senha"
-            />
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-[#0f172a] bg-accent-teal hover:bg-primary-light focus:outline-none transition-all shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Autenticando...' : 'Entrar'}
-            </button>
-          </div>
-
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsModalOpen(true);
-                setPrimeiroAcessoStep(1);
-                setPaError('');
-                setPaNome('');
-                setPaEstado('');
-                setPaMatricula('');
+        {/* Coluna Esquerda: Logo Oficial Brilha+ V3 com Animações Originais */}
+        <div className="flex flex-col items-center">
+          <div className="logo-container flex items-center justify-center relative pt-2 pb-2">
+            <div className="glow-ring"></div>
+            <img
+              src="/Logo/brilha-mais-logo-V3.svg"
+              alt="Brilha+ Logo"
+              className="w-[260px] sm:w-[320px] md:w-[400px] lg:w-[440px] h-auto object-contain relative z-10 drop-shadow-[0_0_25px_rgba(34,211,238,0.45)] select-none pointer-events-none"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/Logo/brilha-mais-logo-V3-trimmed.png';
               }}
-              className="text-sm font-bold text-accent-teal hover:text-primary-light transition-colors"
-            >
-              Primeiro acesso? Clique aqui!
-            </button>
+            />
           </div>
-        </form>
-      </div>
+          <div className="mt-2 text-center">
+            <p className="text-primary font-bold tracking-[0.3em] uppercase text-xs opacity-80">
+              Performance &amp; Engajamento
+            </p>
+          </div>
+        </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-grid-pattern">
-          <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-[#1e293b] p-8 rounded-2xl shadow-2xl border border-border">
+        {/* Coluna Direita: Formulário */}
+        <div className="w-full max-w-sm flex flex-col z-10">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-3 rounded-xl text-center text-sm font-medium shadow-sm mb-6">
+              {error}
+            </div>
+          )}
 
-              <div className="flex items-center justify-center mb-6">
-                <div className="w-14 h-14 bg-accent-teal/5 text-accent-teal rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,216,166,0.15)] ring-1 ring-accent-teal/20">
-                  {primeiroAcessoStep === 1 ? <User size={26} strokeWidth={2.5} /> : <ShieldCheck size={26} />}
+          <form className="space-y-4" onSubmit={handleLogin}>
+            <div>
+              <label htmlFor="userId" className="sr-only">Matrícula</label>
+              <input
+                id="userId"
+                name="userId"
+                type="text"
+                required
+                autoComplete="username"
+                className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm shadow-inner"
+                placeholder="Matrícula"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">Senha</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm shadow-inner"
+                placeholder="Senha"
+              />
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-[#0f172a] bg-accent-teal hover:bg-primary-light focus:outline-none transition-all shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Autenticando...' : 'Entrar'}
+              </button>
+            </div>
+
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(true);
+                  setPrimeiroAcessoStep(1);
+                  setPaError('');
+                  setPaNome('');
+                  setPaEstado('');
+                  setPaMatricula('');
+                }}
+                className="text-sm font-bold text-accent-teal hover:text-primary-light transition-colors"
+              >
+                Primeiro acesso? Clique aqui!
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-grid-pattern">
+            <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 duration-200">
+              <div className="bg-[#1e293b] p-8 rounded-2xl shadow-2xl border border-border">
+
+                <div className="flex items-center justify-center mb-6">
+                  <div className="w-14 h-14 bg-accent-teal/5 text-accent-teal rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,216,166,0.15)] ring-1 ring-accent-teal/20">
+                    {primeiroAcessoStep === 1 ? <User size={26} strokeWidth={2.5} /> : <ShieldCheck size={26} />}
+                  </div>
                 </div>
+
+                <h3 className="text-2xl font-light text-center text-text-main mb-2">Primeiro Acesso</h3>
+                <p className="text-text-muted text-center mb-8 text-sm px-2">
+                  {primeiroAcessoStep === 1
+                    ? "Para iniciar seu cadastro, preencha seus dados de identificação abaixo."
+                    : "Quase lá! Confirme se a sua matrícula está correta."}
+                </p>
+
+                {paError && (
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-3 rounded-xl text-center mb-6 text-sm">
+                    {paError}
+                  </div>
+                )}
+
+                {primeiroAcessoStep === 1 ? (
+                  <form onSubmit={handleVerificarTecnico} className="space-y-4">
+                    <div>
+                      <input
+                        id="paNome"
+                        type="text"
+                        required
+                        value={paNome}
+                        onChange={e => setPaNome(e.target.value)}
+                        className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm shadow-inner"
+                        placeholder="Nome Completo"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        id="paEstado"
+                        type="text"
+                        required
+                        value={paEstado}
+                        onChange={e => setPaEstado(e.target.value)}
+                        className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm"
+                        placeholder="Estado (Ex: RJ)"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        id="paMatricula"
+                        type="text"
+                        required
+                        value={paMatricula}
+                        onChange={e => setPaMatricula(e.target.value)}
+                        className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm"
+                        placeholder="Matrícula (Exatamente 5 dígitos)"
+                      />
+                    </div>
+
+                    <div className="flex gap-4 mt-8 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="flex-1 px-4 py-3.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-xl transition-all font-semibold text-sm shadow-sm"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={paLoading}
+                        className="flex-1 px-4 py-3.5 bg-accent-teal hover:bg-primary-light text-[#0f172a] rounded-xl transition-all font-bold text-sm disabled:opacity-50 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] shadow-md"
+                      >
+                        {paLoading ? 'Verificando...' : 'Continuar'}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-6 text-center">
+                    <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6">
+                      <p className="text-text-muted text-sm mb-2 font-medium">Sua Matrícula</p>
+                      <p className="text-3xl font-black text-text-main tracking-widest">{paMatricula}</p>
+                    </div>
+
+                    <div className="flex gap-4 mt-8">
+                      <button
+                        type="button"
+                        onClick={() => setPrimeiroAcessoStep(1)}
+                        className="flex-1 px-4 py-3.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-xl transition-all font-semibold text-sm shadow-sm"
+                      >
+                        Voltar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleConfirmarMatricula}
+                        disabled={paLoading}
+                        className="flex-1 px-4 py-3.5 bg-accent-teal hover:bg-primary-light text-[#0f172a] rounded-xl transition-all font-bold text-sm disabled:opacity-50 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] shadow-md"
+                      >
+                        {paLoading ? 'Salvando...' : 'Confirmar e Salvar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              <h3 className="text-2xl font-light text-center text-text-main mb-2">Primeiro Acesso</h3>
-              <p className="text-text-muted text-center mb-8 text-sm px-2">
-                {primeiroAcessoStep === 1
-                  ? "Para iniciar seu cadastro, preencha seus dados de identificação abaixo."
-                  : "Quase lá! Confirme se a sua matrícula está correta."}
-              </p>
-
-              {paError && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-3 rounded-xl text-center mb-6 text-sm">
-                  {paError}
-                </div>
-              )}
-
-              {primeiroAcessoStep === 1 ? (
-                <form onSubmit={handleVerificarTecnico} className="space-y-4">
-                  <div>
-                    <input
-                      id="paNome"
-                      type="text"
-                      required
-                      value={paNome}
-                      onChange={e => setPaNome(e.target.value)}
-                      className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm shadow-inner"
-                      placeholder="Nome Completo"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      id="paEstado"
-                      type="text"
-                      required
-                      value={paEstado}
-                      onChange={e => setPaEstado(e.target.value)}
-                      className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm"
-                      placeholder="Estado (Ex: RJ)"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      id="paMatricula"
-                      type="text"
-                      required
-                      value={paMatricula}
-                      onChange={e => setPaMatricula(e.target.value)}
-                      className="dark-autofill w-full bg-[#0f172a] border border-[#1e293b] text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm"
-                      placeholder="Matrícula (Exatamente 5 dígitos)"
-                    />
-                  </div>
-
-                  <div className="flex gap-4 mt-8 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsModalOpen(false)}
-                      className="flex-1 px-4 py-3.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-xl transition-all font-semibold text-sm shadow-sm"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={paLoading}
-                      className="flex-1 px-4 py-3.5 bg-accent-teal hover:bg-primary-light text-[#0f172a] rounded-xl transition-all font-bold text-sm disabled:opacity-50 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] shadow-md"
-                    >
-                      {paLoading ? 'Verificando...' : 'Continuar'}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-6 text-center">
-                  <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6">
-                    <p className="text-text-muted text-sm mb-2 font-medium">Sua Matrícula</p>
-                    <p className="text-3xl font-black text-text-main tracking-widest">{paMatricula}</p>
-                  </div>
-
-                  <div className="flex gap-4 mt-8">
-                    <button
-                      type="button"
-                      onClick={() => setPrimeiroAcessoStep(1)}
-                      className="flex-1 px-4 py-3.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-xl transition-all font-semibold text-sm shadow-sm"
-                    >
-                      Voltar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleConfirmarMatricula}
-                      disabled={paLoading}
-                      className="flex-1 px-4 py-3.5 bg-accent-teal hover:bg-primary-light text-[#0f172a] rounded-xl transition-all font-bold text-sm disabled:opacity-50 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] shadow-md"
-                    >
-                      {paLoading ? 'Salvando...' : 'Confirmar e Salvar'}
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }

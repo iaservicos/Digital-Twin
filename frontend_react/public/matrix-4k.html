@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matrix Cyber 4K Studio | Positivo Tecnologia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* Estilos globais da tela Matrix 4K */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050811;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    /* Canvas onde a mágica dos caracteres acontece */
+    #matrix-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      background-color: #050811;
+    }
+
+    /* HUD / Barra de Controles Flutuante em Glassmorphism */
+    .hud-controls {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(7, 12, 23, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 255, 255, 0.28);
+      border-radius: 999px;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.65), 0 0 25px rgba(0, 255, 255, 0.15);
+      z-index: 100;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .hud-controls.hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(30px);
+      pointer-events: none;
+    }
+
+    .brand-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-right: 14px;
+      border-right: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f8fafc;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
+
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00ffff;
+      box-shadow: 0 0 10px #00ffff;
+      animation: pulseDot 1.5s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .ctrl-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .ctrl-item span {
+      font-family: 'JetBrains Mono', monospace;
+      color: #38bdf8;
+      font-size: 11px;
+    }
+
+    input[type="range"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 80px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.2);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00ffff;
+    }
+
+    .btn-hud {
+      background: rgba(0, 255, 255, 0.12);
+      border: 1px solid rgba(0, 255, 255, 0.4);
+      color: #ffffff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-hud:hover {
+      background: rgba(0, 255, 255, 0.28);
+      border-color: #00ffff;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-record.recording {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+      color: #fca5a5;
+      animation: recordBlink 1s infinite;
+    }
+
+    @keyframes recordBlink {
+      0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+      50% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); }
+    }
+
+    /* Badge flutuante de resolução no canto superior direito */
+    .res-badge {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(7, 12, 23, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 255, 255, 0.25);
+      color: #00ffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 6px;
+      letter-spacing: 1px;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    /* Dica de ocultação */
+    .hide-tip {
+      position: fixed;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: rgba(148, 163, 184, 0.5);
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      z-index: 90;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Canvas Principal -->
+  <canvas id="matrix-canvas"></canvas>
+
+  <!-- Indicador de Resolução -->
+  <div class="res-badge" id="res-badge">4K ULTRA HD • 3840×2160 (60 FPS)</div>
+
+  <!-- Barra de Controles Flutuante -->
+  <div class="hud-controls" id="hud">
+    <div class="brand-pill">
+      <div class="brand-dot"></div>
+      MATRIX 4K
+    </div>
+
+    <!-- Seletor de Paleta -->
+    <button class="btn-hud" id="btn-theme" onclick="toggleColorTheme()">
+      🎨 <span id="theme-label">Cyber Ciano</span>
+    </button>
+
+    <!-- Controle de Velocidade -->
+    <div class="ctrl-item">
+      <span>VELOCIDADE</span>
+      <input type="range" id="speed-slider" min="15" max="75" value="35" oninput="updateSpeed(this.value)">
+    </div>
+
+    <!-- Controle de Densidade/Tamanho -->
+    <div class="ctrl-item">
+      <span>TAMANHO</span>
+      <input type="range" id="size-slider" min="16" max="42" value="24" oninput="updateFontSize(this.value)">
+    </div>
+
+    <!-- Botão Gravar Vídeo Loop 4K -->
+    <button class="btn-hud" id="btn-rec" onclick="recordVideoLoop()">
+      🎥 <span id="rec-label">Exportar Vídeo (5s)</span>
+    </button>
+
+    <!-- Botão Tela Cheia -->
+    <button class="btn-hud" onclick="toggleFullscreen()">
+      ⛶ Tela Cheia
+    </button>
+  </div>
+
+  <div class="hide-tip">Pressione [H] para ocultar a barra de controles • [F11] Tela Cheia</div>
+
+  <script>
+    // =========================================================================
+    // MOTOR PROCEDURAL MATRIX 4K (CYBER CIANO POSITIVO)
+    // Renderiza em tempo real na GPU via Canvas sem consumir peso de vídeo
+    // =========================================================================
+
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const resBadge = document.getElementById('res-badge');
+
+    // Paletas de Cores
+    const PALETTES = {
+      cyber: {
+        name: 'Cyber Ciano Positivo',
+        bgFade: 'rgba(5, 8, 17, 0.085)',
+        headColor: '#FFFFFF',
+        headGlow: '#00FFFF',
+        trailBright: '#00FFFF',
+        trailMid: '#06b6d4',
+        trailDark: '#0284c7',
+        trailDim: 'rgba(8, 51, 68, 0.65)'
+      },
+      classic: {
+        name: 'Matrix Verde Clássico',
+        bgFade: 'rgba(4, 10, 6, 0.085)',
+        headColor: '#FFFFFF',
+        headGlow: '#10b981',
+        trailBright: '#10b981',
+        trailMid: '#059669',
+        trailDark: '#047857',
+        trailDim: 'rgba(6, 78, 59, 0.65)'
+      }
+    };
+
+    let activeTheme = 'cyber';
+    let fontSize = 24;
+    let columns = 0;
+    let drops = [];
+    let dropSpeeds = [];
+    let intervalMs = 35;
+    let animInterval = null;
+
+    // Conjunto de caracteres: Katakana + Números + Binários + Símbolos Técnicos
+    const CHARS = '01010101アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF+-*/<>=#$%&@';
+
+    // Ajusta resolução nativa 4K com nitidez absoluta
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // Suporte para resolução real de tela (até 4K 3840x2160)
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+
+      resBadge.innerText = `${canvas.width}×${canvas.height} • 60 FPS`;
+
+      columns = Math.floor(width / (fontSize * 0.85));
+      drops = [];
+      dropSpeeds = [];
+
+      for (let i = 0; i < columns; i++) {
+        // Distribui posições iniciais aleatórias para queda contínua fluida
+        drops[i] = Math.floor(Math.random() * -100);
+        dropSpeeds[i] = 0.8 + Math.random() * 0.5;
+      }
+    }
+
+    // Loop de desenho procedural
+    function drawMatrix() {
+      const pal = PALETTES[activeTheme];
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // Efeito de rastro (fade suave com persistência luminosa)
+      ctx.fillStyle = pal.bgFade;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.font = `800 ${fontSize}px 'JetBrains Mono', 'Segoe UI', monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const char = CHARS[Math.floor(Math.random() * CHARS.length)];
+        const x = i * (fontSize * 0.85);
+        const y = drops[i] * fontSize;
+
+        // Cabeça da gota (Leader Head) branca fosforescente
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = pal.headGlow;
+        ctx.fillStyle = pal.headColor;
+        ctx.fillText(char, x, y);
+
+        // Corpo e rastro com gradiente tecnológico
+        const trailChar = CHARS[Math.floor(Math.random() * CHARS.length)];
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = pal.trailBright;
+        ctx.fillStyle = pal.trailBright;
+        ctx.fillText(trailChar, x, y - fontSize);
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = pal.trailMid;
+        ctx.fillText(trailChar, x, y - fontSize * 2.2);
+
+        ctx.fillStyle = pal.trailDark;
+        ctx.fillText(trailChar, x, y - fontSize * 3.5);
+
+        ctx.fillStyle = pal.trailDim;
+        ctx.fillText(trailChar, x, y - fontSize * 5);
+
+        // Reseta gota ao sair da tela com probabilidade orgânica
+        if (y > height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+
+        drops[i] += dropSpeeds[i];
+      }
+    }
+
+    function startAnimation() {
+      if (animInterval) clearInterval(animInterval);
+      animInterval = setInterval(drawMatrix, intervalMs);
+    }
+
+    function updateSpeed(val) {
+      intervalMs = 90 - parseInt(val);
+      startAnimation();
+    }
+
+    function updateFontSize(val) {
+      fontSize = parseInt(val);
+      resizeCanvas();
+    }
+
+    function toggleColorTheme() {
+      activeTheme = activeTheme === 'cyber' ? 'classic' : 'cyber';
+      document.getElementById('theme-label').innerText = PALETTES[activeTheme].name;
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => alert(err.message));
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Gravação nativa do vídeo 4K direto no navegador (WebM/MP4)
+    function recordVideoLoop() {
+      const btn = document.getElementById('btn-rec');
+      const recLabel = document.getElementById('rec-label');
+
+      if (!window.MediaRecorder) {
+        alert('Seu navegador não suporta MediaRecorder nativo.');
+        return;
+      }
+
+      btn.classList.add('recording');
+      recLabel.innerText = 'Gravando 4K (5s)...';
+
+      // Captura o stream diretamente do canvas a 60 FPS
+      const stream = canvas.captureStream(60);
+      let options = { mimeType: 'video/webm;codecs=vp9' };
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm' };
+      }
+
+      const recorder = new MediaRecorder(stream, options);
+      const chunks = [];
+
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        btn.classList.remove('recording');
+        recLabel.innerText = 'Exportar Vídeo (5s)';
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `matrix_cyber_4k_${activeTheme}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      recorder.start();
+      // Grava exatamente 5 segundos de loop contínuo
+      setTimeout(() => recorder.stop(), 5000);
+    }
+
+    // Tecla de atalho [H] para ocultar/exibir HUD e [F] para tela cheia
+    window.addEventListener('keydown', e => {
+      if (e.key.toLowerCase() === 'h') {
+        document.getElementById('hud').classList.toggle('hidden');
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullscreen();
+      }
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Inicialização
+    resizeCanvas();
+    startAnimation();
+  </script>
+</body>
+</html>

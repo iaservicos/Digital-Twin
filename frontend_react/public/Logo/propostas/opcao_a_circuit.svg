@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 250" width="100%" height="100%">
+  <defs>
+    <linearGradient id="circuitGradA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00FFFF" />
+      <stop offset="50%" stop-color="#22d3ee" />
+      <stop offset="100%" stop-color="#0891b2" />
+    </linearGradient>
+
+    <radialGradient id="haloA" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.45" />
+      <stop offset="50%" stop-color="#0891b2" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#0891b2" stop-opacity="0" />
+    </radialGradient>
+
+    <filter id="neonA" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="b1" />
+      <feGaussianBlur stdDeviation="8" result="b2" />
+      <feGaussianBlur stdDeviation="18" result="b3" />
+      <feMerge>
+        <feMergeNode in="b3" />
+        <feMergeNode in="b2" />
+        <feMergeNode in="b1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <circle cx="485" cy="105" r="95" fill="url(#haloA)" />
+
+  <g stroke="url(#circuitGradA)" stroke-width="2.5" fill="none" opacity="0.9" stroke-linecap="round">
+    <path d="M 60 70 L 95 70 L 115 90 L 140 90" />
+    <circle cx="60" cy="70" r="4" fill="#00FFFF" />
+    <circle cx="105" cy="70" r="2.5" fill="#22d3ee" />
+
+    <path d="M 45 115 L 85 115 L 105 135 L 135 135" />
+    <circle cx="45" cy="115" r="4.5" fill="#00FFFF" filter="url(#neonA)" />
+    
+    <path d="M 70 160 L 100 160 L 120 140 L 145 140" />
+    <circle cx="70" cy="160" r="3.5" fill="#0891b2" />
+
+    <path d="M 125 45 L 145 65 L 145 80" />
+    <circle cx="125" cy="45" r="3" fill="#00FFFF" />
+  </g>
+
+  <text x="325" y="130" text-anchor="middle">
+    <tspan fill="#FFFFFF" 
+           font-family="'Arial Black', 'Montserrat Black', Impact, sans-serif" 
+           font-weight="900" 
+           font-size="74" 
+           letter-spacing="-0.04em">BRILHA</tspan>
+    <tspan dx="10" dy="-2"
+           fill="url(#circuitGradA)" 
+           font-family="'Arial Black', 'Montserrat Black', Impact, sans-serif" 
+           font-weight="900" 
+           font-size="88" 
+           filter="url(#neonA)">+</tspan>
+  </text>
+
+  <!-- Linhas do circuito perfeitamente alinhadas fora do texto -->
+  <line x1="55" y1="180" x2="115" y2="180" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" opacity="0.8" />
+  <circle cx="53" cy="180" r="3" fill="#00FFFF" />
+
+  <text x="325" y="185" 
+        text-anchor="middle" 
+        font-family="'Montserrat', 'Inter', sans-serif" 
+        font-weight="800" 
+        font-size="13.5" 
+        letter-spacing="5.5px" 
+        fill="#00bcd4">PERFORMANCE &amp; ENGAJAMENTO</text>
+
+  <line x1="535" y1="180" x2="595" y2="180" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" opacity="0.8" />
+  <circle cx="597" cy="180" r="3" fill="#00FFFF" />
+</svg>

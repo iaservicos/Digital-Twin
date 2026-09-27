@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 300" width="100%" height="100%">
+  <defs>
+    <!-- Gradiente do Corpo do '+' idêntico à referência (Azul Royal Vibrante) -->
+    <linearGradient id="refCrossGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0088ff" />
+      <stop offset="50%" stop-color="#0072ee" />
+      <stop offset="100%" stop-color="#0050cc" />
+    </linearGradient>
+
+    <!-- Faceta de Luz Superior-Direita (Diagonal como na foto) -->
+    <linearGradient id="refFacetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00a8ff" />
+      <stop offset="100%" stop-color="#0077ee" />
+    </linearGradient>
+
+    <!-- Brilho Neon para o Nó Central Branco e Trilhas -->
+    <radialGradient id="refCoreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="35%" stop-color="#00ffff" stop-opacity="0.85" />
+      <stop offset="70%" stop-color="#0077ee" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#0077ee" stop-opacity="0" />
+    </radialGradient>
+
+    <filter id="refNeonFilter" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3.2" result="b1" />
+      <feGaussianBlur stdDeviation="7.5" result="b2" />
+      <feMerge>
+        <feMergeNode in="b2" />
+        <feMergeNode in="b1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <clipPath id="crossClip">
+      <path d="M 644 35 L 686 35 Q 710 35 710 59 L 710 105 Q 710 111 716 111 L 791 111 Q 815 111 815 135 L 815 155 Q 815 179 791 179 L 716 179 Q 710 179 710 185 L 710 231 Q 710 255 686 255 L 644 255 Q 620 255 620 231 L 620 185 Q 620 179 614 179 L 590 179 Q 575 179 575 165 L 575 125 Q 575 111 590 111 L 614 111 Q 620 111 620 105 L 620 59 Q 620 35 644 35 Z" />
+    </clipPath>
+  </defs>
+
+  <!-- PALAVRA BRILHA (À ESQUERDA) -->
+  <text x="35" y="174" 
+        font-family="'Arial Black', 'Montserrat Black', Impact, sans-serif" 
+        font-weight="900" 
+        font-size="78" 
+        letter-spacing="-0.035em" 
+        fill="#FFFFFF">BRILHA</text>
+
+  <!-- ==================== SÍMBOLO '+' EXATO DA IMAGEM ==================== -->
+  <g id="circuit-plus-symbol">
+    <!-- Trilhas Azuis Externas saindo para a Esquerda (5 trilhas idênticas à foto) -->
+    <g stroke="#007fff" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Linha 1 (Superior com 2 nós circulares) -->
+      <path d="M 425 90 L 465 90 L 495 120 L 575 120" />
+      <!-- Linha 2 -->
+      <path d="M 375 116 L 475 116 L 495 133 L 575 133" />
+      <!-- Linha 3 (Reta Central que se conecta ao nó branco) -->
+      <path d="M 345 145 L 485 145 L 515 158 L 575 158" />
+      <!-- Linha 4 -->
+      <path d="M 395 170 L 480 170 L 505 150 L 575 150" />
+      <!-- Linha 5 (Inferior) -->
+      <path d="M 415 208 L 455 208 L 495 172 L 575 172" />
+    </g>
+
+    <!-- Nós / Círculos Azuis nas pontas esquerdas -->
+    <g fill="#007fff">
+      <circle cx="425" cy="90" r="7.5" />
+      <circle cx="465" cy="90" r="5" fill="#0055cc" />
+      <circle cx="375" cy="116" r="8" />
+      <circle cx="345" cy="145" r="8.5" fill="#0099ff" />
+      <circle cx="395" cy="170" r="7.5" />
+      <circle cx="415" cy="208" r="8" />
+    </g>
+
+    <!-- Corpo do '+' com Gradiente Azul -->
+    <path d="M 644 35 L 686 35 Q 710 35 710 59 L 710 105 Q 710 111 716 111 L 791 111 Q 815 111 815 135 L 815 155 Q 815 179 791 179 L 716 179 Q 710 179 710 185 L 710 231 Q 710 255 686 255 L 644 255 Q 620 255 620 231 L 620 185 Q 620 179 614 179 L 590 179 Q 575 179 575 165 L 575 125 Q 575 111 590 111 L 614 111 Q 620 111 620 105 L 620 59 Q 620 35 644 35 Z" fill="url(#refCrossGrad)" />
+    
+    <!-- Faceta Diagonal Superior/Direita de Luz (como na foto de referência) -->
+    <g clip-path="url(#crossClip)">
+      <path d="M 620 35 L 815 35 L 815 179 L 710 179 L 635 111 L 620 111 Z" fill="url(#refFacetGrad)" opacity="0.65" />
+      <!-- Linha de divisão sutil da faceta -->
+      <line x1="620" y1="111" x2="710" y2="179" stroke="#38bdf8" stroke-width="2" opacity="0.45" />
+    </g>
+
+    <!-- Borda Suave do '+' -->
+    <path d="M 644 35 L 686 35 Q 710 35 710 59 L 710 105 Q 710 111 716 111 L 791 111 Q 815 111 815 135 L 815 155 Q 815 179 791 179 L 716 179 Q 710 179 710 185 L 710 231 Q 710 255 686 255 L 644 255 Q 620 255 620 231 L 620 185 Q 620 179 614 179 L 590 179 Q 575 179 575 165 L 575 125 Q 575 111 590 111 L 614 111 Q 620 111 620 105 L 620 59 Q 620 35 644 35 Z" fill="none" stroke="#38bdf8" stroke-width="1.8" opacity="0.4" />
+
+    <!-- Trilhas Internas Brancas Iluminadas no Corpo do '+' -->
+    <g clip-path="url(#crossClip)">
+      <g stroke="#FFFFFF" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#refNeonFilter)">
+        <!-- Continuação da Linha 1 -->
+        <path d="M 575 120 L 600 120 L 625 138 L 740 138" />
+        <!-- Continuação da Linha 2 -->
+        <path d="M 575 133 L 610 133 L 628 148 L 710 148" />
+        <!-- Continuação da Linha 3 (Conecta exatamente ao nó branco na direita) -->
+        <path d="M 575 158 L 745 158" />
+        <!-- Continuação da Linha 5 -->
+        <path d="M 575 172 L 675 172" />
+      </g>
+
+      <!-- Nó Central Branco Luminoso com Halo Pulsante (Posicionado como na foto) -->
+      <circle cx="745" cy="158" r="22" fill="url(#refCoreGlow)" />
+      <circle cx="745" cy="158" r="8" fill="#FFFFFF" filter="url(#refNeonFilter)" />
+    </g>
+  </g>
+
+  <!-- Subtítulo: PERFORMANCE & ENGAJAMENTO -->
+  <text x="420" y="275" 
+        text-anchor="middle" 
+        font-family="'Montserrat', 'Inter', sans-serif" 
+        font-weight="800" 
+        font-size="14" 
+        letter-spacing="5.5px" 
+        fill="#00bcd4">PERFORMANCE &amp; ENGAJAMENTO</text>
+</svg>
