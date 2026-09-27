@@ -97,7 +97,7 @@ cursor/
 .cursorrules
 Project_Docs/
 docs/
-Logo-Photoshop/
+.assets/Logo-Photoshop
 
 design-system.md
 backend_logs.txt
