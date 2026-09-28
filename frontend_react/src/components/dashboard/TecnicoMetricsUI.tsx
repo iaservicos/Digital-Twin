@@ -125,7 +125,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div
           onClick={() => setDetailsModalOpen(true)}
-          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-6 border border-light-borderStrong dark:border-border shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden group cursor-pointer hover:border-accent-teal/50 hover:shadow-xl transition-all duration-300 min-h-[220px]"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md rounded-positivo-lg p-6 border border-light-borderStrong/70 dark:border-border/80 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden group cursor-pointer hover:border-accent-teal/50 hover:shadow-xl transition-all duration-300 min-h-[220px]"
         >
           <div className="absolute -right-6 -top-6 text-light-text-secondary/30 dark:text-light-text-secondary/20 transform group-hover:scale-110 transition-transform duration-500 pointer-events-none">
             <Award size={120} />
@@ -161,7 +161,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         {/* 1. Card SLA - INTERATIVO */}
         <div 
           onClick={() => setIsSlaModalOpen(true)}
-          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md rounded-positivo-lg p-4 border border-light-borderStrong/70 dark:border-border/80 shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
           title="Clique para ver os chamados perdidos e causas de estouro do SLA"
         >
           <div className="flex flex-col items-center mb-2">
@@ -189,7 +189,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
                 {/* 2. Card Reincidência (Equipe) - INTERATIVO */}
         <div 
           onClick={() => setIsReincidentesModalOpen(true)}
-          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md rounded-positivo-lg p-4 border border-light-borderStrong/70 dark:border-border/80 shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
           title={isSupervisorOrAdmin ? "Clique para ver todas as reincidências da equipe/base" : "Clique para ver as reincidências da equipe"}
         >
           <div className="flex flex-col items-center mb-2">
@@ -217,7 +217,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         {/* 3. Card Reincidência (Individual) - INTERATIVO */}
         <div 
           onClick={() => setIsReincidentesModalOpen(true)}
-          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md rounded-positivo-lg p-4 border border-light-borderStrong/70 dark:border-border/80 shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
           title={isSupervisorOrAdmin ? "Clique para ver todas as reincidências da equipe/base" : "Clique para ver suas reincidências e análise de falhas"}
         >
           <div className="flex flex-col items-center mb-2">
@@ -245,7 +245,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         {/* 4. Card Perdas SLA - INTERATIVO */}
         <div 
           onClick={() => setIsPerdasModalOpen(true)}
-          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md rounded-positivo-lg p-4 border border-light-borderStrong/70 dark:border-border/80 shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
           title={isSupervisorOrAdmin ? "Clique para ver todas as perdas da equipe/base" : "Clique para ver suas perdas por falhas de gestão / transferência"}
         >
           <div className="flex flex-col items-center mb-2">
@@ -271,7 +271,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         </div>
 
         {/* 5. Card Avaliação NPS */}
-        <div className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/30 transition-colors">
+        <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md rounded-positivo-lg p-4 border border-light-borderStrong/70 dark:border-border/80 shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/30 transition-colors">
           <div className="flex flex-col items-center mb-2">
             <span className="text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full mb-1">
               INDIVIDUAL
@@ -290,7 +290,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         {/* 6. Card Peças - INTERATIVO */}
         <div 
           onClick={() => setIsPecasModalOpen(true)}
-          className="bg-light-surface dark:bg-surface rounded-positivo-lg p-4 border border-light-border dark:border-border shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md rounded-positivo-lg p-4 border border-light-borderStrong/70 dark:border-border/80 shadow-sm flex flex-col items-center text-center justify-center hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] transition-all cursor-pointer group relative"
           title="Clique para ver o detalhamento de peças da campanha (Placa Mãe, SSD, HD/HDD e Tela LCD)"
         >
           <div className="flex flex-col items-center mb-2">

@@ -127,7 +127,7 @@ const UploadCard: React.FC<UploadCardProps> = ({
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={handleDrop}
-      className={`bg-light-surface dark:bg-surface rounded-2xl p-6 border transition-all flex flex-col justify-between relative overflow-hidden shadow-md group ${
+      className={`bg-white/65 dark:bg-surface/35 backdrop-blur-md rounded-2xl p-6 border transition-all flex flex-col justify-between relative overflow-hidden shadow-md group ${
         isDragOver
           ? 'border-accent-teal ring-2 ring-accent-teal/40 bg-accent-teal/5'
           : isSuccess
@@ -136,7 +136,7 @@ const UploadCard: React.FC<UploadCardProps> = ({
           ? 'border-rose-500/40 hover:border-rose-500/70'
           : isUploading
           ? 'border-accent-teal ring-1 ring-accent-teal/30'
-          : 'border-light-borderStrong dark:border-border hover:border-accent-teal/40'
+          : 'border-light-borderStrong/70 dark:border-border/80 hover:border-accent-teal/40'
       }`}
     >
       <div className="space-y-4">
@@ -150,7 +150,7 @@ const UploadCard: React.FC<UploadCardProps> = ({
                 ? 'bg-accent-teal/10 text-accent-teal' 
                 : isError
                 ? 'bg-rose-500/10 text-rose-400'
-                : 'bg-slate-100 dark:bg-slate-800 text-light-text-muted dark:text-text-muted group-hover:text-accent-teal group-hover:bg-accent-teal/10'
+                : 'bg-slate-100 dark:bg-surface-elevated text-light-text-muted dark:text-text-muted group-hover:text-accent-teal group-hover:bg-accent-teal/10'
             }`}>
               <FileSpreadsheet size={24} />
             </div>
@@ -182,11 +182,11 @@ const UploadCard: React.FC<UploadCardProps> = ({
           </button>
 
           {showColumns && (
-            <div className="mt-3 p-3.5 bg-slate-100 dark:bg-slate-950/80 rounded-xl border border-light-borderStrong dark:border-border/60 text-xs space-y-1.5 animate-in fade-in duration-200">
+            <div className="mt-3 p-3.5 bg-slate-100 dark:bg-input-bg rounded-xl border border-light-borderStrong dark:border-border/60 text-xs space-y-1.5 animate-in fade-in duration-200">
               <span className="font-bold text-accent-teal block text-xs">Colunas esperadas no Excel/CSV:</span>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {columnsExpected.map((col, idx) => (
-                  <span key={idx} className="bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-md font-mono text-[11px] text-light-text-main dark:text-slate-200">
+                  <span key={idx} className="bg-slate-200 dark:bg-surface-elevated px-2 py-0.5 rounded-md font-mono text-[11px] text-light-text-main dark:text-text-main">
                     {col}
                   </span>
                 ))}
@@ -208,7 +208,7 @@ const UploadCard: React.FC<UploadCardProps> = ({
               </span>
               <span className="text-accent-teal font-mono shrink-0">{state.progress}%</span>
             </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-950 rounded-full h-2 overflow-hidden border border-accent-teal/20">
+            <div className="w-full bg-slate-200 dark:bg-input-bg rounded-full h-2 overflow-hidden border border-accent-teal/20">
               <div 
                 className="h-full bg-gradient-to-r from-accent-teal to-emerald-400 rounded-full transition-all duration-300"
                 style={{ width: `${state.progress}%` }}
@@ -250,7 +250,7 @@ const UploadCard: React.FC<UploadCardProps> = ({
                 ? 'bg-slate-100 dark:bg-surface text-light-text-muted dark:text-text-muted border-light-borderStrong dark:border-border cursor-not-allowed' 
                 : isSuccess
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                : 'bg-slate-100 dark:bg-slate-900 text-light-text-main dark:text-slate-200 border-light-borderStrong dark:border-border hover:bg-accent-teal/10 hover:text-accent-teal hover:border-accent-teal/40 shadow-sm'
+                : 'bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 hover:border-primary/60 shadow-xs shadow-primary/10'
             }`}
           >
             <UploadCloud size={18} />
@@ -516,7 +516,7 @@ export default function SettingsScreen() {
             <button
               onClick={handleRecalcularCampanha}
               disabled={recalculating}
-              className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-light-borderStrong dark:border-border hover:border-accent-teal/40 text-xs font-bold text-light-text-main dark:text-slate-200 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 hover:border-primary/60 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 shadow-xs shadow-primary/10"
               title="Executa o motor analítico e atualiza a campanha."
             >
               <BarChart3 size={15} className={`text-accent-teal ${recalculating ? 'animate-pulse' : ''}`} />
@@ -526,13 +526,13 @@ export default function SettingsScreen() {
         </div>
 
         {/* Abas Principais */}
-        <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-900/80 border border-light-borderStrong dark:border-border/80 rounded-2xl w-fit flex-wrap">
+        <div className="flex items-center gap-2 p-1.5 bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-2xl w-fit flex-wrap">
           <button
             onClick={() => handleTabChange('UPLOADS')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               activeTab === 'UPLOADS'
                 ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
+                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-surface-elevated'
             }`}
           >
             <DatabaseZap size={16} />
@@ -543,7 +543,7 @@ export default function SettingsScreen() {
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               activeTab === 'TECNICOS'
                 ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
+                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-surface-elevated'
             }`}
           >
             <Users size={16} />
@@ -554,7 +554,7 @@ export default function SettingsScreen() {
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               activeTab === 'CAMPANHA'
                 ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
+                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-surface-elevated'
             }`}
           >
             <ShieldCheck size={16} />
@@ -565,7 +565,7 @@ export default function SettingsScreen() {
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               activeTab === 'PREFERENCIAS'
                 ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
+                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-surface-elevated'
             }`}
           >
             <Sparkles size={16} />
@@ -580,7 +580,7 @@ export default function SettingsScreen() {
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
             
             {/* Seletor Enxuto de Modo de Ingestão: Planilhas vs. Databricks */}
-            <div className="flex items-center justify-between flex-wrap gap-4 p-4 bg-light-surface dark:bg-surface rounded-2xl border border-light-borderStrong dark:border-border shadow-sm">
+            <div className="flex items-center justify-between flex-wrap gap-4 p-4 bg-white/65 dark:bg-surface/35 backdrop-blur-md rounded-2xl border border-light-borderStrong/70 dark:border-border/80 shadow-sm">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-lg bg-accent-teal/10 text-accent-teal">
                   <Layers size={18} />
@@ -592,7 +592,7 @@ export default function SettingsScreen() {
               </div>
 
               {/* Botões Switcher */}
-              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-light-borderStrong dark:border-border">
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-input-bg p-1 rounded-xl border border-light-borderStrong dark:border-border">
                 <button
                   onClick={() => handleModeChange('planilhas')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${

@@ -79,7 +79,7 @@ export default function ChamadosHistoryCard({ tecnicoId, initialDate = '' }: Cha
   };
 
   return (
-    <div className="bg-light-surface dark:bg-surface p-6 rounded-positivo-lg shadow-sm border border-light-border dark:border-border h-full flex flex-col">
+    <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md p-6 rounded-positivo-lg shadow-sm border border-light-borderStrong/70 dark:border-border/80 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-light-text-main dark:text-text-main">

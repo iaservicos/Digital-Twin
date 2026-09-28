@@ -128,7 +128,7 @@ export default function RankingScreen() {
       {/* ========================================================================= */}
       {/* 1. CABEÇALHO DO RANKING & STATUS DO USUÁRIO LOGADO                        */}
       {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-light-surface dark:bg-surface p-5 md:p-6 rounded-[24px] border border-light-borderStrong dark:border-border shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/65 dark:bg-surface/35 backdrop-blur-md p-5 md:p-6 rounded-[24px] border border-light-borderStrong/70 dark:border-border/80 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-inner">
             <Trophy size={26} />
@@ -164,7 +164,7 @@ export default function RankingScreen() {
       {/* 2. QUADRO DO PÓDIO OLÍMPICO (TOP 3)                                       */}
       {/* ========================================================================= */}
       {rankingData.length >= 3 && (
-        <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+        <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 md:p-8 shadow-2xl relative overflow-hidden">
           
           {/* Textura sutil geométrica */}
           <div className="absolute inset-0 opacity-10 dark:opacity-15 pointer-events-none bg-[radial-gradient(#0891b2_1px,transparent_1px)] [background-size:20px_20px]"></div>
@@ -368,7 +368,7 @@ export default function RankingScreen() {
       {/* ========================================================================= */}
       {/* 3. LISTA DE COLOCAÇÕES (PAGINADA & NO PADRÃO CYBER CIANO POSITIVO)        */}
       {/* ========================================================================= */}
-      <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-5 md:p-6 shadow-xl space-y-4">
+      <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-5 md:p-6 shadow-xl space-y-4">
         
         {/* Cabeçalho da Tabela e Busca */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-light-borderStrong/60 dark:border-border/60">

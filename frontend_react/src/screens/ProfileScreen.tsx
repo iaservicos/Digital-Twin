@@ -324,7 +324,7 @@ export default function ProfileScreen() {
       {/* ======================================================================= */}
       {/* 2. CARD PRINCIPAL (FIXO): HERO DO PERFIL / IDENTIDADE OFICIAL           */}
       {/* ======================================================================= */}
-      <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 shadow-xl relative overflow-hidden">
         {/* Luz de fundo decorativa */}
         <div className="absolute top-0 right-0 w-72 h-72 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -445,7 +445,7 @@ export default function ProfileScreen() {
       {/* ======================================================================= */}
       {/* 3. MÓDULO CLICÁVEL 1: SOLICITAR ALTERAÇÃO DE SENHA (EXPANSÍVEL)         */}
       {/* ======================================================================= */}
-      <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] shadow-xl overflow-hidden transition-all">
+      <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] shadow-xl overflow-hidden transition-all">
         {/* Cabeçalho Clicável */}
         <button
           type="button"
@@ -604,7 +604,7 @@ export default function ProfileScreen() {
       {/* ======================================================================= */}
       {/* 4. MÓDULO CLICÁVEL 2: HISTÓRICO DE CAMPANHAS (EXPANSÍVEL)                */}
       {/* ======================================================================= */}
-      <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] shadow-xl overflow-hidden transition-all">
+      <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] shadow-xl overflow-hidden transition-all">
         {/* Cabeçalho Clicável */}
         <button
           type="button"
@@ -709,7 +709,7 @@ export default function ProfileScreen() {
       {/* 5. MÓDULO CLICÁVEL 3: RANKING DA CAMPANHA (SOMENTE SELECIONADA!)        */}
       {/* ======================================================================= */}
       {campanhaAtivaId !== null && (
-        <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-3 duration-300">
+        <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-3 duration-300">
           
           {/* Cabeçalho Clicável do Ranking com Opção de Fechar e Ocultar */}
           <div 
@@ -1025,7 +1025,7 @@ export default function ProfileScreen() {
       {/* ======================================================================= */}
       {/* 6. PREFERÊNCIAS DO SISTEMA (TEMA - APENAS NO MOBILE)                    */}
       {/* ======================================================================= */}
-      <div className="block sm:hidden bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-5 shadow-xl">
+      <div className="block sm:hidden bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-5 shadow-xl">
         <div className="flex flex-col gap-3">
           <div>
             <h3 className="text-sm font-black text-light-text-main dark:text-slate-100 tracking-tight flex items-center gap-2">

@@ -295,7 +295,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         {/* --------------------------------------------------------------------- */}
         <div 
           onClick={onOpenDetailsModal}
-          className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all cursor-pointer group relative overflow-hidden"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all cursor-pointer group relative overflow-hidden"
           title="Clique para ver o detalhamento completo dos 6 KPIs da operação"
         >
           <div className="flex items-center justify-between">
@@ -378,7 +378,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         {/* CARD 2 (Linha 1, Col 2): SLA de Atendimento da Operação                 */}
         {/* --------------------------------------------------------------------- */}
         <div 
-          className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all relative"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all relative"
         >
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-light-text-main dark:text-slate-200">
@@ -432,7 +432,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         {/* CARD 3 (Linha 1, Col 3): Chamados Encerrados & Mini Calendário        */}
         {/* --------------------------------------------------------------------- */}
         <div 
-          className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between relative overflow-hidden group shadow-sm hover:border-cyan-500/40 transition-all"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between relative overflow-hidden group shadow-sm hover:border-cyan-500/40 transition-all"
         >
           {/* Textura sutil geométrica */}
           <div className="absolute inset-0 opacity-10 dark:opacity-15 pointer-events-none bg-[radial-gradient(#0891b2_1px,transparent_1px)] [background-size:16px_16px]"></div>
@@ -614,7 +614,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         {/* --------------------------------------------------------------------- */}
         <div 
           onClick={onOpenPerdasModal}
-          className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-amber-500/50 hover:shadow-xl hover:shadow-amber-500/10 transition-all cursor-pointer group"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-amber-500/50 hover:shadow-xl hover:shadow-amber-500/10 transition-all cursor-pointer group"
           title="Clique para ver falhas de gestão e transferência na equipe"
         >
           <div className="flex items-center justify-between">
@@ -672,7 +672,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         {/* --------------------------------------------------------------------- */}
         <div 
           onClick={onOpenReincidentesModal}
-          className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all cursor-pointer group overflow-hidden"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all cursor-pointer group overflow-hidden"
           title="Clique para ver a análise de falhas reincidentes da operação"
         >
           <div className="flex items-center justify-between">
@@ -724,7 +724,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         {/* --------------------------------------------------------------------- */}
         <div 
           onClick={onOpenPecasModal}
-          className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all cursor-pointer group"
+          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all cursor-pointer group"
           title="Clique para ver o consumo de peças na operação"
         >
           <div className="flex items-center justify-between">
