@@ -1,14 +1,37 @@
-import React, { useEffect, useState } from 'react';
-import { Medal, Trophy, Star, XCircle, Award, TrendingUp, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { 
+  Trophy, 
+  Medal, 
+  Search, 
+  CheckCircle2, 
+  XCircle, 
+  Award, 
+  TrendingUp, 
+  User, 
+  ChevronLeft, 
+  ChevronRight, 
+  ArrowUpRight,
+  Sparkles,
+  Crown
+} from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { toTitleCase, formatLocalEquipe } from '../utils/stringFormatters';
 
 export default function RankingScreen() {
   const { user } = useAuthStore();
+  const isAdmin = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador';
+  const isModerador = ['MODERADOR', 'ROLE_MODERADOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Moderador';
+  const isSupervisor = ['SUPERVISOR', 'ROLE_SUPERVISOR', 'ADMINISTRADOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Supervisor' || user?.cargo === 'Supervisor de Campo';
+  const canViewDetails = isAdmin || isModerador || isSupervisor;
+
   const [rankingData, setRankingData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [myPos, setMyPos] = useState<number | string>('--');
   const [selectedTecnico, setSelectedTecnico] = useState<any | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   useEffect(() => {
     let mounted = true;
@@ -16,7 +39,7 @@ export default function RankingScreen() {
     const fetchRanking = async () => {
       try {
         const response = await api.get('/dashboard/ranking');
-        if (mounted) {
+        if (mounted && response.data) {
           const normalize = (str: string) => str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() : '';
           
           let myPosition: number | string = '--';
@@ -27,15 +50,25 @@ export default function RankingScreen() {
             if (isMe) myPosition = r.posicaoRanking;
             
             return {
-              id: r.matricula || r.tecnico || Math.random().toString(),
+              id: r.matricula || r.idTecnico || r.tecnico || Math.random().toString(),
+              idTecnico: r.idTecnico,
+              matricula: r.matricula,
               name: r.tecnico,
-              score: r.pontosTotal,
-              base: '', // Base ATP não está disponível no provisório
+              score: r.pontosTotal || 0,
+              base: formatLocalEquipe(r.localEquipe) || 'Base Operacional',
+              fotoPerfil: r.fotoPerfil || (isMe ? user?.fotoPerfil : null),
+              percentualSla: r.percentualSla || 0,
+              percentualEficienciaPecas: r.percentualEficienciaPecas || 0,
+              percentualReincidencia: r.percentualReincidencia || 0,
+              elegivel: Boolean(r.elegivel),
               isMe: isMe,
               posicaoRanking: r.posicaoRanking,
               rawDto: r
             };
           });
+          
+          // Garante ordenação decrescente por score / posicaoRanking
+          mappedData.sort((a: any, b: any) => (a.posicaoRanking || 999) - (b.posicaoRanking || 999));
           
           setRankingData(mappedData);
           setMyPos(myPosition);
@@ -52,140 +85,571 @@ export default function RankingScreen() {
     return () => { mounted = false; };
   }, [user]);
 
+  // Os 3 primeiros colocados para o Pódio
+  const top1 = rankingData[0] || null;
+  const top2 = rankingData[1] || null;
+  const top3 = rankingData[2] || null;
+
+  // Filtragem por busca rápida
+  const filteredRanking = useMemo(() => {
+    if (!searchTerm.trim()) return rankingData;
+    const q = searchTerm.toLowerCase().trim();
+    return rankingData.filter(item => 
+      (item.name && item.name.toLowerCase().includes(q)) ||
+      (item.matricula && String(item.matricula).includes(q)) ||
+      (item.base && item.base.toLowerCase().includes(q))
+    );
+  }, [rankingData, searchTerm]);
+
+  // Paginação
+  const totalPages = Math.max(1, Math.ceil(filteredRanking.length / itemsPerPage));
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredRanking.slice(start, start + itemsPerPage);
+  }, [filteredRanking, currentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-teal"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-6">
-      <div className="bg-light-surface p-6 rounded-positivo-lg shadow-sm border border-light-border flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-light-text-main flex items-center">
-            <Trophy className="text-brilhamais-gold mr-2" size={24} />
-            Ranking Geral
-          </h2>
-          <p className="text-sm text-light-text-muted mt-1">Sua posição atual é a {myPos}ª</p>
+    <div className="w-full space-y-8 pb-10">
+      
+      {/* ========================================================================= */}
+      {/* 1. CABEÇALHO DO RANKING & STATUS DO USUÁRIO LOGADO                        */}
+      {/* ========================================================================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-light-surface dark:bg-surface p-5 md:p-6 rounded-[24px] border border-light-borderStrong dark:border-border shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-inner">
+            <Trophy size={26} />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-2xl font-black text-light-text-main dark:text-slate-100 tracking-tight flex items-center gap-2">
+              Ranking Geral da Operação
+              <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 rounded-full">
+                {rankingData.length} Técnicos
+              </span>
+            </h1>
+            <p className="text-xs text-light-text-muted dark:text-slate-400 mt-0.5 font-medium">
+              Classificação oficial do programa Brilha+ baseada na matriz de 6 KPIs
+            </p>
+          </div>
         </div>
-        <div className="bg-positivo-primary text-text-main w-14 h-14 rounded-full flex items-center justify-center font-bold text-2xl shadow-md border-4 border-light-background">
-          {myPos}º
-        </div>
+
+        {/* Pílula de Posição da Pessoa Logada (se encontrada) */}
+        {myPos !== '--' && (
+          <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500/10 to-cyan-500/10 border border-cyan-500/30 px-4 py-2.5 rounded-2xl shadow-sm self-start sm:self-auto">
+            <div className="text-right">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sua Posição</p>
+              <p className="text-lg font-black text-cyan-400">{myPos}º Lugar</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center border border-cyan-500/30">
+              🥇
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="bg-light-surface rounded-positivo-lg shadow-sm border border-light-border overflow-hidden">
-        <ul className="divide-y divide-light-border">
-          {rankingData.map((usr, index) => (
-            <li 
-              key={usr.id + '-' + index} 
-              onClick={() => setSelectedTecnico(usr)}
-              className={`p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors ${
-                usr.isMe ? 'bg-amber-50/50 relative' : ''
-              }`}
-            >
-              {usr.isMe && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-brilhamais-gold"></div>
-              )}
-              
-              <div className="flex items-center space-x-4">
-                <div className="font-bold text-light-text-muted w-6 text-center">
-                  {usr.posicaoRanking}
+      {/* ========================================================================= */}
+      {/* 2. QUADRO DO PÓDIO OLÍMPICO (TOP 3)                                       */}
+      {/* ========================================================================= */}
+      {rankingData.length >= 3 && (
+        <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+          
+          {/* Textura sutil geométrica */}
+          <div className="absolute inset-0 opacity-10 dark:opacity-15 pointer-events-none bg-[radial-gradient(#0891b2_1px,transparent_1px)] [background-size:20px_20px]"></div>
+
+          <div className="text-center mb-8 relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest mb-2 shadow-sm">
+              <Sparkles size={14} /> Pódio dos Campeões • Top 3
+            </div>
+            <h2 className="text-xl md:text-2xl font-black text-light-text-main dark:text-slate-100 tracking-tight">
+              Os Melhores Técnicos da Campanha
+            </h2>
+            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+              Reconhecimento oficial de alta performance e excelência operacional
+            </p>
+          </div>
+
+          {/* ESTRUTURA DOS 3 PEDESTAIS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end max-w-4xl mx-auto pt-6 pb-2 relative z-10">
+            
+            {/* ----------------------------------------------------------------- */}
+            {/* 2º LUGAR (Esquerda - Prata)                                       */}
+            {/* ----------------------------------------------------------------- */}
+            {top2 && (
+              <div 
+                onClick={() => canViewDetails && setSelectedTecnico(top2)}
+                className={`flex flex-col items-center text-center order-2 md:order-1 ${
+                  canViewDetails ? 'cursor-pointer group transition-transform hover:-translate-y-1' : ''
+                }`}
+                title={canViewDetails ? "Clique para ver o desempenho de 2º lugar" : undefined}
+              >
+                {/* Avatar do 2º Colocado: Foto ou Bonequinho Vazio */}
+                <div className="relative mb-3">
+                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-slate-300 shadow-xl flex items-center justify-center bg-slate-800 ${
+                    canViewDetails ? 'group-hover:scale-105 transition-transform' : ''
+                  }`}>
+                    {top2.fotoPerfil ? (
+                      <img src={top2.fotoPerfil} alt={top2.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                        <User size={30} />
+                      </div>
+                    )}
+                  </div>
+                  <span className="absolute -bottom-2 -right-1 w-7 h-7 rounded-full bg-slate-300 text-slate-900 font-black text-xs flex items-center justify-center border-2 border-slate-900 shadow-md">
+                    2º
+                  </span>
                 </div>
-                
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  index === 0 ? 'bg-yellow-100 text-yellow-600' :
-                  index === 1 ? 'bg-light-borderStrong text-light-text-muted' :
-                  index === 2 && !usr.isMe ? 'bg-orange-100 text-orange-600' :
-                  'bg-positivo-secondary text-text-main'
-                }`}>
-                  {index < 3 ? <Medal size={20} /> : <Star size={16} />}
-                </div>
-                
-                <div>
-                  <p className={`font-semibold ${usr.isMe ? 'text-light-text-main' : 'text-light-text-secondary'}`}>
-                    {usr.name}
+
+                <div className="mb-2 w-full px-2">
+                  <p className={`font-bold text-sm text-light-text-main dark:text-slate-100 transition-colors truncate ${
+                    canViewDetails ? 'group-hover:text-cyan-400' : ''
+                  }`}>
+                    {toTitleCase(top2.name)}
                   </p>
-                  <p className="text-xs text-light-text-muted">{usr.base}</p>
+                  <p className="text-[11px] text-cyan-400 font-medium truncate mt-0.5">
+                    {top2.base}
+                  </p>
+                  <p className="text-base font-black text-slate-200 mt-1">
+                    {top2.score.toFixed(1)} <span className="text-[10px] text-slate-400 font-normal">pts</span>
+                  </p>
+                </div>
+
+                {/* Pedestal Prata */}
+                <div className="w-full h-36 md:h-44 rounded-t-2xl bg-gradient-to-t from-slate-400/20 via-slate-400/10 to-slate-400/5 border-t-2 border-x-2 border-slate-300/40 flex flex-col items-center justify-center shadow-lg p-3">
+                  <span className="text-2xl mb-1">🥈</span>
+                  <span className="text-xs font-black text-slate-300 uppercase tracking-wider">
+                    2º Lugar
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">
+                    SLA: {top2.percentualSla.toFixed(1)}%
+                  </span>
                 </div>
               </div>
-              
-              <div className="font-bold text-light-text-main">
-                {typeof usr.score === 'number' ? usr.score.toFixed(1) : usr.score} <span className="text-xs text-light-text-muted font-normal">pts</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+            )}
 
-      {selectedTecnico && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-light-surface dark:bg-surface rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden border border-light-borderStrong dark:border-border animate-in zoom-in-95">
-            <div className="p-6 border-b border-light-borderStrong dark:border-border flex justify-between items-center bg-light-background dark:bg-background/50">
-              <h2 className="text-xl font-bold text-light-text-main dark:text-text-main flex items-center gap-2">
-                <Award className="text-accent-teal" /> Desempenho de {selectedTecnico.name}
-              </h2>
-              <button onClick={() => setSelectedTecnico(null)} className="text-light-text-muted hover:text-slate-600 transition-colors">
-                <XCircle size={24} />
+            {/* ----------------------------------------------------------------- */}
+            {/* 1º LUGAR (Centro - Ouro - Campeão / Mais Alto)                     */}
+            {/* ----------------------------------------------------------------- */}
+            {top1 && (
+              <div 
+                onClick={() => canViewDetails && setSelectedTecnico(top1)}
+                className={`flex flex-col items-center text-center order-1 md:order-2 ${
+                  canViewDetails ? 'cursor-pointer group transition-transform hover:-translate-y-1.5' : ''
+                }`}
+                title={canViewDetails ? "Clique para ver o desempenho do líder do ranking" : undefined}
+              >
+                {/* Avatar do 1º Colocado com Coroa e Halo Dourado */}
+                <div className="relative mb-3">
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-amber-400 animate-bounce duration-1000">
+                    <Crown size={26} />
+                  </div>
+                  <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.35)] flex items-center justify-center bg-slate-800 ${
+                    canViewDetails ? 'group-hover:scale-105 transition-transform' : ''
+                  }`}>
+                    {top1.fotoPerfil ? (
+                      <img src={top1.fotoPerfil} alt={top1.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-amber-300">
+                        <User size={38} />
+                      </div>
+                    )}
+                  </div>
+                  <span className="absolute -bottom-2 -right-1 w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-slate-900 shadow-md">
+                    1º
+                  </span>
+                </div>
+
+                <div className="mb-2 w-full px-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Líder da Campanha
+                  </span>
+                  <p className={`font-black text-base text-light-text-main dark:text-slate-100 transition-colors truncate mt-1 ${
+                    canViewDetails ? 'group-hover:text-amber-400' : ''
+                  }`}>
+                    {toTitleCase(top1.name)}
+                  </p>
+                  <p className="text-xs text-amber-400/90 font-medium truncate mt-0.5">
+                    {top1.base}
+                  </p>
+                  <p className="text-xl font-black text-amber-300 mt-1">
+                    {top1.score.toFixed(1)} <span className="text-xs text-slate-400 font-normal">pts</span>
+                  </p>
+                </div>
+
+                {/* Pedestal Ouro */}
+                <div className="w-full h-48 md:h-56 rounded-t-2xl bg-gradient-to-t from-amber-500/25 via-amber-500/15 to-amber-500/5 border-t-2 border-x-2 border-amber-400/60 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.15)] p-4">
+                  <span className="text-3xl mb-1 filter drop-shadow-[0_0_10px_#f59e0b]">🥇</span>
+                  <span className="text-sm font-black text-amber-300 uppercase tracking-widest">
+                    Campeão
+                  </span>
+                  <span className="text-xs text-slate-300 font-semibold mt-1">
+                    SLA: {top1.percentualSla.toFixed(1)}%
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-bold mt-0.5">
+                    Peças: {top1.percentualEficienciaPecas.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* ----------------------------------------------------------------- */}
+            {/* 3º LUGAR (Direita - Bronze)                                       */}
+            {/* ----------------------------------------------------------------- */}
+            {top3 && (
+              <div 
+                onClick={() => canViewDetails && setSelectedTecnico(top3)}
+                className={`flex flex-col items-center text-center order-3 md:order-3 ${
+                  canViewDetails ? 'cursor-pointer group transition-transform hover:-translate-y-1' : ''
+                }`}
+                title={canViewDetails ? "Clique para ver o desempenho de 3º lugar" : undefined}
+              >
+                {/* Avatar do 3º Colocado: Foto ou Bonequinho Vazio */}
+                <div className="relative mb-3">
+                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-orange-400 shadow-xl flex items-center justify-center bg-slate-800 ${
+                    canViewDetails ? 'group-hover:scale-105 transition-transform' : ''
+                  }`}>
+                    {top3.fotoPerfil ? (
+                      <img src={top3.fotoPerfil} alt={top3.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-orange-400">
+                        <User size={30} />
+                      </div>
+                    )}
+                  </div>
+                  <span className="absolute -bottom-2 -right-1 w-7 h-7 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center border-2 border-slate-900 shadow-md">
+                    3º
+                  </span>
+                </div>
+
+                <div className="mb-2 w-full px-2">
+                  <p className={`font-bold text-sm text-light-text-main dark:text-slate-100 transition-colors truncate ${
+                    canViewDetails ? 'group-hover:text-cyan-400' : ''
+                  }`}>
+                    {toTitleCase(top3.name)}
+                  </p>
+                  <p className="text-[11px] text-cyan-400 font-medium truncate mt-0.5">
+                    {top3.base}
+                  </p>
+                  <p className="text-base font-black text-slate-200 mt-1">
+                    {top3.score.toFixed(1)} <span className="text-[10px] text-slate-400 font-normal">pts</span>
+                  </p>
+                </div>
+
+                {/* Pedestal Bronze */}
+                <div className="w-full h-28 md:h-36 rounded-t-2xl bg-gradient-to-t from-orange-500/20 via-orange-500/10 to-orange-500/5 border-t-2 border-x-2 border-orange-500/40 flex flex-col items-center justify-center shadow-lg p-3">
+                  <span className="text-2xl mb-1">🥉</span>
+                  <span className="text-xs font-black text-orange-300 uppercase tracking-wider">
+                    3º Lugar
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">
+                    SLA: {top3.percentualSla.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 3. LISTA DE COLOCAÇÕES (PAGINADA & NO PADRÃO CYBER CIANO POSITIVO)        */}
+      {/* ========================================================================= */}
+      <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-5 md:p-6 shadow-xl space-y-4">
+        
+        {/* Cabeçalho da Tabela e Busca */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-light-borderStrong/60 dark:border-border/60">
+          <div>
+            <h3 className="text-lg font-black text-light-text-main dark:text-slate-100 tracking-tight flex items-center gap-2">
+              <Medal size={20} className="text-cyan-400" />
+              Classificação Completa dos Colaboradores
+            </h3>
+            <p className="text-xs text-light-text-muted dark:text-slate-400 mt-0.5">
+              {canViewDetails 
+                ? "Consulte a colocação de qualquer técnico e audite os 6 KPIs oficiais" 
+                : "Consulte a classificação geral e acompanhe o ranking oficial da campanha"}
+            </p>
+          </div>
+
+          <div className="relative w-full sm:w-72">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar técnico, matrícula ou base..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-slate-200 text-xs font-semibold rounded-xl pl-9 pr-3 py-2.5 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all shadow-inner"
+            />
+          </div>
+        </div>
+
+        {/* Tabela de Ranking */}
+        <div className="overflow-x-auto rounded-2xl border border-light-borderStrong dark:border-border">
+          <table className="w-full text-left border-collapse min-w-[850px]">
+            <thead>
+              <tr className="bg-light-background dark:bg-input-bg text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-light-borderStrong dark:border-border">
+                <th className="py-3 px-4 text-center w-16">#</th>
+                <th className="py-3 px-4">Técnico</th>
+                <th className="py-3 px-4 text-center">Pontos Total</th>
+                <th className="py-3 px-4 text-center">SLA</th>
+                <th className="py-3 px-4 text-center">Eficiência Peças</th>
+                <th className="py-3 px-4 text-center">Status</th>
+                {canViewDetails && <th className="py-3 px-4 text-right">Ação</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-light-borderStrong/60 dark:divide-border/60 text-xs">
+              {paginatedData.length === 0 ? (
+                <tr>
+                  <td colSpan={canViewDetails ? 7 : 6} className="py-12 text-center text-slate-400">
+                    <p className="text-sm font-semibold">Nenhum técnico encontrado.</p>
+                    <p className="text-xs text-slate-500 mt-1">Verifique o termo digitado na busca.</p>
+                  </td>
+                </tr>
+              ) : (
+                paginatedData.map((usr, index) => {
+                  const rankPos = usr.posicaoRanking || ((currentPage - 1) * itemsPerPage + index + 1);
+                  
+                  return (
+                    <tr
+                      key={usr.id + '-' + index}
+                      onClick={() => canViewDetails && setSelectedTecnico(usr)}
+                      className={`transition-colors ${
+                        canViewDetails ? 'hover:bg-cyan-500/5 cursor-pointer group' : ''
+                      } ${usr.isMe ? 'bg-cyan-500/10 font-bold relative' : ''}`}
+                    >
+                      {/* Posição */}
+                      <td className="py-3 px-4 text-center">
+                        <span className={`w-7 h-7 rounded-full font-bold text-xs flex items-center justify-center mx-auto border ${
+                          rankPos === 1 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                          rankPos === 2 ? 'bg-slate-300/20 text-slate-200 border-slate-300/40' :
+                          rankPos === 3 ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' :
+                          usr.isMe ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' :
+                          'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}>
+                          {rankPos === 1 ? '🥇' : rankPos === 2 ? '🥈' : rankPos === 3 ? '🥉' : rankPos}
+                        </span>
+                      </td>
+
+                      {/* Foto / Bonequinho Vazio + Nome + Base */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-700 bg-slate-800 shrink-0 flex items-center justify-center text-slate-400">
+                            {usr.fotoPerfil ? (
+                              <img src={usr.fotoPerfil} alt={usr.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <User size={18} />
+                            )}
+                          </div>
+                          <div className="truncate max-w-xs sm:max-w-md">
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-light-text-main dark:text-slate-100 group-hover:text-cyan-400 transition-colors truncate">
+                                {toTitleCase(usr.name)}
+                              </p>
+                              {usr.isMe && (
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
+                                  Você
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                              {usr.base}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Pontos Total */}
+                      <td className="py-3 px-4 text-center">
+                        <span className="font-black text-sm text-light-text-main dark:text-slate-100">
+                          {typeof usr.score === 'number' ? usr.score.toFixed(1) : usr.score}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-normal ml-1">pts</span>
+                      </td>
+
+                      {/* SLA */}
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                          usr.percentualSla >= 90.0 
+                            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' 
+                            : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                        }`}>
+                          {usr.percentualSla?.toFixed(1)}%
+                        </span>
+                      </td>
+
+                      {/* Peças */}
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                          usr.percentualEficienciaPecas >= 85.0 
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
+                            : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                        }`}>
+                          {usr.percentualEficienciaPecas?.toFixed(1)}%
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-4 text-center">
+                        {usr.elegivel ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            <CheckCircle2 size={11} /> Elegível
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                            <XCircle size={11} /> Inelegível
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Ação */}
+                      {canViewDetails && (
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 group-hover:translate-x-0.5 transition-transform"
+                          >
+                            Detalhes
+                            <ArrowUpRight size={13} />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginação */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 text-xs text-slate-400">
+            <p>
+              Exibindo <span className="font-bold text-slate-200">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-bold text-slate-200">{Math.min(currentPage * itemsPerPage, filteredRanking.length)}</span> de <span className="font-bold text-slate-200">{filteredRanking.length}</span> técnicos
+            </p>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-slate-300"
+                title="Página Anterior"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              
+              <div className="px-3 py-1 font-bold text-slate-200 bg-slate-900 border border-border rounded-xl">
+                {currentPage} / {totalPages}
+              </div>
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-slate-300"
+                title="Próxima Página"
+              >
+                <ChevronRight size={16} />
               </button>
             </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. MODAL OFICIAL DE DESEMPENHO DO TÉCNICO                                 */}
+      {/* ========================================================================= */}
+      {canViewDetails && selectedTecnico && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-light-surface dark:bg-surface rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-light-borderStrong dark:border-border animate-in zoom-in-95">
+            <div className="p-5 border-b border-light-borderStrong dark:border-border flex justify-between items-center bg-light-background dark:bg-input-bg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400">
+                  {selectedTecnico.fotoPerfil ? (
+                    <img src={selectedTecnico.fotoPerfil} alt={selectedTecnico.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={20} />
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-light-text-main dark:text-slate-100 flex items-center gap-2">
+                    Desempenho de {toTitleCase(selectedTecnico.name)}
+                  </h2>
+                  <p className="text-xs text-light-text-muted dark:text-slate-400">
+                    Base: {selectedTecnico.base} • Posição: {selectedTecnico.posicaoRanking || '--'}º Lugar
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedTecnico(null)} 
+                className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <XCircle size={22} />
+              </button>
+            </div>
+
             <div className="p-6 overflow-x-auto overflow-y-auto max-h-[70vh] scrollbar-hide">
-              <table className="w-full text-left border-collapse min-w-[800px]">
+              <table className="w-full text-left border-collapse min-w-[750px]">
                 <thead>
-                  <tr className="bg-slate-100 dark:bg-background text-slate-600 dark:text-text-muted text-sm font-bold uppercase tracking-wider">
-                    <th className="p-4 border-b border-light-borderStrong dark:border-border rounded-tl-lg">Mês</th>
-                    <th className="p-4 border-b border-light-borderStrong dark:border-border text-center">SLA</th>
-                    <th className="p-4 border-b border-light-borderStrong dark:border-border text-center">Reinc. (Eqp)</th>
-                    <th className="p-4 border-b border-light-borderStrong dark:border-border text-center">Reinc. (Ind)</th>
-                    <th className="p-4 border-b border-light-borderStrong dark:border-border text-center">Perdas</th>
-                    <th className="p-4 border-b border-light-borderStrong dark:border-border text-center">NPS</th>
-                    <th className="p-4 border-b border-light-borderStrong dark:border-border text-center">Peças</th>
-                    <th className="p-4 border-b border-light-borderStrong dark:border-border text-center">Total</th>
-                    <th className="p-4 border-b border-light-borderStrong dark:border-border text-center rounded-tr-lg">Elegibilidade</th>
+                  <tr className="bg-light-background dark:bg-input-bg text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-border">
+                    <th className="p-3">Mês</th>
+                    <th className="p-3 text-center">SLA</th>
+                    <th className="p-3 text-center">Reincidência</th>
+                    <th className="p-3 text-center">Peças</th>
+                    <th className="p-3 text-center">Perdas</th>
+                    <th className="p-3 text-center">Total</th>
+                    <th className="p-3 text-center">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-border/50 bg-light-surface dark:bg-surface">
+                <tbody className="divide-y divide-border/60 text-xs">
                   {selectedTecnico.rawDto?.historico?.map((h: any, i: number) => {
                     const isMedia = h.mes === 'Média Final';
                     return (
-                      <tr key={i} className={`hover:bg-light-background dark:hover:bg-background/50 transition-colors ${isMedia ? 'bg-light-background dark:bg-background/30' : ''}`}>
-                        <td className="p-4 font-bold text-light-text-main dark:text-text-main flex items-center gap-2">
-                          {isMedia && <TrendingUp size={16} className="text-accent-teal"/>}
+                      <tr key={i} className={`hover:bg-cyan-500/5 transition-colors ${isMedia ? 'bg-cyan-500/10 font-bold' : ''}`}>
+                        <td className="p-3 font-bold text-light-text-main dark:text-slate-100 flex items-center gap-2">
+                          {isMedia && <TrendingUp size={14} className="text-cyan-400"/>}
                           {h.mes}
                         </td>
-                        <td className="p-4 text-center">
-                          <div className="font-bold text-light-text-secondary">{h.percentualSla?.toFixed(2)}%</div>
-                          <div className="text-xs font-medium text-accent-teal bg-accent-teal/10 px-2 py-0.5 rounded-full inline-block mt-1">{h.pontosSla} pts</div>
+                        <td className="p-3 text-center">
+                          <span className="font-bold text-slate-200">{h.percentualSla?.toFixed(1)}%</span>
                         </td>
-                        <td className="p-4 text-center">
-                          <div className="font-bold text-light-text-secondary">{h.percentualReincidenciaEquipe?.toFixed(2)}%</div>
-                          <div className="text-xs font-medium text-accent-teal bg-accent-teal/10 px-2 py-0.5 rounded-full inline-block mt-1">{h.pontosReincidenciaEquipe} pts</div>
+                        <td className="p-3 text-center">
+                          <span className="font-bold text-slate-200">{h.percentualReincidencia?.toFixed(1)}%</span>
                         </td>
-                        <td className="p-4 text-center">
-                          <div className="font-bold text-light-text-secondary">{h.percentualReincidencia?.toFixed(2)}%</div>
-                          <div className="text-xs font-medium text-accent-teal bg-accent-teal/10 px-2 py-0.5 rounded-full inline-block mt-1">{h.pontosReincidencia} pts</div>
+                        <td className="p-3 text-center">
+                          <span className="font-bold text-slate-200">{h.percentualEficienciaPecas?.toFixed(1)}%</span>
                         </td>
-                        <td className="p-4 text-center">
-                          <div className="font-bold text-light-text-secondary">{h.percentualPerdidos?.toFixed(2)}%</div>
-                          <div className="text-xs font-medium text-accent-teal bg-accent-teal/10 px-2 py-0.5 rounded-full inline-block mt-1">{h.pontosPerdidos} pts</div>
+                        <td className="p-3 text-center">
+                          <span className="font-bold text-slate-200">{h.percentualPerdidos?.toFixed(1)}%</span>
                         </td>
-                        <td className="p-4 text-center">
-                          <div className="font-bold text-light-text-secondary">{h.npsScore?.toFixed(2)}%</div>
-                          <div className="text-xs font-medium text-accent-teal bg-accent-teal/10 px-2 py-0.5 rounded-full inline-block mt-1">{h.pontosNps} pts</div>
+                        <td className="p-3 text-center font-black text-sm text-cyan-400">
+                          {h.pontosTotal}
                         </td>
-                        <td className="p-4 text-center">
-                          <div className="font-bold text-light-text-secondary">{h.percentualEficienciaPecas?.toFixed(2)}%</div>
-                          <div className="text-xs font-medium text-accent-teal bg-accent-teal/10 px-2 py-0.5 rounded-full inline-block mt-1">{h.pontosPecas} pts</div>
-                        </td>
-                        <td className="p-4 text-center">
-                          <div className="text-2xl font-black text-light-text-main">{h.pontosTotal}</div>
-                        </td>
-                        <td className="p-4 text-center">
+                        <td className="p-3 text-center">
                           {h.elegivel ? (
-                            <span className="bg-accent-emerald text-text-main text-xs font-bold px-3 py-1.5 rounded-full inline-flex items-center gap-1 shadow-sm"><CheckCircle2 size={14}/> Elegível</span>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                              Elegível
+                            </span>
                           ) : (
-                            <span className="bg-status-danger text-text-main text-xs font-bold px-3 py-1.5 rounded-full inline-flex items-center gap-1 shadow-sm" title={h.motivoInelegibilidade}><XCircle size={14}/> Inelegível</span>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30" title={h.motivoInelegibilidade}>
+                              Inelegível
+                            </span>
                           )}
                         </td>
                       </tr>
@@ -194,12 +658,15 @@ export default function RankingScreen() {
                 </tbody>
               </table>
               {(!selectedTecnico.rawDto?.historico || selectedTecnico.rawDto.historico.length === 0) && (
-                <div className="p-8 text-center text-light-text-muted">Nenhum detalhamento disponível.</div>
+                <div className="p-8 text-center text-slate-400">
+                  Pontuação consolidada: <span className="font-black text-cyan-400">{selectedTecnico.score.toFixed(1)} pts</span>
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }

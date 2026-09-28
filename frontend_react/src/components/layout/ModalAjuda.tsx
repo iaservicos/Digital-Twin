@@ -85,7 +85,7 @@ export default function ModalAjuda({ isOpen, onClose }: ModalAjudaProps) {
 
         {/* Footer */}
         <div className="p-6 border-t border-light-borderStrong dark:border-border bg-light-background dark:bg-background/50 text-center">
-          <button onClick={onClose} className="w-full md:w-auto px-8 py-3 bg-accent-teal hover:bg-primary-light text-[#0f172a] font-bold rounded-xl transition-all shadow-md">
+          <button onClick={onClose} className="w-full md:w-auto px-8 py-3 bg-accent-teal hover:bg-primary-light text-positivo-primary font-bold rounded-xl transition-all shadow-md">
             Entendido, vamos brilhar!
           </button>
         </div>

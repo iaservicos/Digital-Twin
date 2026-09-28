@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 
@@ -10,7 +10,10 @@ export default function DashboardScreen() {
   const { user } = useAuthStore();
   const [rankingOriginal, setRankingOriginal] = useState<any[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>('Média Final');
+  const [selectedMatricula, setSelectedMatricula] = useState<string>('');
   const [loading, setLoading] = useState(true);
+
+  const isSupervisorOrAdmin = ['SUPERVISOR', 'MODERADOR', 'ADMIN', 'ROLE_SUPERVISOR', 'ROLE_MODERADOR', 'ROLE_ADMIN'].includes((user?.role || '').toUpperCase());
 
   useEffect(() => {
     let mounted = true;
@@ -24,6 +27,18 @@ export default function DashboardScreen() {
         const response = await api.get(`/dashboard/ranking${query}`);
         if (mounted && response.data) {
           setRankingOriginal(response.data);
+
+          // Se o usuário tiver matrícula no ranking, seleciona ela; caso contrário (ex: ADMIN), seleciona o líder do ranking
+          const userInRanking = response.data.find((r: any) => 
+            (r.matricula && user?.matricula && String(r.matricula) === String(user.matricula)) ||
+            (r.tecnico && user?.nomeCompleto && String(r.tecnico).toUpperCase() === String(user.nomeCompleto).toUpperCase())
+          );
+
+          if (userInRanking) {
+            setSelectedMatricula(String(userInRanking.matricula));
+          } else if (response.data.length > 0) {
+            setSelectedMatricula(String(response.data[0].matricula));
+          }
         }
       } catch (error) {
         console.error('Erro ao buscar métricas do BD:', error);
@@ -39,25 +54,22 @@ export default function DashboardScreen() {
     };
   }, [user]);
 
-  // Obter idTecnico real do ranking ou do authStore
-  const foundRanking = rankingOriginal.find((r: any) => 
-    (r.matricula && user?.matricula && String(r.matricula) === String(user.matricula)) ||
-    (r.tecnico && user?.nomeCompleto && String(r.tecnico).toUpperCase() === String(user.nomeCompleto).toUpperCase())
-  );
+  // Lista com todos os técnicos visíveis do ranking
+  const tecnicosVisiveis = useMemo(() => {
+    return rankingOriginal.map((r: any) => ({
+      idTecnico: r.idTecnico,
+      matricula: String(r.matricula || ''),
+      nomeCompleto: r.tecnico || r.nomeCompleto,
+      ctBases: r.localEquipe ? [r.localEquipe] : []
+    }));
+  }, [rankingOriginal]);
 
-  const realIdTecnico = foundRanking?.idTecnico || (user as any)?.id || (user as any)?.idTecnico || 0;
-
-  const myTecnicoInfo = user ? [{
-    idTecnico: realIdTecnico,
-    matricula: user.matricula,
-    nomeCompleto: user.nomeCompleto,
-    ctBases: user.localEquipe ? [user.localEquipe] : []
-  }] : [];
+  const activeMatricula = selectedMatricula || (user?.matricula ? String(user.matricula) : '');
 
   const { metricas, displayMetricas } = useTecnicoMetrics(
     rankingOriginal,
-    myTecnicoInfo,
-    user?.matricula || '',
+    tecnicosVisiveis,
+    activeMatricula,
     selectedMonth
   );
 
@@ -70,11 +82,37 @@ export default function DashboardScreen() {
   }
 
   return (
-    <TecnicoMetricsUI 
-      metricas={metricas}
-      displayMetricas={displayMetricas}
-      selectedMonth={selectedMonth}
-      setSelectedMonth={setSelectedMonth}
-    />
+    <div className="w-full space-y-4">
+      {isSupervisorOrAdmin && rankingOriginal.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-light-surface dark:bg-surface/50 border border-light-borderStrong dark:border-border rounded-2xl px-4 py-2.5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
+              Modo Gestor
+            </span>
+            <span className="text-xs text-light-text-secondary dark:text-slate-300 font-medium">
+              Inspecionando Técnico:
+            </span>
+          </div>
+          <select
+            value={activeMatricula}
+            onChange={(e) => setSelectedMatricula(e.target.value)}
+            className="bg-light-background dark:bg-slate-800 text-light-text-main dark:text-slate-200 text-xs font-bold rounded-xl px-3 py-1.5 border border-light-borderStrong dark:border-slate-700 focus:outline-none focus:border-cyan-400 cursor-pointer"
+          >
+            {rankingOriginal.map((r: any) => (
+              <option key={r.matricula || r.idTecnico} value={String(r.matricula)}>
+                {r.tecnico} ({r.pontosTotal || 0} pts) - {r.localEquipe || 'Base'}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <TecnicoMetricsUI 
+        metricas={metricas}
+        displayMetricas={displayMetricas}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+      />
+    </div>
   );
 }

@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { X, Camera, Lock, CheckCircle2, UserCircle2, Search, Calendar } from 'lucide-react';
+import { X, Camera, Lock, CheckCircle2, UserCircle2, Search, Calendar, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../services/api';
 import { useCampanhaStore } from '../../store/campanhaStore';
+import { useThemeStore } from '../../store/themeStore';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -13,7 +14,8 @@ interface ModalConfiguracoesProps {
 
 export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguracoesProps) {
   const { user, updateUser } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'perfil' | 'senha' | 'campanha'>('perfil');
+  const { backgroundDistortion, toggleBackgroundDistortion } = useThemeStore();
+  const [activeTab, setActiveTab] = useState<'perfil' | 'senha' | 'campanha' | 'aparencia'>('perfil');
   const { campanhas, selectedCampanha, setSelectedCampanha } = useCampanhaStore();
   
   // Senha States
@@ -153,6 +155,12 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
           >
             Histórico de campanhas
           </button>
+          <button 
+            onClick={() => setActiveTab('aparencia')}
+            className={`py-4 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'aparencia' ? 'border-accent-teal text-accent-teal' : 'border-transparent text-light-text-muted hover:text-light-text-secondary'}`}
+          >
+            Aparência
+          </button>
         </div>
 
         {/* Content */}
@@ -198,7 +206,7 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
               <button 
                 onClick={handleSaveImage}
                 disabled={loadingImg || !previewImagem || previewImagem === user?.fotoPerfil}
-                className="w-full py-3 bg-accent-teal hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed text-[#0f172a] font-bold rounded-xl transition-all shadow-md"
+                className="w-full py-3 bg-accent-teal hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed text-positivo-primary font-bold rounded-xl transition-all shadow-md"
               >
                 {loadingImg ? 'Salvando...' : 'Salvar Imagem'}
               </button>
@@ -330,11 +338,55 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
               <button 
                 type="submit"
                 disabled={loadingSenha}
-                className="w-full py-3 mt-4 bg-accent-teal hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed text-[#0f172a] font-bold rounded-xl transition-all shadow-md"
+                className="w-full py-3 mt-4 bg-accent-teal hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed text-positivo-primary font-bold rounded-xl transition-all shadow-md"
               >
                 {loadingSenha ? 'Alterando...' : 'Salvar Nova Senha'}
               </button>
             </form>
+          )}
+
+          {/* TAB APARÊNCIA / PREFERÊNCIAS */}
+          {activeTab === 'aparencia' && (
+            <div className="space-y-6">
+              <div className="bg-light-background dark:bg-background/60 p-5 rounded-2xl border border-light-borderStrong dark:border-border">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={18} className="text-primary" />
+                      <h3 className="font-bold text-sm text-light-text-main dark:text-text-main">
+                        Distorção Interativa no Fundo
+                      </h3>
+                    </div>
+                    <p className="text-xs text-light-text-secondary dark:text-text-muted leading-relaxed">
+                      Distorce suavemente as linhas do grid no plano de fundo ao movimentar o cursor pela tela. Desative caso prefira uma malha totalmente estática ou para economizar bateria e processamento.
+                    </p>
+                  </div>
+
+                  {/* Toggle Switch */}
+                  <button
+                    type="button"
+                    onClick={toggleBackgroundDistortion}
+                    className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer shrink-0 ${
+                      backgroundDistortion ? 'bg-primary' : 'bg-slate-300 dark:bg-surface-hover'
+                    }`}
+                    title={backgroundDistortion ? 'Desativar efeito' : 'Ativar efeito'}
+                  >
+                    <div
+                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${
+                        backgroundDistortion ? 'translate-x-6' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-light-borderStrong dark:border-border flex items-center justify-between text-xs">
+                  <span className="text-light-text-muted dark:text-text-muted">Status do efeito:</span>
+                  <span className={`font-bold ${backgroundDistortion ? 'text-emerald-500 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'}`}>
+                    {backgroundDistortion ? 'Ativado (Dinâmico)' : 'Desativado (Estático)'}
+                  </span>
+                </div>
+              </div>
+            </div>
           )}
 
         </div>

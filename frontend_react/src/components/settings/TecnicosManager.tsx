@@ -208,7 +208,7 @@ export default function TecnicosManager() {
 
   return (
     <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-light-surface dark:bg-[#1e293b] p-4 rounded-2xl border border-light-borderStrong dark:border-border">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-light-surface dark:bg-surface-hover p-4 rounded-2xl border border-light-borderStrong dark:border-border">
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted" size={18} />
           <input 
@@ -222,14 +222,14 @@ export default function TecnicosManager() {
         
         <button 
           onClick={() => openEditModal()}
-          className="w-full sm:w-auto bg-accent-teal text-[#0f172a] hover:bg-emerald-400 px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+          className="w-full sm:w-auto bg-accent-teal text-positivo-primary hover:bg-emerald-400 px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
         >
           <Plus size={18} />
           Criar usuário
         </button>
       </div>
 
-      <div className="bg-light-surface dark:bg-[#1e293b] border border-light-borderStrong dark:border-border rounded-2xl overflow-hidden shadow-lg">
+      <div className="bg-light-surface dark:bg-surface-hover border border-light-borderStrong dark:border-border rounded-2xl overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100 dark:bg-surface/50 text-light-text-muted dark:text-text-muted text-xs uppercase font-semibold">
@@ -311,12 +311,12 @@ export default function TecnicosManager() {
       {/* MODAL CRIAR / EDITAR USUÁRIO */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-light-surface dark:bg-[#1e293b] border border-light-borderStrong dark:border-border rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-6 border-b border-light-borderStrong dark:border-border">
-              <h3 className="text-xl font-bold text-light-text-main dark:text-slate-200">
+          <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg">
+              <h3 className="text-xl font-bold text-light-text-main dark:text-text-main">
                 {selectedTecnico ? 'Editar usuário' : 'Criar usuário'}
               </h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-light-text-muted dark:text-slate-400 hover:text-light-text-main dark:hover:text-white transition-colors cursor-pointer">
+              <button onClick={() => setIsEditModalOpen(false)} className="text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main transition-colors cursor-pointer">
                 <X size={24} />
               </button>
             </div>
@@ -457,18 +457,18 @@ export default function TecnicosManager() {
                 {error && <p className="text-sm text-rose-400 font-semibold">{error}</p>}
               </div>
 
-              <div className="p-6 border-t border-light-borderStrong dark:border-border bg-slate-100 dark:bg-[#162032] flex justify-end gap-3">
+              <div className="p-6 border-t border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg flex justify-end gap-3">
                 <button 
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-5 py-2 rounded-xl text-light-text-secondary dark:text-slate-300 font-semibold hover:bg-slate-200 dark:hover:bg-surface transition-colors cursor-pointer"
+                  className="px-5 py-2 rounded-xl text-light-text-secondary dark:text-text-muted font-semibold hover:bg-slate-200 dark:hover:bg-surface-elevated transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2 rounded-xl bg-accent-teal hover:bg-emerald-400 text-[#0f172a] font-bold transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-6 py-2 rounded-xl bg-accent-teal hover:bg-emerald-400 text-positivo-primary font-bold transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-accent-teal/20"
                 >
                   {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
                 </button>
@@ -481,49 +481,49 @@ export default function TecnicosManager() {
       {/* MODAL SENHA */}
       {isPasswordModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[#1e293b] border border-border rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-border">
-              <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-                <KeyRound size={20} className="text-amber-400" />
+          <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg">
+              <h3 className="text-lg font-bold text-light-text-main dark:text-text-main flex items-center gap-2">
+                <KeyRound size={20} className="text-amber-500 dark:text-amber-400" />
                 Redefinir Senha
               </h3>
-              <button onClick={() => setIsPasswordModalOpen(false)} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
+              <button onClick={() => setIsPasswordModalOpen(false)} className="text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main transition-colors cursor-pointer">
                 <X size={20} />
               </button>
             </div>
             
             <form onSubmit={handleResetPassword}>
               <div className="p-5 space-y-4">
-                <p className="text-sm text-text-muted">
+                <p className="text-sm text-light-text-secondary dark:text-text-muted">
                   Defina uma nova senha para <strong>{selectedTecnico?.nomeCompleto}</strong>. 
                   O usuário precisará trocar essa senha no próximo login.
                 </p>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text-muted uppercase">Nova Senha Temporária</label>
+                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Nova Senha Temporária</label>
                   <input 
                     required
                     type="text" 
-                    className="w-full bg-surface border border-border rounded-xl p-3 text-slate-200 focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-borderStrong dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-amber-400"
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                     placeholder="Ex: Temp@2025"
                   />
                 </div>
-                {error && <p className="text-sm text-rose-400 font-semibold">{error}</p>}
+                {error && <p className="text-sm text-rose-500 dark:text-rose-400 font-semibold">{error}</p>}
               </div>
 
-              <div className="p-5 border-t border-border bg-[#162032] flex justify-end gap-3">
+              <div className="p-5 border-t border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg flex justify-end gap-3">
                 <button 
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-300 font-semibold hover:bg-surface transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-light-text-secondary dark:text-text-muted font-semibold hover:bg-slate-200 dark:hover:bg-surface-elevated transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
                   disabled={isSubmitting || !newPassword}
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-amber-500/20"
                 >
                   {isSubmitting ? 'Redefinindo...' : 'Confirmar Senha'}
                 </button>

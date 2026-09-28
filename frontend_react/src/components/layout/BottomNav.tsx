@@ -19,7 +19,7 @@ export default function BottomNav() {
 
   const isAdmin = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador';
   const isModerador = user?.role === 'MODERADOR';
-  const isSupervisor = user?.role === 'ADMINISTRADOR'; // Nota: Na arquitetura atual, role ADMINISTRADOR age como Supervisor.
+  const isSupervisor = user?.role === 'ADMINISTRADOR' || user?.role === 'SUPERVISOR';
 
   // Montagem dinâmica dos itens da barra
   let navItems: NavItem[] = [];

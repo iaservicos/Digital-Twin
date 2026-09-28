@@ -10,6 +10,8 @@ import ModalChamadosReincidentes from './ModalChamadosReincidentes';
 import ModalChamadosSlaPerdidos from './ModalChamadosSlaPerdidos';
 import ModalChamadosPerdas from './ModalChamadosPerdas';
 import ModalChamadosPecas from './ModalChamadosPecas';
+import { ModalHistoricoChamados } from './ModalHistoricoChamados';
+import { DashboardBentoDesktop } from './DashboardBentoDesktop';
 
 interface TecnicoMetricsUIProps {
   metricas: any;
@@ -34,6 +36,8 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   const [isPecasModalOpen, setIsPecasModalOpen] = useState(false);
   const [isElegivelModalOpen, setIsElegivelModalOpen] = useState(false);
   const [isInelegivelModalOpen, setIsInelegivelModalOpen] = useState(false);
+  const [isHistoricoModalOpen, setIsHistoricoModalOpen] = useState(false);
+  const [historicoInitialDate, setHistoricoInitialDate] = useState<string>('');
 
   if (!displayMetricas) return null;
 
@@ -46,7 +50,9 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   const isCampanhaInteira = !selLower || selLower === 'campanha inteira' || selLower === 'média final' || selLower.includes('final') || selLower.includes('campanha');
 
   return (
-    <div className="space-y-6 pb-6 w-full">
+    <div className="w-full">
+      {/* Visualização Mobile & Tablet (< lg): Preserva 100% da experiência atual */}
+      <div className="block lg:hidden space-y-6 pb-6 w-full">
       {/* Header do Dashboard */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -309,6 +315,28 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
           <p className="text-[9px] text-light-text-muted">Meta: ≤ 25%</p>
         </div>
       </div>
+      </div>
+
+      {/* Visualização Desktop (≥ lg): Bento Grid 3x2 com Sidebar e Header Integrados */}
+      <div className="hidden lg:block w-full">
+        <DashboardBentoDesktop 
+          metricas={metricas}
+          displayMetricas={displayMetricas}
+          selectedMonth={selectedMonth}
+          setSelectedMonth={setSelectedMonth}
+          onOpenDetailsModal={() => setDetailsModalOpen(true)}
+          onOpenSlaModal={() => setIsSlaModalOpen(true)}
+          onOpenReincidentesModal={() => setIsReincidentesModalOpen(true)}
+          onOpenPecasModal={() => setIsPecasModalOpen(true)}
+          onOpenPerdasModal={() => setIsPerdasModalOpen(true)}
+          onOpenHistoricoModal={(date?: string) => {
+            setHistoricoInitialDate(date || '');
+            setIsHistoricoModalOpen(true);
+          }}
+          onOpenElegivelModal={() => setIsElegivelModalOpen(true)}
+          onOpenInelegivelModal={() => setIsInelegivelModalOpen(true)}
+        />
+      </div>
 
       {/* MODAL DE CHAMADOS REINCIDENTES COM ANÁLISE DE FALHAS */}
       <ModalChamadosReincidentes
@@ -370,6 +398,14 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         isOpen={isInelegivelModalOpen} 
         onClose={() => setIsInelegivelModalOpen(false)} 
         motivoInelegibilidade={displayMetricas.motivoInelegibilidade || "Não atingiu os critérios mínimos do mês."}
+      />
+
+      {/* MODAL DE HISTÓRICO E AUDITORIA DE CHAMADOS (CARD 3 DESKTOP) */}
+      <ModalHistoricoChamados 
+        isOpen={isHistoricoModalOpen} 
+        onClose={() => setIsHistoricoModalOpen(false)} 
+        tecnicoId={displayMetricas.idTecnico || (displayMetricas as any).id || (user as any)?.idTecnico || (user as any)?.id || 0}
+        initialDate={historicoInitialDate}
       />
     </div>
   );

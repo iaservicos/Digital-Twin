@@ -1,17 +1,40 @@
 import { Outlet } from 'react-router-dom';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
+import { DesktopSidebar } from './DesktopSidebar';
 import DatabricksSyncFloatingWidget from './DatabricksSyncFloatingWidget';
+import InteractiveWaterRippleGrid from './InteractiveWaterRippleGrid';
 
 export default function MainLayout() {
   return (
-    <div className="flex flex-col min-h-screen bg-light-background dark:bg-grid-pattern font-sans pb-16 md:pb-0 pt-20 transition-colors">
-      <TopBar />
-      <main className="flex-1 overflow-y-auto max-w-md md:max-w-7xl mx-auto w-full p-4 md:p-8 relative">
-        <Outlet />
-      </main>
+    <div className="h-screen w-screen overflow-hidden relative font-sans transition-colors flex flex-col lg:flex-row">
+      {/* Background Interativo com Grid e Efeito de Toque na Água (Dark e Light) */}
+      <InteractiveWaterRippleGrid />
+
+      {/* Mobile TopBar: Exibido apenas em telas menores (< lg) */}
+      <div className="block lg:hidden relative z-20">
+        <TopBar />
+      </div>
+
+      {/* Desktop Sidebar: Painel Congelado com Gradiente e scrollbar oculta */}
+      <aside className="hidden lg:flex w-64 h-screen flex-shrink-0 flex-col justify-between bg-gradient-to-r from-light-surface to-light-surface-elevated dark:from-black dark:to-surface border-r border-light-borderStrong dark:border-border p-5 z-30 transition-colors overflow-y-auto scrollbar-hide">
+        <DesktopSidebar />
+      </aside>
+
+      {/* Área de Conteúdo Principal: Único container de rolagem vertical da aplicação */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 lg:pb-0 pt-20 lg:pt-0 relative z-10">
+        <main className="flex-1 w-full max-w-[105rem] mx-auto p-4 md:p-6 lg:p-8">
+          <Outlet />
+        </main>
+      </div>
+
       <DatabricksSyncFloatingWidget />
-      <BottomNav />
+
+      {/* Mobile BottomNav: Exibido apenas em telas menores (< lg) */}
+      <div className="block lg:hidden relative z-20">
+        <BottomNav />
+      </div>
     </div>
   );
 }
+

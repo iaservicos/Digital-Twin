@@ -31,11 +31,14 @@ export default function App() {
 
     applyTheme();
 
-    // Listener para reagir a mudanças de tema do sistema operacional (quando 'system' estiver ativo)
     const listener = () => applyTheme();
     mediaQuery.addEventListener('change', listener);
+    window.addEventListener('resize', listener);
 
-    return () => mediaQuery.removeEventListener('change', listener);
+    return () => {
+      mediaQuery.removeEventListener('change', listener);
+      window.removeEventListener('resize', listener);
+    };
   }, [theme]);
 
   return (

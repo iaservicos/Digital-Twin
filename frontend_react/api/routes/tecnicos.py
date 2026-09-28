@@ -37,6 +37,10 @@ def list_tecnicos(idSupervisor: Optional[int] = Query(None)):
         sql = """
             SELECT t.id_tecnico, t.matricula, t.nome_completo, t.cargo, t.role, t.ativo,
                    t.id_supervisor, t.email, t.cpf, t.is_primeiro_acesso,
+                   t.celular_corporativo, t.regiao, t.tipo_contrato, t.afastado,
+                   t.dia_inventario, t.horario_inventario, t.nome_databricks,
+                   t.email_logistica, t.nome_base_origem, t.cidade_uf, t.status_colaborador,
+                   t.centro_custo,
                    COALESCE((SELECT ARRAY_AGG(tb.ct_codigo) FROM tb_tecnico_base tb WHERE tb.id_tecnico = t.id_tecnico), '{}') AS ct_bases
             FROM tb_tecnico t
         """
@@ -60,6 +64,18 @@ def list_tecnicos(idSupervisor: Optional[int] = Query(None)):
                 "idSupervisor": r.get("id_supervisor"),
                 "email": r.get("email"),
                 "cpf": r.get("cpf"),
+                "celularCorporativo": r.get("celular_corporativo"),
+                "regiao": r.get("regiao"),
+                "tipoContrato": r.get("tipo_contrato"),
+                "afastado": r.get("afastado", False),
+                "diaInventario": r.get("dia_inventario"),
+                "horarioInventario": str(r["horario_inventario"]) if r.get("horario_inventario") else None,
+                "nomeDatabricks": r.get("nome_databricks"),
+                "emailLogistica": r.get("email_logistica"),
+                "nomeBaseOrigem": r.get("nome_base_origem"),
+                "cidadeUf": r.get("cidade_uf"),
+                "statusColaborador": r.get("status_colaborador"),
+                "centroCusto": r.get("centro_custo"),
                 "isPrimeiroAcesso": r.get("is_primeiro_acesso"),
                 "ctBases": r.get("ct_bases") or []
             }
@@ -145,7 +161,7 @@ def reset_senha(id_tecnico: int, current_user: Dict[str, Any] = Depends(get_curr
 def list_supervisores():
     with get_db_cursor() as cur:
         cur.execute("""
-            SELECT id_supervisor, matricula, nome_completo, email, celular_corporativo, ativo, role
+            SELECT id_supervisor, matricula, nome_completo, email, celular_corporativo, ativo, role, cpf, id_coordenador
             FROM tb_supervisor
             WHERE ativo = true
             ORDER BY nome_completo ASC;
@@ -158,6 +174,8 @@ def list_supervisores():
                 "nomeCompleto": r["nome_completo"],
                 "email": r.get("email"),
                 "celularCorporativo": r.get("celular_corporativo"),
+                "cpf": r.get("cpf"),
+                "idCoordenador": r.get("id_coordenador"),
                 "role": r.get("role")
             }
             for r in rows

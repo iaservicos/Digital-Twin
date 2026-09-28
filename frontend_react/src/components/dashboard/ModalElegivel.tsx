@@ -52,7 +52,7 @@ export const ModalElegivel: React.FC<ModalElegivelProps> = ({
           )}
         </div>
 
-        <button onClick={onClose} className="mt-8 w-full bg-accent-emerald hover:bg-emerald-600 text-white dark:text-[#0f172a] py-4 rounded-xl font-bold text-lg transition-colors shadow-lg shadow-accent-emerald/20">
+        <button onClick={onClose} className="mt-8 w-full bg-accent-emerald hover:bg-emerald-600 text-white dark:text-positivo-primary py-4 rounded-xl font-bold text-lg transition-colors shadow-lg shadow-accent-emerald/20">
           Incrível!
         </button>
       </div>

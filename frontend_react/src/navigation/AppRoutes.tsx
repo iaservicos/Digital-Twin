@@ -8,7 +8,6 @@ import LoginScreen from '../screens/LoginScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import RankingScreen from '../screens/RankingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import OnboardingScreen from '../screens/OnboardingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import { useAuthStore } from '../store/authStore';
@@ -46,7 +45,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
 const RootRedirect = () => {
   const { user } = useAuthStore();
-  const isElevated = user?.role === 'MODERADOR' || user?.role === 'ADMINISTRADOR' || user?.cargo === 'Administrador' || user?.cargo === 'Super Administrador';
+  const isElevated = user?.role === 'MODERADOR' || user?.role === 'ADMINISTRADOR' || user?.role === 'SUPERVISOR' || user?.cargo === 'Administrador' || user?.cargo === 'Super Administrador' || user?.cargo === 'Supervisor de Campo';
   
   if (isElevated) {
     return <Navigate to="/supervisao" replace />;
@@ -60,17 +59,14 @@ export default function AppRoutes() {
       {/* Rotas Públicas */}
       <Route path="/login" element={<LoginScreen />} />
 
-      {/* Rota Privada sem Layout (Onboarding) */}
-      <Route path="/onboarding" element={<ProtectedRoute><OnboardingScreen /></ProtectedRoute>} />
-
       {/* Rotas Privadas (Com o MainLayout) */}
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<DashboardScreen />} />
         <Route path="/ranking" element={<RankingScreen />} />
         <Route path="/profile" element={<ProfileScreen />} />
         <Route path="/configuracoes" element={<ProtectedRoute allowedRoles={['MODERADOR']}><SettingsScreen /></ProtectedRoute>} />
-        {/* JSDoc: Administradores e Moderadores têm acesso à Supervisão */}
-        <Route path="/supervisao" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR']}><AdminDashboardScreen /></ProtectedRoute>} />
+        {/* JSDoc: Administradores, Moderadores e Supervisores têm acesso à Supervisão */}
+        <Route path="/supervisao" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR', 'SUPERVISOR']}><AdminDashboardScreen /></ProtectedRoute>} />
       </Route>
 
       {/* Redirecionamento padrão para rotas não encontradas */}

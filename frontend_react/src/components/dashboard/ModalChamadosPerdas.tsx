@@ -14,7 +14,9 @@ import {
   Sparkles,
   Info,
   Users,
-  UserCheck
+  UserCheck,
+  Trophy,
+  ShieldCheck
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
@@ -218,37 +220,37 @@ export default function ModalChamadosPerdas({
   const periodoLabel = selectedMonth && selectedMonth !== 'Média Final' ? selectedMonth : 'Campanha Completa';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 dark:bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div 
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors"
+        className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors"
         onClick={(e) => e.stopPropagation()}
       >
         {/* TOP HEADER */}
-        <div className="relative px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 flex items-start justify-between gap-4">
+        <div className="relative px-6 py-5 border-b border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
                 <AlertTriangle size={12} />
                 {visaoFiltro === 'INDIVIDUAL' ? 'SUAS PERDAS DE PERFORMANCE' : 'PERDAS DA EQUIPE (BASE COMPLETA)'}
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <span className="text-xs text-light-text-muted dark:text-text-muted font-medium">
                 • {periodoLabel}
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-black text-light-text-main dark:text-text-main flex items-center gap-2">
               Perdas por Falha de Gestão & Transferência entre Bases
             </h2>
           </div>
 
           <div className="flex items-center gap-2">
             {isSupervisorOrAdmin && (
-              <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center bg-slate-100 dark:bg-input-bg p-1 rounded-xl border border-light-borderStrong/60 dark:border-border">
                 <button
                   onClick={() => setVisaoFiltro('INDIVIDUAL')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     visaoFiltro === 'INDIVIDUAL' 
                       ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold' 
-                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                      : 'text-light-text-secondary hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main'
                   }`}
                   title="Ver apenas as perdas deste técnico"
                 >
@@ -260,7 +262,7 @@ export default function ModalChamadosPerdas({
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     visaoFiltro === 'BASE' 
                       ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold' 
-                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                      : 'text-light-text-secondary hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main'
                   }`}
                   title="Ver todas as perdas da base"
                 >
@@ -272,7 +274,7 @@ export default function ModalChamadosPerdas({
 
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-slate-100 hover:bg-slate-200 dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer"
               title="Fechar modal"
             >
               <X size={20} />
@@ -281,17 +283,17 @@ export default function ModalChamadosPerdas({
         </div>
 
         {/* MINI DASHBOARD DE MÉTRICAS NO TOPO */}
-        <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col shadow-xs">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
+        <div className="px-6 py-4 bg-light-background/60 dark:bg-surface-elevated/40 border-b border-light-borderStrong/60 dark:border-border/60 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-light-surface dark:bg-surface-elevated border border-light-borderStrong/60 dark:border-border rounded-xl p-3 flex flex-col shadow-xs">
+            <span className="text-[10px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider flex items-center justify-between">
               Taxa de Perdas (Equipe)
-              <span className="text-[9px] text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 px-1.5 py-0.5 rounded font-semibold">Meta ≤ 1%</span>
+              <span className="text-[9px] text-light-text-secondary bg-slate-100 dark:bg-input-bg dark:text-text-muted px-1.5 py-0.5 rounded font-semibold border border-light-borderStrong/40 dark:border-border/40">Meta ≤ 1%</span>
             </span>
             <div className="mt-1 flex items-baseline gap-2">
               <span className={`text-2xl font-black ${percentualPerdidos <= 1.0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 {percentualPerdidos.toFixed(1)}%
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">
+              <span className="text-[11px] text-light-text-muted dark:text-text-muted font-medium">
                 {percentualPerdidos <= 1.0 ? '✓ Dentro da Meta' : '⚠ Acima da Meta'}
               </span>
             </div>
@@ -301,16 +303,16 @@ export default function ModalChamadosPerdas({
             onClick={() => setSelectedClassificacao('FALHA_GESTAO')}
             className={`rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
               selectedClassificacao === 'FALHA_GESTAO' 
-                ? 'border-2 border-cyan-500 bg-cyan-50/80 dark:bg-cyan-500/10 dark:border-cyan-500/50 shadow-xs' 
-                : 'bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
+                ? 'border-2 border-cyan-500 bg-cyan-500/10 dark:border-cyan-500/50 shadow-xs' 
+                : 'bg-light-surface dark:bg-surface-elevated border border-light-borderStrong/60 dark:border-border hover:border-light-borderStrong dark:hover:border-border-subtle shadow-xs'
             }`}
           >
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
               Falhas de Gestão
             </span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.falhaGestao}</span>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500">chamados</span>
+              <span className="text-2xl font-black text-light-text-main dark:text-text-main">{stats.falhaGestao}</span>
+              <span className="text-[11px] text-light-text-muted dark:text-text-muted">chamados</span>
             </div>
           </div>
 
@@ -318,16 +320,16 @@ export default function ModalChamadosPerdas({
             onClick={() => setSelectedClassificacao('TRANSFERENCIA')}
             className={`rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
               selectedClassificacao === 'TRANSFERENCIA' 
-                ? 'border-2 border-cyan-500 bg-cyan-50/80 dark:bg-cyan-500/10 dark:border-cyan-500/50 shadow-xs' 
-                : 'bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
+                ? 'border-2 border-cyan-500 bg-cyan-500/10 dark:border-cyan-500/50 shadow-xs' 
+                : 'bg-light-surface dark:bg-surface-elevated border border-light-borderStrong/60 dark:border-border hover:border-light-borderStrong dark:hover:border-border-subtle shadow-xs'
             }`}
           >
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
               Transferência de Bases
             </span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.transferenciaBases}</span>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500">chamados</span>
+              <span className="text-2xl font-black text-light-text-main dark:text-text-main">{stats.transferenciaBases}</span>
+              <span className="text-[11px] text-light-text-muted dark:text-text-muted">chamados</span>
             </div>
           </div>
 
@@ -335,30 +337,30 @@ export default function ModalChamadosPerdas({
             onClick={() => setSelectedClassificacao('TODOS')}
             className={`rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
               selectedClassificacao === 'TODOS' 
-                ? 'border-2 border-cyan-500 bg-cyan-50/80 dark:bg-cyan-500/10 dark:border-cyan-500/50 shadow-xs' 
-                : 'bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
+                ? 'border-2 border-cyan-500 bg-cyan-500/10 dark:border-cyan-500/50 shadow-xs' 
+                : 'bg-light-surface dark:bg-surface-elevated border border-light-borderStrong/60 dark:border-border hover:border-light-borderStrong dark:hover:border-border-subtle shadow-xs'
             }`}
           >
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
               Total de Ocorrências
             </span>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.total}</span>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500">{visaoFiltro === 'INDIVIDUAL' ? 'do técnico' : 'na base'}</span>
+              <span className="text-2xl font-black text-light-text-main dark:text-text-main">{stats.total}</span>
+              <span className="text-[11px] text-light-text-muted dark:text-text-muted">{visaoFiltro === 'INDIVIDUAL' ? 'do técnico' : 'na base'}</span>
             </div>
           </div>
         </div>
 
         {/* BARRA DE FILTROS E BUSCA */}
-        <div className="px-6 py-3 bg-slate-50/70 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="px-6 py-3 bg-light-background dark:bg-input-bg border-b border-light-borderStrong/60 dark:border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-80">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted" />
             <input
               type="text"
               placeholder={isSupervisorOrAdmin ? "Buscar por chamados ou nome do técnico..." : "Buscar por chamado..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-colors shadow-xs"
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-colors shadow-xs"
             />
           </div>
 
@@ -368,7 +370,7 @@ export default function ModalChamadosPerdas({
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedClassificacao === 'TODOS'
                   ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700'
+                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Todos ({stats.total})
@@ -378,7 +380,7 @@ export default function ModalChamadosPerdas({
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedClassificacao === 'FALHA_GESTAO'
                   ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700'
+                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Falha Gestão ({stats.falhaGestao})
@@ -388,7 +390,7 @@ export default function ModalChamadosPerdas({
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedClassificacao === 'TRANSFERENCIA'
                   ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700'
+                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Transferência ({stats.transferenciaBases})
@@ -401,30 +403,67 @@ export default function ModalChamadosPerdas({
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Carregando chamados de perdas...</p>
+              <p className="text-xs text-light-text-muted dark:text-text-muted">Carregando chamados de perdas...</p>
+            </div>
+          ) : stats.total === 0 ? (
+            /* TELA CELEBRATÓRIA: PARABÉNS PELO DESEMPENHO IMPECÁVEL (ZERO PERDAS) */
+            <div className="py-12 px-4 text-center flex flex-col items-center justify-center animate-fade-in">
+              <div className="relative mb-4">
+                <div className="absolute inset-0 bg-emerald-500/20 dark:bg-emerald-500/30 rounded-full blur-2xl animate-pulse pointer-events-none"></div>
+                <div className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500/20 via-emerald-500/10 to-teal-400/20 border-2 border-emerald-500/40 flex items-center justify-center text-emerald-500 shadow-xl shadow-emerald-500/20">
+                  <Trophy size={40} className="text-emerald-500 dark:text-emerald-400 drop-shadow-md" />
+                </div>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold mb-3 shadow-xs">
+                <Sparkles size={14} className="text-emerald-500 animate-pulse" />
+                <span>Desempenho Impecável • 100% de Eficiência em Gestão</span>
+              </div>
+
+              <h3 className="text-2xl font-black text-light-text-main dark:text-text-main tracking-tight mb-2">
+                Parabéns pelo Excelente Resultado!
+              </h3>
+
+              <div className="max-w-lg space-y-2 text-center">
+                <p className="text-sm text-light-text-secondary dark:text-text-muted font-medium leading-relaxed">
+                  {visaoFiltro === 'INDIVIDUAL' ? (
+                    <>
+                      O técnico <strong className="text-emerald-600 dark:text-emerald-400">{tecnicoNome}</strong> encerrou todos os seus atendimentos sem <strong className="underline decoration-emerald-500/50">nenhuma perda de SLA</strong> registrada por falha de gestão ou transferência de bases.
+                    </>
+                  ) : (
+                    <>
+                      A equipe da base <strong className="text-emerald-600 dark:text-emerald-400">{tecnicoNome}</strong> operou com maestria impecável, registrando <strong className="underline decoration-emerald-500/50">zero perdas operacionais</strong> no período apurado.
+                    </>
+                  )}
+                </p>
+                <p className="text-xs text-light-text-muted dark:text-text-muted leading-relaxed">
+                  Com <strong>0,0% de perdas</strong> (muito abaixo do teto limite de 1,0%), você assegura a <strong>pontuação máxima de 20,0 pontos</strong> neste indicador oficial do Programa Brilha+. Continue com essa dedicação exemplar!
+                </p>
+              </div>
+
+              {/* Mini cards de mérito */}
+              <div className="grid grid-cols-2 gap-3 mt-6 max-w-md w-full">
+                <div className="bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-3 flex flex-col items-center">
+                  <span className="text-[10px] uppercase font-bold text-light-text-muted dark:text-text-muted">Pontuação do KPI</span>
+                  <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">20.0 / 20.0 pts</span>
+                  <span className="text-[10px] text-light-text-muted dark:text-text-muted">Nota Máxima</span>
+                </div>
+                <div className="bg-cyan-500/5 dark:bg-cyan-950/20 border border-cyan-500/20 rounded-xl p-3 flex flex-col items-center">
+                  <span className="text-[10px] uppercase font-bold text-light-text-muted dark:text-text-muted">Taxa de Perdas</span>
+                  <span className="text-xl font-black text-cyan-600 dark:text-cyan-400 mt-0.5">0.0%</span>
+                  <span className="text-[10px] text-light-text-muted dark:text-text-muted">Meta: ≤ 1.0%</span>
+                </div>
+              </div>
             </div>
           ) : error ? (
             <div className="py-12 text-center text-rose-500 dark:text-rose-400 text-xs">
               <p>{error}</p>
             </div>
           ) : filteredChamados.length === 0 ? (
-            <div className="py-16 text-center flex flex-col items-center justify-center animate-fade-in">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-3 shadow-lg shadow-emerald-500/10">
-                <CheckCircle2 size={30} />
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles size={18} className="text-amber-500 dark:text-amber-400 animate-pulse" />
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                  Parabéns! Nenhuma Perda Registrada
-                </h3>
-                <Sparkles size={18} className="text-amber-500 dark:text-amber-400 animate-pulse" />
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mt-1 leading-relaxed">
-                {visaoFiltro === 'INDIVIDUAL'
-                  ? <>Excelente trabalho! O técnico <strong className="text-emerald-600 dark:text-emerald-400">{tecnicoNome}</strong> não possui registros de falhas de gestão ou transferência de bases neste período.</>
-                  : <>Excelente trabalho de equipe! Não há registros de falhas de gestão ou transferência de bases para toda a base ATP no período apurado.</>
-                }
-              </p>
+            <div className="py-16 text-center flex flex-col items-center justify-center">
+              <Search size={28} className="text-light-text-muted dark:text-text-muted mb-2" />
+              <p className="text-sm font-bold text-light-text-main dark:text-text-main">Nenhum chamado encontrado</p>
+              <p className="text-xs text-light-text-muted dark:text-text-muted mt-1">Nenhuma ocorrência corresponde ao termo "{searchTerm}".</p>
             </div>
           ) : (
             filteredChamados.map((item) => {
@@ -436,8 +475,8 @@ export default function ModalChamadosPerdas({
                   key={item.chamado}
                   className={`border rounded-xl p-4 transition-all shadow-xs ${
                     isExpanded 
-                      ? 'border-cyan-500/50 bg-slate-50 dark:bg-slate-950' 
-                      : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
+                      ? 'border-cyan-500/50 bg-light-background dark:bg-input-bg' 
+                      : 'bg-light-surface dark:bg-surface-elevated/50 border-light-borderStrong/70 dark:border-border/70 hover:border-light-borderStrong dark:hover:border-border'
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -445,37 +484,37 @@ export default function ModalChamadosPerdas({
                       <div className={`p-2.5 rounded-lg border shrink-0 mt-0.5 ${
                         isFalhaGestao 
                           ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400' 
-                          : 'bg-orange-500/10 border-cyan-500/30 text-cyan-600 dark:text-cyan-400'
+                          : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-600 dark:text-cyan-400'
                       }`}>
                         <AlertTriangle size={18} />
                       </div>
 
                       <div>
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className="text-sm font-black text-slate-900 dark:text-white">
+                          <span className="text-sm font-black text-light-text-main dark:text-text-main">
                             OS #{item.chamado}
                           </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                             isFalhaGestao
                               ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30'
-                              : 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-orange-500/10 dark:text-cyan-400 dark:border-cyan-500/30'
+                              : 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/30'
                           }`}>
                             {item.causaPerda}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-light-text-muted dark:text-text-muted">
                           <span className="flex items-center gap-1.5">
-                            <User size={13} className="text-slate-400 dark:text-slate-500" />
-                            <strong className="text-slate-700 dark:text-slate-300">Técnico:</strong> {item.tecnicoNome || 'N/A'}
+                            <User size={13} className="text-light-text-muted dark:text-text-muted" />
+                            <strong className="text-light-text-main dark:text-text-main">Técnico:</strong> {item.tecnicoNome || 'N/A'}
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <Cpu size={13} className="text-slate-400 dark:text-slate-500" />
-                            <strong className="text-slate-700 dark:text-slate-300">Equip:</strong> {item.equipamento || 'N/A'}
+                            <Cpu size={13} className="text-light-text-muted dark:text-text-muted" />
+                            <strong className="text-light-text-main dark:text-text-main">Equip:</strong> {item.equipamento || 'N/A'}
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <Calendar size={13} className="text-slate-400 dark:text-slate-500" />
-                            <strong className="text-slate-700 dark:text-slate-300">Data FT:</strong> {item.ft ? new Date(item.ft).toLocaleDateString('pt-BR') : 'N/A'}
+                            <Calendar size={13} className="text-light-text-muted dark:text-text-muted" />
+                            <strong className="text-light-text-main dark:text-text-main">Data FT:</strong> {item.ft ? new Date(item.ft).toLocaleDateString('pt-BR') : 'N/A'}
                           </span>
                         </div>
                       </div>
@@ -483,7 +522,7 @@ export default function ModalChamadosPerdas({
 
                     <button
                       onClick={() => setExpandedChamado(isExpanded ? null : item.chamado)}
-                      className="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:text-white rounded-lg flex items-center gap-1.5 transition-all self-end sm:self-center cursor-pointer"
+                      className="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 border-light-borderStrong/60 text-light-text-secondary dark:bg-surface-elevated dark:border-border dark:text-text-muted dark:hover:text-text-main rounded-lg flex items-center gap-1.5 transition-all self-end sm:self-center cursor-pointer border"
                     >
                       <span>{isExpanded ? 'Ocultar Laudo' : 'Ver Laudo Técnico'}</span>
                       {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -492,12 +531,12 @@ export default function ModalChamadosPerdas({
 
                   {/* LAUDO TÉCNICO EXPANSÍVEL */}
                   {isExpanded && (
-                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-900/50 p-3 rounded-lg">
+                    <div className="mt-3 pt-3 border-t border-light-borderStrong/40 dark:border-border/50 text-xs text-light-text-secondary dark:text-text-main bg-slate-100/80 dark:bg-background/80 p-3 rounded-lg border">
                       <div className="flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-bold mb-1.5">
                         <FileText size={14} />
                         <span>Texto de Encerramento / Laudo Técnico:</span>
                       </div>
-                      <p className="whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300">
+                      <p className="whitespace-pre-wrap leading-relaxed text-light-text-secondary dark:text-text-main">
                         {item.textoEncerrado || 'Nenhum detalhamento ou laudo textual foi registrado para este chamado.'}
                       </p>
                     </div>
@@ -509,14 +548,14 @@ export default function ModalChamadosPerdas({
         </div>
 
         {/* FOOTER */}
-        <div className="px-6 py-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+        <div className="px-6 py-3 bg-light-background dark:bg-input-bg border-t border-light-borderStrong/60 dark:border-border/60 flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
           <div className="flex items-center gap-1.5">
             <Info size={14} className="text-cyan-600 dark:text-cyan-400" />
             <span>O indicador de Perdas afeta a pontuação geral da equipe caso ultrapasse a meta de 1.0%.</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white rounded-lg font-semibold transition-colors cursor-pointer"
+            className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main rounded-lg font-semibold transition-colors cursor-pointer border border-transparent dark:border-border/50"
           >
             Fechar
           </button>

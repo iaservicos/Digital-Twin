@@ -158,7 +158,7 @@ export default function MatrixBackground({
   return (
     <div
       aria-hidden="true"
-      className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-[#050811]"
+      className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-background"
     >
       {/* Camada Canvas Matrix com opacidade calibrada a 40% */}
       <canvas

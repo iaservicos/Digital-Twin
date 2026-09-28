@@ -29,8 +29,9 @@ import TecnicosManager from '../components/settings/TecnicosManager';
 import CampaignManager from '../components/settings/CampaignManager';
 import { useAuthStore } from '../store/authStore';
 import { useSyncStore, getPythonApiUrl, getPythonHeaders } from '../store/syncStore';
+import { useThemeStore } from '../store/themeStore';
 
-type TabType = 'UPLOADS' | 'TECNICOS' | 'CAMPANHA';
+type TabType = 'UPLOADS' | 'TECNICOS' | 'CAMPANHA' | 'PREFERENCIAS';
 type IngestMode = 'planilhas' | 'databricks';
 type SpreadSheetType = 'BaseDL' | 'Parts' | 'Reincidencia' | 'EncerradosRRC';
 type PeriodMode = 'BIMESTRE' | 'CUSTOM';
@@ -267,6 +268,7 @@ const UploadCard: React.FC<UploadCardProps> = ({
 export default function SettingsScreen() {
   const { token } = useAuthStore();
   const { tracker, triggerSync } = useSyncStore();
+  const { backgroundDistortion, toggleBackgroundDistortion } = useThemeStore();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Estados de Navegação
@@ -281,7 +283,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     const tab = searchParams.get('tab') as TabType;
     const mode = searchParams.get('mode') as IngestMode;
-    if (tab && ['UPLOADS', 'TECNICOS', 'CAMPANHA'].includes(tab)) {
+    if (tab && ['UPLOADS', 'TECNICOS', 'CAMPANHA', 'PREFERENCIAS'].includes(tab)) {
       setActiveTab(tab);
     }
     if (mode && ['planilhas', 'databricks'].includes(mode)) {
@@ -529,7 +531,7 @@ export default function SettingsScreen() {
             onClick={() => handleTabChange('UPLOADS')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               activeTab === 'UPLOADS'
-                ? 'bg-accent-teal text-[#0f172a] shadow-md shadow-accent-teal/20'
+                ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
                 : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
             }`}
           >
@@ -540,7 +542,7 @@ export default function SettingsScreen() {
             onClick={() => handleTabChange('TECNICOS')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               activeTab === 'TECNICOS'
-                ? 'bg-accent-teal text-[#0f172a] shadow-md shadow-accent-teal/20'
+                ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
                 : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
             }`}
           >
@@ -551,12 +553,23 @@ export default function SettingsScreen() {
             onClick={() => handleTabChange('CAMPANHA')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               activeTab === 'CAMPANHA'
-                ? 'bg-accent-teal text-[#0f172a] shadow-md shadow-accent-teal/20'
+                ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
                 : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
             }`}
           >
             <ShieldCheck size={16} />
             Gestão de Campanha
+          </button>
+          <button
+            onClick={() => handleTabChange('PREFERENCIAS')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+              activeTab === 'PREFERENCIAS'
+                ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
+                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Sparkles size={16} />
+            Aparência
           </button>
         </div>
       </div>
@@ -584,7 +597,7 @@ export default function SettingsScreen() {
                   onClick={() => handleModeChange('planilhas')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     ingestMode === 'planilhas'
-                      ? 'bg-accent-teal text-[#0f172a] shadow-md shadow-accent-teal/20'
+                      ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
                       : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white'
                   }`}
                 >
@@ -595,7 +608,7 @@ export default function SettingsScreen() {
                   onClick={() => handleModeChange('databricks')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     ingestMode === 'databricks'
-                      ? 'bg-accent-teal text-[#0f172a] shadow-md shadow-accent-teal/20'
+                      ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
                       : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white'
                   }`}
                 >
@@ -707,7 +720,7 @@ export default function SettingsScreen() {
                     <button
                       onClick={handleDatabricksSync}
                       disabled={tracker.status === 'processing'}
-                      className="px-6 py-3 rounded-xl bg-accent-teal hover:bg-accent-teal/90 text-[#0f172a] font-bold text-xs sm:text-sm shadow-lg shadow-accent-teal/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="px-6 py-3 rounded-xl bg-accent-teal hover:bg-accent-teal/90 text-positivo-primary font-bold text-xs sm:text-sm shadow-lg shadow-accent-teal/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <RefreshCw size={16} className={tracker.status === 'processing' ? 'animate-spin' : ''} />
                       {tracker.status === 'processing' ? 'Sincronizando...' : 'Sincronizar Agora'}
@@ -728,7 +741,7 @@ export default function SettingsScreen() {
                         onClick={() => setPeriodMode('BIMESTRE')}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                           periodMode === 'BIMESTRE' 
-                            ? 'bg-accent-teal text-[#0f172a] font-bold shadow-sm' 
+                            ? 'bg-accent-teal text-positivo-primary font-bold shadow-sm' 
                             : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white'
                         }`}
                       >
@@ -738,7 +751,7 @@ export default function SettingsScreen() {
                         onClick={() => setPeriodMode('CUSTOM')}
                         className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                           periodMode === 'CUSTOM' 
-                            ? 'bg-accent-teal text-[#0f172a] font-bold shadow-sm' 
+                            ? 'bg-accent-teal text-positivo-primary font-bold shadow-sm' 
                             : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white'
                         }`}
                       >
@@ -917,6 +930,51 @@ export default function SettingsScreen() {
         {activeTab === 'CAMPANHA' && (
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
             <CampaignManager />
+          </div>
+        )}
+
+        {/* ABA PREFERÊNCIAS VISUAIS / APARÊNCIA */}
+        {activeTab === 'PREFERENCIAS' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="p-6 bg-light-surface dark:bg-surface rounded-2xl border border-light-borderStrong dark:border-border shadow-sm max-w-3xl">
+              <div className="flex items-start justify-between gap-6">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-accent-teal/10 text-accent-teal">
+                      <Sparkles size={18} />
+                    </div>
+                    <h2 className="text-base font-bold text-light-text-main dark:text-text-main">
+                      Distorção Interativa no Fundo
+                    </h2>
+                  </div>
+                  <p className="text-xs text-light-text-secondary dark:text-text-muted leading-relaxed pl-9">
+                    Ativa a distorção elástica suave da malha no background conforme o movimento do cursor. Desative caso prefira um fundo estático ou queira economizar processamento e consumo de bateria.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={toggleBackgroundDistortion}
+                  className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer shrink-0 mt-2 ${
+                    backgroundDistortion ? 'bg-primary' : 'bg-slate-300 dark:bg-surface-hover'
+                  }`}
+                  title={backgroundDistortion ? 'Desativar distorção' : 'Ativar distorção'}
+                >
+                  <div
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${
+                      backgroundDistortion ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="mt-5 pt-3.5 border-t border-light-borderStrong dark:border-border/60 flex items-center justify-between text-xs">
+                <span className="text-light-text-muted dark:text-text-muted">Estado da animação:</span>
+                <span className={`font-bold ${backgroundDistortion ? 'text-emerald-500 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'}`}>
+                  {backgroundDistortion ? 'Ativado (Dinâmico)' : 'Desativado (Estático)'}
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -107,7 +107,7 @@ export default function IntroSplashOverlay({ onFinish }: IntroSplashOverlayProps
     <div
       onClick={handleUnlockAudio}
       onTouchEnd={handleUnlockAudio}
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-[#050811] overflow-hidden transition-all duration-700 ease-out select-none w-full h-full min-h-[100dvh] cursor-pointer ${
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-background overflow-hidden transition-all duration-700 ease-out select-none w-full h-full min-h-[100dvh] cursor-pointer ${
         isExiting ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
       }`}
     >

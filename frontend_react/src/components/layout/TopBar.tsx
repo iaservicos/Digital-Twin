@@ -20,7 +20,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { api } from '../../services/api';
 import ModalConfiguracoes from './ModalConfiguracoes';
 import ModalAjuda from './ModalAjuda';
-import { toTitleCase } from '../../utils/stringFormatters';
+import { toTitleCase, formatLocalEquipe } from '../../utils/stringFormatters';
 import { useCampanhaStore, Campanha } from '../../store/campanhaStore';
 
 export default function TopBar() {
@@ -96,7 +96,7 @@ export default function TopBar() {
 
   const isAdmin = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador';
   const isModerador = user?.role === 'MODERADOR';
-  const isSupervisor = user?.role === 'ADMINISTRADOR';
+  const isSupervisor = user?.role === 'ADMINISTRADOR' || user?.role === 'SUPERVISOR';
 
   // Identificação das Views Contextuais
   const isViewModerador = location.pathname.startsWith('/configuracoes');
@@ -121,8 +121,8 @@ export default function TopBar() {
         style={{ fontFamily: "'Arial Black', Impact, sans-serif", letterSpacing: "-0.05em" }}
         title="Voltar para o Início"
       >
-        <h1 className="text-2xl font-black text-light-text-main dark:text-text-main uppercase transition-all duration-300 group-hover:text-[#0891b2] group-hover:drop-shadow-[0_0_8px_rgba(8,145,178,0.8)]">
-          Brilha<span className="text-3xl text-[#0891b2] ml-[1px] leading-none">+</span>
+        <h1 className="text-2xl font-black text-light-text-main dark:text-text-main uppercase transition-all duration-300 group-hover:text-primary-dark group-hover:drop-shadow-[0_0_8px_rgba(8,145,178,0.8)]">
+          Brilha<span className="text-3xl text-primary-dark ml-[1px] leading-none">+</span>
         </h1>
       </div>
 
@@ -175,7 +175,7 @@ export default function TopBar() {
             <div className="hidden md:block absolute right-0 mt-2 w-56 bg-light-surface dark:bg-surface rounded-xl shadow-2xl py-1.5 border border-light-borderStrong dark:border-border z-50 animate-in fade-in slide-in-from-top-2">
               <div className="px-4 py-2.5 border-b border-light-borderStrong dark:border-border mb-1">
                 <p className="text-sm font-bold text-light-text-main dark:text-text-main truncate" title={user?.nomeCompleto}>{toTitleCase(user?.nomeCompleto)}</p>
-                <p className="text-xs text-light-text-muted dark:text-text-muted truncate" title={user?.localEquipe}>{user?.localEquipe || 'Localidade não informada'}</p>
+                <p className="text-xs text-light-text-muted dark:text-text-muted truncate" title={user?.localEquipe}>{formatLocalEquipe(user?.localEquipe) || 'Localidade não informada'}</p>
               </div>
 
               {/* Opção: Painel de Supervisão (Exibido quando na View de Moderador ou fora da Supervisão) */}

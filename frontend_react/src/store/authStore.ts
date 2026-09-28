@@ -4,7 +4,7 @@ import * as SecureStore from '../utils/secureStore';
 
 export interface UserProfile {
   matricula: string;
-  primeiroAcesso: boolean;
+  primeiroAcesso?: boolean;
   nomeCompleto?: string;
   cargo?: string;
   localEquipe?: string;

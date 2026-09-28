@@ -1,11 +1,46 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
-@layer base {
-  body {
-    @apply antialiased text-slate-900 bg-slate-50 dark:text-slate-50 dark:bg-grid-pattern;
-  }
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ========================================================================= */
+/* ESTILOS BASE E UTILITÁRIOS GLOBAIS                                        */
+/* Toda a paleta de cores é configurada no arquivo: tailwind.config.js      */
+/* ========================================================================= */
+html,
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Utilitários de Grid de Fundo */
+.bg-grid-pattern {
+  background-color: #040d1c;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.04) 0%, transparent 50%),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+  background-position: center center;
+}
+
+.bg-grid-pattern-light {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(8, 145, 178, 0.04) 0%, transparent 50%),
+    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+  background-position: center center;
 }
 
 /* Esconder barra de rolagem mas permitir scrolar no mobile */
@@ -65,7 +100,7 @@
   width: 200px;
   height: 200px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(34,211,238,0.15) 0%, rgba(34,211,238,0) 70%);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, rgba(34, 211, 238, 0) 70%);
   z-index: 0;
   filter: blur(20px);
 }
