@@ -226,7 +226,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
         <div className="p-6 border-b border-light-borderStrong dark:border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-light-background dark:bg-input-bg">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
+              <span className="text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
                 <Clock size={12} /> SLA
               </span>
               <span className="text-xs text-light-text-muted dark:text-text-muted font-medium">
@@ -238,7 +238,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
 
           <button
             onClick={onClose}
-            className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-slate-100 hover:bg-slate-200 dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer self-end sm:self-center"
+            className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-light-surface-elevated hover:bg-light-surface-hover dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer self-end sm:self-center"
             title="Fechar Modal"
           >
             <X size={20} />
@@ -302,7 +302,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                 placeholder={isSupervisorOrAdmin ? "Buscar por chamados ou nome do técnico..." : "Buscar por chamado..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all shadow-xs"
+                className="w-full bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all shadow-xs"
               />
               {searchTerm && (
                 <button
@@ -324,8 +324,8 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
               onClick={() => setSelectedCausa('TODOS')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedCausa === 'TODOS'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
+                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Todas ({chamados.length})
@@ -338,8 +338,8 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                   onClick={() => setSelectedCausa(causa)}
                   className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                     selectedCausa === causa
-                      ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                      : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                      ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
+                      : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
                   }`}
                 >
                   {causa} ({count})
@@ -350,10 +350,10 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
         </div>
 
         {/* Conteúdo: Lista de Chamados Perdidos */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto scrollbar-hide p-4 sm:p-6 space-y-4">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 text-light-text-muted dark:text-text-muted">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500 mb-3"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3"></div>
               <p className="text-sm font-medium">Carregando chamados perdidos de SLA...</p>
             </div>
           ) : filteredChamados.length === 0 ? (
@@ -436,7 +436,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                         <FileText size={13} className="text-light-text-muted dark:text-text-muted" />
                         <span>Laudo Técnico & Detalhes de Encerramento:</span>
                       </div>
-                      <p className="text-xs text-light-text-secondary dark:text-text-main whitespace-pre-line leading-relaxed font-mono bg-slate-100/80 dark:bg-background/80 p-2.5 rounded border border-light-borderStrong/60 dark:border-border max-h-36 overflow-y-auto select-text">
+                      <p className="text-xs text-light-text-secondary dark:text-text-main whitespace-pre-line leading-relaxed font-mono bg-slate-100/80 dark:bg-background/80 p-2.5 rounded border border-light-borderStrong/60 dark:border-border max-h-36 overflow-y-auto scrollbar-hide select-text">
                         {item.textoEncerramento}
                       </p>
                     </div>
@@ -452,7 +452,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
           <span>Total exibido: <strong className="text-light-text-main dark:text-text-main">{filteredChamados.length}</strong> de <strong className="text-light-text-main dark:text-text-main">{chamados.length}</strong> chamados fora do SLA</span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main rounded-xl font-bold transition-colors cursor-pointer border border-transparent dark:border-border/50"
+            className="px-4 py-2 bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main rounded-xl font-bold transition-colors cursor-pointer border border-light-border dark:border-border/50"
           >
             Fechar
           </button>

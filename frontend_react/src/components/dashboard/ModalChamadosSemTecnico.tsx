@@ -151,7 +151,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto scrollbar-hide animate-in fade-in duration-200">
       <div className="relative w-full max-w-5xl bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-positivo-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header do Modal */}
@@ -268,7 +268,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
         </div>
 
         {/* Conteúdo Principal */}
-        <div className="flex-1 overflow-y-auto p-6 pt-2">
+        <div className="flex-1 overflow-y-auto scrollbar-hide p-6 pt-2">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 text-light-text-muted">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-teal mb-3" />
@@ -276,7 +276,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
             </div>
           ) : activeTab === 'regioes' ? (
             /* TABELA POR REGIÃO / BASE */
-            <div className="overflow-x-auto border border-light-border dark:border-border/60 rounded-positivo-lg">
+            <div className="overflow-x-auto scrollbar-hide border border-light-border dark:border-border/60 rounded-positivo-lg">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-background/70 border-b border-light-border dark:border-border/60 text-light-text-muted uppercase text-[10px] tracking-wider">
@@ -341,7 +341,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
           ) : (
             /* TABELA DE EXTRATO DETALHADO */
             <div className="space-y-4">
-              <div className="overflow-x-auto border border-light-border dark:border-border/60 rounded-positivo-lg">
+              <div className="overflow-x-auto scrollbar-hide border border-light-border dark:border-border/60 rounded-positivo-lg">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-background/70 border-b border-light-border dark:border-border/60 text-light-text-muted uppercase text-[10px] tracking-wider">

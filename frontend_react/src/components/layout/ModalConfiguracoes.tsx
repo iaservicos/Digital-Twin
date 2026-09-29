@@ -164,7 +164,7 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto">
+        <div className="p-6 overflow-y-auto scrollbar-hide">
           
           {/* TAB PERFIL */}
           {activeTab === 'perfil' && (

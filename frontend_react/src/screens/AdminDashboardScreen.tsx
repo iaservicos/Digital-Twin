@@ -23,6 +23,7 @@ import ModalChamadosPecas from '../components/dashboard/ModalChamadosPecas';
 import { ModalChamadosSemTecnico } from '../components/dashboard/ModalChamadosSemTecnico';
 import { useTecnicoMetrics } from '../hooks/useTecnicoMetrics';
 import { toTitleCase } from '../utils/stringFormatters';
+import { BentoCard } from '../components/ui/BentoCard';
 
 export default function AdminDashboardScreen() {
   const { user } = useAuthStore();
@@ -223,16 +224,6 @@ export default function AdminDashboardScreen() {
     return lista.sort((a, b) => (a.nomeCompleto || '').localeCompare(b.nomeCompleto || ''));
   }, [todosTecnicos, selectedEquipe, supervisorEfetivoId]);
 
-  // Técnicos filtrados pela pesquisa em tempo real do cabeçalho
-  const tecnicosFiltradosBusca = useMemo(() => {
-    const q = searchTecnicoQuery.trim().toLowerCase();
-    if (!q) return tecnicosVisiveis;
-    return tecnicosVisiveis.filter(t => 
-      (t.nomeCompleto && t.nomeCompleto.toLowerCase().includes(q)) ||
-      (t.matricula && String(t.matricula).includes(q))
-    );
-  }, [tecnicosVisiveis, searchTecnicoQuery]);
-
   // Técnico selecionado atualmente como objeto
   const selectedTecnicoObj = useMemo(() => {
     if (selectedTecnicoIdentifier === 'all') return null;
@@ -241,6 +232,25 @@ export default function AdminDashboardScreen() {
       String(t.idTecnico) === String(selectedTecnicoIdentifier)
     );
   }, [selectedTecnicoIdentifier, tecnicosVisiveis]);
+
+  // Técnicos filtrados pela pesquisa em tempo real do cabeçalho
+  const tecnicosFiltradosBusca = useMemo(() => {
+    const q = searchTecnicoQuery.trim().toLowerCase();
+    if (!q) return tecnicosVisiveis;
+
+    // Se o texto pesquisado for o técnico atualmente selecionado, exibe toda a lista para permitir troca fácil
+    if (selectedTecnicoObj) {
+      const labelCompleto = `${toTitleCase(selectedTecnicoObj.nomeCompleto)} (${selectedTecnicoObj.matricula || selectedTecnicoObj.idTecnico})`.toLowerCase();
+      if (q === labelCompleto || q === (selectedTecnicoObj.nomeCompleto || '').toLowerCase()) {
+        return tecnicosVisiveis;
+      }
+    }
+
+    return tecnicosVisiveis.filter(t => 
+      (t.nomeCompleto && t.nomeCompleto.toLowerCase().includes(q)) ||
+      (t.matricula && String(t.matricula).includes(q))
+    );
+  }, [tecnicosVisiveis, searchTecnicoQuery, selectedTecnicoObj]);
 
   // Se o técnico selecionado não estiver na lista atual, reseta para visão geral
   useEffect(() => {
@@ -360,7 +370,7 @@ export default function AdminDashboardScreen() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -373,20 +383,17 @@ export default function AdminDashboardScreen() {
 
   return (
     <div className="w-full space-y-6 pb-8">
-      {/* ========================================================================= */}
-      {/* 1. BARRA SUPERIOR DE SUPERVISÃO & FILTROS (Padrão Cyber Ciano Positivo)   */}
-      {/* ========================================================================= */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 bg-light-surface dark:bg-surface p-5 md:p-6 rounded-[24px] border border-light-borderStrong dark:border-border shadow-xl">
+      <BentoCard className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 p-5 md:p-6 shadow-xl relative z-30 overflow-visible">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shadow-inner">
+            <div className="p-2.5 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
               <Users size={22} />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-black text-light-text-main dark:text-slate-100 tracking-tight">
+              <h1 className="text-xl md:text-2xl font-black text-light-text-main dark:text-text-main tracking-tight">
                 Painel de Supervisão
               </h1>
-              <p className="text-xs text-light-text-muted dark:text-slate-400 mt-0.5 font-medium">
+              <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5 font-medium">
                 {isModerador 
                   ? 'Visão Global • Moderação da Operação' 
                   : `Gestão de Operação • ${supervisorLogado?.nomeCompleto ? toTitleCase(supervisorLogado.nomeCompleto) : (user?.nomeCompleto || 'Supervisor')}`}
@@ -400,14 +407,14 @@ export default function AdminDashboardScreen() {
           {/* SELETOR DE SUPERVISOR (Exclusivo para Moderadores) */}
           {isModerador && (
             <div className="w-full sm:w-auto">
-              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">
+              <label className="block text-[11px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider mb-1 ml-1">
                 Supervisor
               </label>
               <div className="relative">
                 <select
                   value={selectedSupervisor}
                   onChange={(e) => setSelectedSupervisor(e.target.value)}
-                  className="w-full sm:w-48 appearance-none bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-slate-200 text-xs font-semibold rounded-xl p-2.5 pr-8 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all shadow-inner"
+                  className="w-full sm:w-48 appearance-none bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl p-2.5 pr-8 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all shadow-inner"
                 >
                   <option value="all">Todos os Supervisores</option>
                   {listaSupervisores.map(s => (
@@ -416,21 +423,21 @@ export default function AdminDashboardScreen() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
               </div>
             </div>
           )}
 
           {/* SELETOR DE BASE ATP (Disponível para Supervisor e Moderador) */}
           <div className="w-full sm:w-auto">
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">
+            <label className="block text-[11px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider mb-1 ml-1">
               Base ATP
             </label>
             <div className="relative">
               <select
                 value={selectedEquipe}
                 onChange={(e) => setSelectedEquipe(e.target.value)}
-                className="w-full sm:w-60 appearance-none bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-slate-200 text-xs font-semibold rounded-xl p-2.5 pr-8 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all shadow-inner"
+                className="w-full sm:w-60 appearance-none bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl p-2.5 pr-8 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all shadow-inner"
               >
                 <option value="all">Todas as Bases ({equipesDisponiveis.length})</option>
                 {equipesDisponiveis.map(base => {
@@ -439,26 +446,26 @@ export default function AdminDashboardScreen() {
                   return <option key={eq} value={eq}>{label}</option>;
                 })}
               </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
             </div>
           </div>
 
           {/* PESQUISA INTELIGENTE DE TÉCNICO (Disponível para Supervisor e Moderador) */}
           <div className="w-full sm:w-auto relative" ref={searchContainerRef}>
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1 flex items-center justify-between">
+            <label className="block text-[11px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider mb-1 ml-1 flex items-center justify-between">
               <span>Pesquisar Técnico</span>
               {selectedTecnicoIdentifier !== 'all' && (
                 <button 
                   type="button"
                   onClick={handleResetToAll}
-                  className="text-cyan-400 hover:underline lowercase font-medium tracking-normal cursor-pointer"
+                  className="text-primary hover:underline lowercase font-medium tracking-normal cursor-pointer"
                 >
                   limpar
                 </button>
               )}
             </label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
               <input
                 type="text"
                 placeholder="Nome ou matrícula..."
@@ -470,47 +477,53 @@ export default function AdminDashboardScreen() {
                     setSelectedTecnicoIdentifier('all');
                   }
                 }}
-                onFocus={() => setIsSearchOpen(true)}
-                className="w-full sm:w-64 bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-slate-200 text-xs font-semibold rounded-xl pl-9 pr-8 py-2.5 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all shadow-inner"
+                onFocus={(e) => {
+                  setIsSearchOpen(true);
+                  e.target.select();
+                }}
+                onClick={() => setIsSearchOpen(true)}
+                className="w-full sm:w-64 bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl pl-9 pr-8 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all shadow-inner cursor-pointer"
               />
-              {searchTecnicoQuery && (
+              {searchTecnicoQuery ? (
                 <button
                   type="button"
                   onClick={handleResetToAll}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-0.5 rounded-full hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main p-0.5 rounded-full hover:bg-light-surface-elevated dark:hover:bg-surface-elevated transition-colors cursor-pointer"
                   title="Limpar seleção e voltar para a Operação"
                 >
                   <X size={14} />
                 </button>
+              ) : (
+                <ChevronDown size={14} className={`absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
               )}
             </div>
 
             {/* Dropdown com Resultados da Pesquisa em Tempo Real */}
             {isSearchOpen && (
-              <div className="absolute left-0 right-0 sm:right-auto sm:w-80 mt-1.5 bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl shadow-2xl z-50 p-2 max-h-72 overflow-y-auto backdrop-blur-md">
+              <div className="absolute right-0 w-full sm:w-80 mt-1.5 bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl shadow-2xl z-50 p-2 max-h-72 overflow-y-auto scrollbar-hide backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-150">
                 {/* Opção Rápida: Visão Consolidada */}
                 <button
                   type="button"
                   onClick={handleResetToAll}
                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer mb-1 ${
                     selectedTecnicoIdentifier === 'all'
-                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
-                      : 'text-slate-300 hover:bg-cyan-500/10 hover:text-cyan-300'
+                      ? 'bg-primary/20 text-primary border border-primary/40'
+                      : 'text-light-text-secondary dark:text-text-muted hover:bg-primary/10 hover:text-primary'
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <Sparkles size={14} className="text-cyan-400" />
+                    <Sparkles size={14} className="text-primary" />
                     ✨ Visão Geral da Operação (Consolidada)
                   </span>
-                  <span className="text-[10px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md font-semibold">
+                  <span className="text-[10px] text-light-text-muted dark:text-text-muted bg-light-surface-elevated dark:bg-surface-elevated px-2 py-0.5 rounded-md font-semibold">
                     {tecnicosVisiveis.length} tec
                   </span>
                 </button>
 
-                <div className="border-t border-border/60 my-1"></div>
+                <div className="border-t border-light-border dark:border-border/60 my-1"></div>
 
                 {tecnicosFiltradosBusca.length === 0 ? (
-                  <div className="px-3 py-4 text-center text-xs text-slate-400">
+                  <div className="px-3 py-4 text-center text-xs text-light-text-muted dark:text-text-muted">
                     Nenhum técnico encontrado para esta busca.
                   </div>
                 ) : (
@@ -524,16 +537,16 @@ export default function AdminDashboardScreen() {
                         onClick={() => handleSelectTecnico(t)}
                         className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center justify-between cursor-pointer ${
                           isSelected
-                            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-bold'
-                            : 'text-slate-300 hover:bg-slate-800/80 hover:text-slate-100 font-medium'
+                            ? 'bg-primary/15 text-primary border border-primary/30 font-bold'
+                            : 'text-light-text-secondary dark:text-text-muted hover:bg-light-surface-elevated dark:hover:bg-surface-elevated hover:text-light-text-main dark:hover:text-text-main font-medium'
                         }`}
                       >
                         <div className="truncate mr-2">
                           <p className="truncate font-semibold">{toTitleCase(t.nomeCompleto)}</p>
-                          <p className="text-[10px] text-slate-400">Mat: {t.matricula || 'S/M'}</p>
+                          <p className="text-[10px] text-light-text-muted dark:text-text-muted">Mat: {t.matricula || 'S/M'}</p>
                         </div>
                         {t.ctBases && t.ctBases.length > 0 && (
-                          <span className="shrink-0 text-[10px] bg-slate-800 text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded">
+                          <span className="shrink-0 text-[10px] bg-light-surface-elevated dark:bg-surface-elevated text-light-text-muted dark:text-text-muted border border-light-border dark:border-border px-1.5 py-0.5 rounded">
                             {t.ctBases[0]}
                           </span>
                         )}
@@ -545,13 +558,13 @@ export default function AdminDashboardScreen() {
             )}
           </div>
         </div>
-      </div>
+      </BentoCard>
 
       {/* ========================================================================= */}
       {/* ALERTA DE CHAMADOS SEM TÉCNICO (Exclusivo para a Moderação)               */}
       {/* ========================================================================= */}
       {isModerador && semTecnicoResumo && semTecnicoResumo.totalGeral > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-[24px] p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-bento p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5 sm:mt-0 border border-amber-500/30">
               <UserX size={20} />
@@ -628,25 +641,25 @@ export default function AdminDashboardScreen() {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           
           {/* Banner Contextual do Técnico Selecionado */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 md:p-5 rounded-[24px] bg-cyan-500/10 border border-cyan-500/30 shadow-lg">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 md:p-5 rounded-bento bg-primary/10 border border-primary/30 shadow-lg">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-black text-lg shadow-inner">
+              <div className="w-11 h-11 rounded-2xl bg-primary/20 border border-primary/40 flex items-center justify-center text-primary-light font-black text-lg shadow-inner">
                 {selectedTecnicoObj?.nomeCompleto ? selectedTecnicoObj.nomeCompleto.charAt(0).toUpperCase() : 'T'}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/20 px-2 py-0.5 rounded-md">
+                  <span className="text-[10px] uppercase font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-md">
                     Visão Individual do Técnico
                   </span>
                   {selectedTecnicoObj?.ctBases && selectedTecnicoObj.ctBases.length > 0 && (
-                    <span className="text-[10px] text-slate-400 font-medium">
+                    <span className="text-[10px] text-light-text-muted dark:text-text-muted font-medium">
                       Base: {selectedTecnicoObj.ctBases.join(', ')}
                     </span>
                   )}
                 </div>
-                <h2 className="text-lg md:text-xl font-bold text-light-text-main dark:text-slate-100 mt-0.5">
+                <h2 className="text-lg md:text-xl font-bold text-light-text-main dark:text-text-main mt-0.5">
                   {toTitleCase(selectedTecnicoObj?.nomeCompleto || displayMetricas.tecnico || 'Técnico')}
-                  <span className="text-slate-400 text-sm font-normal ml-2">
+                  <span className="text-light-text-muted dark:text-text-muted text-sm font-normal ml-2">
                     (Mat: {selectedTecnicoObj?.matricula || displayMetricas.matricula || selectedTecnicoIdentifier})
                   </span>
                 </h2>
@@ -656,7 +669,7 @@ export default function AdminDashboardScreen() {
             <button
               type="button"
               onClick={handleResetToAll}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-light-surface dark:bg-surface hover:bg-cyan-500/20 text-slate-200 hover:text-cyan-300 text-xs font-bold border border-light-borderStrong dark:border-border hover:border-cyan-500/40 transition-all cursor-pointer shadow-md self-start sm:self-auto shrink-0"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-light-surface dark:bg-surface hover:bg-primary/20 text-light-text-main dark:text-text-main hover:text-primary text-xs font-bold border border-light-borderStrong dark:border-border hover:border-primary/40 transition-all cursor-pointer shadow-md self-start sm:self-auto shrink-0"
             >
               <ArrowLeft size={15} />
               Voltar para Visão da Operação / Ranking

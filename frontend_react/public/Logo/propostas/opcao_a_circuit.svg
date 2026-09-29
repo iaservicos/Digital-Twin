@@ -44,13 +44,13 @@
 
   <text x="325" y="130" text-anchor="middle">
     <tspan fill="#FFFFFF" 
-           font-family="'Arial Black', 'Montserrat Black', Impact, sans-serif" 
+           font-family="'Montserrat', 'Montserrat Black', sans-serif" 
            font-weight="900" 
            font-size="74" 
            letter-spacing="-0.04em">BRILHA</tspan>
     <tspan dx="10" dy="-2"
            fill="url(#circuitGradA)" 
-           font-family="'Arial Black', 'Montserrat Black', Impact, sans-serif" 
+           font-family="'Montserrat', 'Montserrat Black', sans-serif" 
            font-weight="900" 
            font-size="88" 
            filter="url(#neonA)">+</tspan>

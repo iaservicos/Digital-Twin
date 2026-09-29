@@ -34,11 +34,14 @@
     <clipPath id="crossClip">
       <path d="M 644 35 L 686 35 Q 710 35 710 59 L 710 105 Q 710 111 716 111 L 791 111 Q 815 111 815 135 L 815 155 Q 815 179 791 179 L 716 179 Q 710 179 710 185 L 710 231 Q 710 255 686 255 L 644 255 Q 620 255 620 231 L 620 185 Q 620 179 614 179 L 590 179 Q 575 179 575 165 L 575 125 Q 575 111 590 111 L 614 111 Q 620 111 620 105 L 620 59 Q 620 35 644 35 Z" />
     </clipPath>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&amp;display=swap');
+    </style>
   </defs>
 
   <!-- PALAVRA BRILHA (À ESQUERDA) -->
   <text x="35" y="174" 
-        font-family="'Arial Black', 'Montserrat Black', Impact, sans-serif" 
+        font-family="'Montserrat', 'Montserrat Black', sans-serif" 
         font-weight="900" 
         font-size="78" 
         letter-spacing="-0.035em" 

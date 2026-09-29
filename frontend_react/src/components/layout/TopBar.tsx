@@ -118,11 +118,11 @@ export default function TopBar() {
       <div 
         className="absolute left-1/2 -translate-x-1/2 flex items-baseline cursor-pointer hover:opacity-100 transition-all duration-300 select-none z-10 group"
         onClick={() => navigate(isAdmin || isModerador || isSupervisor ? '/supervisao' : '/dashboard')}
-        style={{ fontFamily: "'Arial Black', Impact, sans-serif", letterSpacing: "-0.05em" }}
+        style={{ fontFamily: "'Montserrat', 'Montserrat Black', sans-serif", fontWeight: 900, letterSpacing: "-0.05em" }}
         title="Voltar para o Início"
       >
-        <h1 className="text-2xl font-black text-light-text-main dark:text-text-main uppercase transition-all duration-300 group-hover:text-primary-dark group-hover:drop-shadow-[0_0_8px_rgba(8,145,178,0.8)]">
-          Brilha<span className="text-3xl text-primary-dark ml-[1px] leading-none">+</span>
+        <h1 className="text-2xl font-black text-light-text-main dark:text-text-main uppercase transition-all duration-300 group-hover:text-primary group-hover:drop-shadow-glow-primary">
+          Brilha<span className="text-3xl text-primary ml-[1px] leading-none">+</span>
         </h1>
       </div>
 

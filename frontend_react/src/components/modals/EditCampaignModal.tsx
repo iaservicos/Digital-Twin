@@ -205,7 +205,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto scrollbar-hide">
       <div className="bg-light-surface dark:bg-surface rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-light-borderStrong dark:border-border mt-10">
         
         {/* Header */}
@@ -227,7 +227,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-6 overflow-y-auto scrollbar-hide flex-1">
           {loading ? (
             <div className="flex justify-center p-8">
               <RefreshCw className="animate-spin text-accent-teal" size={32} />

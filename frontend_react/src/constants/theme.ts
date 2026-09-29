@@ -6,25 +6,31 @@
  * 👉 tailwind.config.js
  */
 
-import { themeColors } from '../../tailwind.config.js';
+import { themeColors, hexToRgba } from '../../tailwind.config.js';
 
 export const THEME_COLORS = {
   get dark() {
+    const primary = themeColors.dark.primary;
     return {
       bg: themeColors.dark.background,
       surface: themeColors.dark.surface,
       surfaceElevated: themeColors.dark.surfaceElevated,
       surfaceHover: themeColors.dark.surfaceHover,
       border: themeColors.dark.border,
-      gridLines: 'rgba(34, 211, 238, 0.08)',
-      spotlight: 'rgba(34, 211, 238, 0.12)',
-      spotlightSecondary: 'rgba(8, 145, 178, 0.04)',
-      gridVertexHighlight: 'rgba(34, 211, 238, 0.45)',
-      cyanNeon: themeColors.dark.primary,
-      cyanSecondary: '#38bdf8',
+      gridLines: hexToRgba(primary, 0.22),
+      spotlight: hexToRgba(primary, 0.15),
+      spotlightSecondary: hexToRgba(themeColors.dark.primaryDark || primary, 0.05),
+      gridVertexHighlight: hexToRgba(primary, 0.45),
+      primary: primary,
+      chart: themeColors.dark.chart_primary || themeColors.dark.chart || primary,
+      chartTrack: themeColors.dark.chart_track || themeColors.dark.chartTrack || '#333333',
+      chartGrid: themeColors.dark.chart_grid || themeColors.dark.chartGrid || '#2a2a2a',
+      cyanNeon: themeColors.dark.chart_primary || primary,
+      cyanSecondary: themeColors.dark.chart_primary || primary,
     };
   },
   get light() {
+    const primary = themeColors.light.primary;
     return {
       bg: themeColors.light.background,
       surface: themeColors.light.surface,
@@ -33,11 +39,15 @@ export const THEME_COLORS = {
       border: themeColors.light.border,
       borderStrong: themeColors.light.borderStrong,
       gridLines: 'rgba(15, 23, 42, 0.06)',
-      spotlight: 'rgba(8, 145, 178, 0.10)',
-      spotlightSecondary: 'rgba(14, 165, 233, 0.04)',
-      gridVertexHighlight: 'rgba(8, 145, 178, 0.35)',
-      cyanNeon: themeColors.light.primary,
-      cyanSecondary: '#0284c7',
+      spotlight: hexToRgba(primary, 0.10),
+      spotlightSecondary: hexToRgba(primary, 0.04),
+      gridVertexHighlight: hexToRgba(primary, 0.35),
+      primary: primary,
+      chart: themeColors.light.chart_primary || themeColors.light.chart || primary,
+      chartTrack: themeColors.light.chart_track || themeColors.light.chartTrack || '#cfc9be',
+      chartGrid: themeColors.light.chart_grid || themeColors.light.chartGrid || '#c8c2b7',
+      cyanNeon: themeColors.light.chart_primary || primary,
+      cyanSecondary: themeColors.light.chart_primary || primary,
     };
   }
 };

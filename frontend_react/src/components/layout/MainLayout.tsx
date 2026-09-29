@@ -17,7 +17,7 @@ export default function MainLayout() {
       </div>
 
       {/* Desktop Sidebar: Painel Congelado com Gradiente e scrollbar oculta */}
-      <aside className="hidden lg:flex w-64 h-screen flex-shrink-0 flex-col justify-between bg-gradient-to-r from-light-surface to-light-surface-elevated dark:from-black dark:to-surface border-r border-light-borderStrong dark:border-border p-5 z-30 transition-colors overflow-y-auto scrollbar-hide">
+      <aside className="hidden lg:flex w-64 h-screen flex-shrink-0 flex-col justify-between bg-gradient-to-r from-light-surface to-light-surface-elevated dark:from-surface dark:to-black border-r border-light-borderStrong dark:border-border p-5 z-30 transition-colors overflow-y-auto scrollbar-hide shadow-sidebar dark:shadow-sidebar-dark">
         <DesktopSidebar />
       </aside>
 

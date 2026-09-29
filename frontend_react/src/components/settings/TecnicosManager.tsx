@@ -230,7 +230,7 @@ export default function TecnicosManager() {
       </div>
 
       <div className="bg-light-surface dark:bg-surface-hover border border-light-borderStrong dark:border-border rounded-2xl overflow-hidden shadow-lg">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-hide">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100 dark:bg-surface/50 text-light-text-muted dark:text-text-muted text-xs uppercase font-semibold">
               <tr>
@@ -322,7 +322,7 @@ export default function TecnicosManager() {
             </div>
             
             <form onSubmit={handleSave}>
-              <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto scrollbar-hide">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* PRIMEIRO NOME */}
                   <div className="space-y-1">

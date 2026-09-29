@@ -138,17 +138,17 @@ export default function CampaignManager() {
       )}
 
       {/* Card Principal com Glassmorphism Translúcido */}
-      <div className="backdrop-blur-md bg-slate-900/60 dark:bg-surface-hover/60 border border-border/40 dark:border-slate-800/80 rounded-2xl p-6 shadow-xl shadow-black/10 transition-all duration-300">
+      <div className="backdrop-blur-bento bg-light-surface/65 dark:bg-surface/35 border border-light-borderStrong/70 dark:border-border/80 rounded-2xl p-6 shadow-sm transition-all duration-300">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-accent-teal/10 border border-accent-teal/20 flex items-center justify-center text-accent-teal">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
               <Calendar size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-light-text-main dark:text-slate-100 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-light-text-main dark:text-text-main flex items-center gap-2">
                 Gestão de Campanha Ativa
                 {campanhaAtual && (
-                  <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-semibold">
+                  <span className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-semibold">
                     Em Andamento
                   </span>
                 )}
@@ -162,33 +162,33 @@ export default function CampaignManager() {
 
         {/* Card Translúcido de Progresso de Apuração da Campanha */}
         {(tracker.status === 'processing' || isProcessing) && (
-          <div className="mb-6 backdrop-blur-md bg-slate-950/60 dark:bg-surface-elevated/60 border border-accent-teal/30 p-5 rounded-2xl shadow-xl shadow-black/20 space-y-4 animate-in fade-in duration-300">
+          <div className="mb-6 backdrop-blur-bento bg-light-surface-elevated/70 dark:bg-surface-elevated/60 border border-primary/30 p-5 rounded-2xl shadow-sm space-y-4 animate-in fade-in duration-300">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2.5 text-accent-teal font-bold text-sm">
-                <Loader2 size={18} className="animate-spin text-accent-teal" />
+              <div className="flex items-center gap-2.5 text-primary font-bold text-sm">
+                <Loader2 size={18} className="animate-spin text-primary" />
                 <span>{tracker.step || 'Contabilizando pontuações oficiais da campanha...'}</span>
               </div>
-              <span className="text-xs font-mono font-bold bg-accent-teal/10 text-accent-teal px-2.5 py-1 rounded-full border border-accent-teal/20">
+              <span className="text-xs font-mono font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-full border border-primary/20">
                 {tracker.progress || 25}%
               </span>
             </div>
 
             {/* Barra de Progresso com Gradiente */}
-            <div className="w-full bg-slate-800/60 rounded-full h-2.5 overflow-hidden p-0.5 border border-slate-700/50">
+            <div className="w-full bg-light-surface dark:bg-surface rounded-full h-2.5 overflow-hidden p-0.5 border border-light-border dark:border-border">
               <div 
-                className="bg-gradient-to-r from-accent-teal to-emerald-400 h-full rounded-full transition-all duration-500 shadow-sm shadow-accent-teal/50"
+                className="bg-gradient-to-r from-primary to-emerald-400 h-full rounded-full transition-all duration-500 shadow-sm shadow-primary/30"
                 style={{ width: `${Math.max(5, tracker.progress || 25)}%` }}
               />
             </div>
 
             {/* Métricas de Tempo Inteligentes */}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted border-t border-slate-800/40 pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-light-text-muted dark:text-text-muted border-t border-light-border dark:border-border/40 pt-3">
               <div className="flex items-center gap-1.5">
-                <Clock size={14} className="text-slate-400" />
-                <span>Tempo decorrido: <strong className="text-slate-200 font-mono">{formatDuration(tracker.elapsed_seconds || 0)}</strong></span>
+                <Clock size={14} className="text-light-text-muted dark:text-text-muted" />
+                <span>Tempo decorrido: <strong className="text-light-text-main dark:text-text-main font-mono">{formatDuration(tracker.elapsed_seconds || 0)}</strong></span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span>Tempo estimado restante: <strong className="text-accent-teal font-mono">{formatDuration(tracker.estimated_seconds_remaining || 5)}</strong></span>
+                <span>Tempo estimado restante: <strong className="text-primary font-mono">{formatDuration(tracker.estimated_seconds_remaining || 5)}</strong></span>
               </div>
             </div>
           </div>
@@ -196,27 +196,27 @@ export default function CampaignManager() {
 
         {campanhaAtual ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="backdrop-blur-sm bg-slate-950/40 dark:bg-surface-elevated/40 border border-slate-800/50 p-4 rounded-xl">
+            <div className="bg-light-surface-elevated/80 dark:bg-surface-elevated/40 border border-light-border dark:border-border p-4 rounded-xl">
               <span className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Início da Campanha</span>
-              <p className="text-lg font-bold text-light-text-main dark:text-slate-200 mt-1">
+              <p className="text-lg font-bold text-light-text-main dark:text-text-main mt-1">
                 {formatDate(campanhaAtual.dataInicio)}
               </p>
             </div>
-            <div className="backdrop-blur-sm bg-slate-950/40 dark:bg-surface-elevated/40 border border-slate-800/50 p-4 rounded-xl">
+            <div className="bg-light-surface-elevated/80 dark:bg-surface-elevated/40 border border-light-border dark:border-border p-4 rounded-xl">
               <span className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Fim da Campanha</span>
-              <p className="text-lg font-bold text-light-text-main dark:text-slate-200 mt-1">
+              <p className="text-lg font-bold text-light-text-main dark:text-text-main mt-1">
                 {formatDate(campanhaAtual.dataFim)}
               </p>
             </div>
-            <div className="backdrop-blur-sm bg-slate-950/40 dark:bg-surface-elevated/40 border border-slate-800/50 p-4 rounded-xl">
+            <div className="bg-light-surface-elevated/80 dark:bg-surface-elevated/40 border border-light-border dark:border-border p-4 rounded-xl">
               <span className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Duração do Ciclo</span>
-              <p className="text-lg font-bold text-accent-teal mt-1">
+              <p className="text-lg font-bold text-primary mt-1">
                 {campanhaAtual.duracaoMeses} {campanhaAtual.duracaoMeses === 1 ? 'Mês' : 'Meses'}
               </p>
             </div>
           </div>
         ) : (
-          <div className="backdrop-blur-sm bg-slate-950/40 dark:bg-surface-elevated/40 border border-slate-800/50 p-6 rounded-xl text-center mb-6">
+          <div className="bg-light-surface-elevated/80 dark:bg-surface-elevated/40 border border-light-border dark:border-border p-6 rounded-xl text-center mb-6">
             <p className="text-light-text-muted dark:text-text-muted">Nenhuma campanha ativa configurada no momento.</p>
           </div>
         )}
@@ -229,9 +229,9 @@ export default function CampaignManager() {
               <button 
                 onClick={() => setIsEditCampaignOpen(true)}
                 disabled={isProcessing || tracker.status === 'processing'}
-                className="backdrop-blur-sm bg-slate-800/40 hover:bg-slate-800/70 border border-slate-700/60 text-slate-200 px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 shadow-sm disabled:opacity-50"
+                className="bg-light-surface-elevated hover:bg-light-surface-hover dark:bg-surface-elevated dark:hover:bg-surface-hover border border-light-border dark:border-border text-light-text-main dark:text-text-main px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
               >
-                <Settings size={18} className="text-accent-teal" />
+                <Settings size={18} className="text-primary" />
                 Configurar Regras da Campanha
               </button>
             )}
@@ -241,7 +241,7 @@ export default function CampaignManager() {
               <button 
                 onClick={handleEncerrarCampanha}
                 disabled={isProcessing || tracker.status === 'processing'}
-                className="backdrop-blur-sm bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 shadow-sm disabled:opacity-50"
+                className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-600 dark:text-rose-400 px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
               >
                 <PowerOff size={18} />
                 Encerrar Campanha
@@ -252,7 +252,7 @@ export default function CampaignManager() {
             <button 
               onClick={handleProcessarCalculos}
               disabled={isProcessing || tracker.status === 'processing'}
-              className={`bg-accent-teal hover:bg-accent-teal/90 text-white px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-accent-teal/20 ${!isModerador ? 'md:col-span-3' : ''}`}
+              className={`bg-primary hover:bg-primary-dark text-background dark:text-background px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20 cursor-pointer ${!isModerador ? 'md:col-span-3' : ''}`}
             >
               <RefreshCw size={18} className={(isProcessing || tracker.status === 'processing') ? 'animate-spin' : ''} />
               {(isProcessing || tracker.status === 'processing') ? 'Calculando...' : 'Atualizar Pontuações'}
@@ -262,7 +262,7 @@ export default function CampaignManager() {
           isModerador && (
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="mt-4 bg-accent-teal hover:bg-accent-teal/90 text-white px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-md shadow-accent-teal/20"
+              className="mt-4 bg-primary hover:bg-primary-dark text-background dark:text-background px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-md shadow-primary/20 cursor-pointer"
             >
               <Plus size={20} />
               Nova Campanha
@@ -281,7 +281,7 @@ export default function CampaignManager() {
                   Atenção: Ação Irreversível
                 </h3>
               ) : (
-                <h3 className="text-2xl font-bold text-accent-teal flex items-center gap-2">
+                <h3 className="text-2xl font-bold text-primary flex items-center gap-2">
                   <Calendar />
                   Configurar Nova Campanha
                 </h3>
@@ -300,7 +300,7 @@ export default function CampaignManager() {
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Nova Data de Início</label>
                   <input 
                     type="date" 
-                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-borderStrong dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal"
+                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-borderStrong dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     value={dataInicio}
                     onChange={(e) => setDataInicio(e.target.value)}
                   />
@@ -308,7 +308,7 @@ export default function CampaignManager() {
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Duração (Meses)</label>
                   <select
-                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-borderStrong dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal cursor-pointer"
+                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-borderStrong dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
                     value={duracaoMeses}
                     onChange={(e) => setDuracaoMeses(Number(e.target.value))}
                   >

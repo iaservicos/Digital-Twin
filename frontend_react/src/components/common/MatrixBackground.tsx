@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { themeColors, hexToRgba } from '../../../tailwind.config.js';
 
 interface MatrixBackgroundProps {
   /** Opacidade global da camada de animação (padrão: 0.4 conforme diretriz) */
@@ -38,15 +39,18 @@ export default function MatrixBackground({
     // Conjunto de caracteres tecnológicos: Binários, Katakana e operadores cibernéticos
     const CHARS = '01010101アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF+-*/<>=#$%&@';
     
-    // Paleta de cores oficial do ecossistema Positivo / Brilha+
+    const primary = themeColors.dark.primary;
+    const bgDark = themeColors.dark.background;
+
+    // Paleta de cores oficial do ecossistema Positivo / Brilha+ sincronizada com Tailwind
     const PALETTE = {
-      bgFade: 'rgba(5, 8, 17, 0.085)',
+      bgFade: hexToRgba(bgDark, 0.085),
       headColor: '#FFFFFF',
-      headGlow: '#00FFFF',
-      trailBright: '#00FFFF',
-      trailMid: '#06b6d4',
-      trailDark: '#0284c7',
-      trailDim: 'rgba(8, 51, 68, 0.45)',
+      headGlow: primary,
+      trailBright: primary,
+      trailMid: themeColors.dark.primaryDark || primary,
+      trailDark: themeColors.dark.border || '#262626',
+      trailDim: hexToRgba(primary, 0.45),
     };
 
     let columns = 0;
@@ -76,7 +80,7 @@ export default function MatrixBackground({
       }
 
       // Preenche o fundo inicial escuro
-      ctx.fillStyle = '#050811';
+      ctx.fillStyle = bgDark;
       ctx.fillRect(0, 0, width, height);
     };
 

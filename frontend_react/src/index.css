@@ -3,104 +3,37 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ========================================================================= */
-/* ESTILOS BASE E UTILITÁRIOS GLOBAIS                                        */
-/* Toda a paleta de cores é configurada no arquivo: tailwind.config.js      */
-/* ========================================================================= */
-html,
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+@layer base {
+  html,
+  body {
+    font-family: 'Montserrat', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
 }
 
+/* ==========================================================================
+   OCULTAÇÃO GLOBAL E DEFINITIVA DE BARRAS DE ROLAGEM (HORIZONTAL E VERTICAL)
+   - Mantém 100% da rolagem ativa via mousewheel, trackpad, touch e teclado
+   - Remove trilhos, polegares e botões visuais em todos os navegadores
+   ========================================================================== */
+html,
+body,
+*,
+*::before,
+*::after {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+::-webkit-scrollbar,
+*::-webkit-scrollbar,
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
-  display: none;
-}
-
-/* Utilitários de Grid de Fundo */
-.bg-grid-pattern {
-  background-color: #040d1c;
-  background-image: 
-    radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.04) 0%, transparent 50%),
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 100% 100%, 40px 40px, 40px 40px;
-  background-position: center center;
-}
-
-.bg-grid-pattern-light {
-  background-color: #f8fafc;
-  background-image: 
-    radial-gradient(circle at 50% 50%, rgba(8, 145, 178, 0.04) 0%, transparent 50%),
-    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
-  background-size: 100% 100%, 40px 40px, 40px 40px;
-  background-position: center center;
-}
-
-/* Esconder barra de rolagem mas permitir scrolar no mobile */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Chrome autofill background override for dark mode */
-.dark-autofill {
-  caret-color: #e2e8f0 !important;
-}
-
-.dark-autofill:-webkit-autofill,
-.dark-autofill:-webkit-autofill:hover, 
-.dark-autofill:-webkit-autofill:focus, 
-.dark-autofill:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
-  -webkit-text-fill-color: #e2e8f0 !important;
-  transition: background-color 5000s ease-in-out 0s;
-}
-
-/* Logo Brilha+ Styles */
-.neon-glow {
-  text-shadow: 
-    0 0 10px rgba(34, 211, 238, 0.8), 
-    0 0 20px rgba(34, 211, 238, 0.5), 
-    0 0 40px rgba(34, 211, 238, 0.3);
-}
-
-.plus-sign {
-  background: linear-gradient(135deg, #67e8f9 0%, #0891b2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  display: inline-block;
-}
-
-.logo-container {
-  position: relative;
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
-.glow-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, rgba(34, 211, 238, 0) 70%);
-  z-index: 0;
-  filter: blur(20px);
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
 }

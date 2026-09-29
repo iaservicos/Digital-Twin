@@ -76,7 +76,7 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-teal"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -86,17 +86,17 @@ export default function DashboardScreen() {
       {isSupervisorOrAdmin && rankingOriginal.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 bg-light-surface dark:bg-surface/50 border border-light-borderStrong dark:border-border rounded-2xl px-4 py-2.5 shadow-sm">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
+            <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
               Modo Gestor
             </span>
-            <span className="text-xs text-light-text-secondary dark:text-slate-300 font-medium">
+            <span className="text-xs text-light-text-secondary dark:text-text-muted font-medium">
               Inspecionando Técnico:
             </span>
           </div>
           <select
             value={activeMatricula}
             onChange={(e) => setSelectedMatricula(e.target.value)}
-            className="bg-light-background dark:bg-slate-800 text-light-text-main dark:text-slate-200 text-xs font-bold rounded-xl px-3 py-1.5 border border-light-borderStrong dark:border-slate-700 focus:outline-none focus:border-cyan-400 cursor-pointer"
+            className="bg-light-background dark:bg-surface text-light-text-main dark:text-text-main text-xs font-bold rounded-xl px-3 py-1.5 border border-light-borderStrong dark:border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
           >
             {rankingOriginal.map((r: any) => (
               <option key={r.matricula || r.idTecnico} value={String(r.matricula)}>

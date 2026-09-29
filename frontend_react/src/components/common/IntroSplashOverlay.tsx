@@ -116,7 +116,7 @@ export default function IntroSplashOverlay({ onFinish }: IntroSplashOverlayProps
 
       {/* Camada de Flash Cibernético (Cyber Flare) disparada na transição de saída */}
       {isExiting && (
-        <div className="absolute inset-0 bg-cyan-400/25 z-40 animate-pulse pointer-events-none transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-primary/25 z-40 animate-pulse pointer-events-none transition-opacity duration-500" />
       )}
 
 

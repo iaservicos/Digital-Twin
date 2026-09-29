@@ -19,6 +19,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { toTitleCase } from '../../utils/stringFormatters';
+import { BentoCard } from '../ui/BentoCard';
 
 interface AdminRankingTableProps {
   tecnicosVisiveis: any[];
@@ -137,7 +138,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
   };
 
   return (
-    <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-[24px] p-5 md:p-6 shadow-xl space-y-5">
+    <BentoCard className="p-5 md:p-6 shadow-xl space-y-5">
       
       {/* 1. CABEÇALHO DO RANKING & TÍTULO */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-light-borderStrong/60 dark:border-border/60">
@@ -146,13 +147,13 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
             <Trophy size={22} />
           </div>
           <div>
-            <h2 className="text-lg md:text-xl font-black text-light-text-main dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <h2 className="text-lg md:text-xl font-black text-light-text-main dark:text-text-main tracking-tight flex items-center gap-2">
               Ranking de Pontos dos Técnicos
-              <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
                 {filteredAndSortedList.length} {filteredAndSortedList.length === 1 ? 'técnico' : 'técnicos'}
               </span>
             </h2>
-            <p className="text-xs text-light-text-muted dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5">
               Classificação geral e matriz de KPIs sob a supervisão. Clique em qualquer colaborador para ver o dashboard individual.
             </p>
           </div>
@@ -160,7 +161,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
 
         {/* Busca Rápida na Tabela */}
         <div className="relative w-full lg:w-72">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
           <input
             type="text"
             placeholder="Filtrar técnico na tabela..."
@@ -169,7 +170,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-slate-200 text-xs font-semibold rounded-xl pl-9 pr-3 py-2.5 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all shadow-inner"
+            className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl pl-9 pr-3 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all shadow-inner"
           />
         </div>
       </div>
@@ -179,8 +180,8 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
         
         {/* Filtros à Esquerda */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
-            <SlidersHorizontal size={13} className="text-cyan-400" />
+          <span className="text-[11px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider flex items-center gap-1.5 mr-1">
+            <SlidersHorizontal size={13} className="text-primary" />
             Filtros:
           </span>
 
@@ -192,7 +193,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
                 onSelectEquipe(e.target.value);
                 setCurrentPage(1);
               }}
-              className="appearance-none bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border text-slate-200 text-xs font-semibold rounded-xl py-1.5 pl-3 pr-8 focus:border-cyan-500/60 outline-none transition-all"
+              className="appearance-none bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl py-1.5 pl-3 pr-8 focus:border-primary outline-none transition-all cursor-pointer"
             >
               <option value="all">Todas as Bases ({basesDisponiveis.length})</option>
               {basesDisponiveis.map(b => (
@@ -201,7 +202,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
                 </option>
               ))}
             </select>
-            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
           </div>
 
           {/* Filtro / Ordenação por KPI */}
@@ -212,7 +213,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
                 setKpiSort(e.target.value as any);
                 setCurrentPage(1);
               }}
-              className="appearance-none bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border text-cyan-400 text-xs font-bold rounded-xl py-1.5 pl-3 pr-8 focus:border-cyan-500/60 outline-none transition-all"
+              className="appearance-none bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border text-primary text-xs font-bold rounded-xl py-1.5 pl-3 pr-8 focus:border-primary outline-none transition-all cursor-pointer"
             >
               <option value="PONTOS">🏆 Ordenar: Pontos Total</option>
               <option value="SLA">⚡ Ordenar: Maior SLA</option>
@@ -221,18 +222,18 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
               <option value="PERDAS">🛡️ Ordenar: Menor Perda de SLA</option>
               <option value="PROD">📦 Ordenar: Maior Produtividade</option>
             </select>
-            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cyan-400 pointer-events-none" />
+            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary pointer-events-none" />
           </div>
         </div>
 
         {/* Filtro de Elegibilidade à Direita */}
-        <div className="inline-flex bg-slate-900/80 p-1 rounded-xl border border-border">
+        <div className="inline-flex bg-light-surface dark:bg-surface-elevated p-1 rounded-xl border border-light-borderStrong/60 dark:border-border">
           <button
             onClick={() => { setElegibilidadeFilter('TODOS'); setCurrentPage(1); }}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               elegibilidadeFilter === 'TODOS'
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
             }`}
           >
             Todos ({rankingList.length})
@@ -242,7 +243,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               elegibilidadeFilter === 'ELEGIVEIS'
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
             }`}
           >
             Elegíveis ({rankingList.filter(i => i.elegivel).length})
@@ -252,7 +253,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               elegibilidadeFilter === 'INELEGIVEIS'
                 ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
             }`}
           >
             Inelegíveis ({rankingList.filter(i => !i.elegivel).length})
@@ -261,10 +262,10 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
       </div>
 
       {/* 3. TABELA DE RANKING COM DESIGN CYBER CIANO POSITIVO */}
-      <div className="overflow-x-auto rounded-2xl border border-light-borderStrong dark:border-border">
+      <div className="overflow-x-auto scrollbar-hide rounded-2xl border border-light-borderStrong dark:border-border">
         <table className="w-full text-left border-collapse min-w-[950px]">
           <thead>
-            <tr className="bg-light-background dark:bg-input-bg text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-light-borderStrong dark:border-border">
+            <tr className="bg-light-background dark:bg-input-bg text-light-text-muted dark:text-text-muted text-[11px] font-bold uppercase tracking-wider border-b border-light-borderStrong dark:border-border">
               <th className="py-3 px-4 text-center w-16">#</th>
               <th className="py-3 px-4">Técnico</th>
               <th className="py-3 px-4 text-center">Pontos Total</th>
@@ -280,9 +281,9 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
           <tbody className="divide-y divide-light-borderStrong/60 dark:divide-border/60 text-xs">
             {paginatedList.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-12 text-center text-slate-400">
+                <td colSpan={10} className="py-12 text-center text-light-text-muted dark:text-text-muted">
                   <p className="text-sm font-semibold">Nenhum técnico encontrado com os filtros aplicados.</p>
-                  <p className="text-xs text-slate-500 mt-1">Tente ajustar a busca ou alterar a base selecionada.</p>
+                  <p className="text-xs text-light-text-muted/70 dark:text-text-muted/70 mt-1">Tente ajustar a busca ou alterar a base selecionada.</p>
                 </td>
               </tr>
             ) : (
@@ -291,7 +292,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
                 
                 // Formatação de medalhas para o top 3
                 let rankBadge = (
-                  <span className="w-7 h-7 rounded-full bg-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center mx-auto border border-slate-700">
+                  <span className="w-7 h-7 rounded-full bg-light-surface dark:bg-surface-elevated text-light-text-muted dark:text-text-muted font-bold text-xs flex items-center justify-center mx-auto border border-light-borderStrong dark:border-border">
                     {globalRank}
                   </span>
                 );
@@ -303,7 +304,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
                   );
                 } else if (globalRank === 2) {
                   rankBadge = (
-                    <span className="w-7 h-7 rounded-full bg-slate-300/20 text-slate-200 font-black text-xs flex items-center justify-center mx-auto border border-slate-300/40">
+                    <span className="w-7 h-7 rounded-full bg-light-border/40 text-light-text-secondary dark:text-text-muted font-black text-xs flex items-center justify-center mx-auto border border-light-borderStrong dark:border-border">
                       🥈
                     </span>
                   );
@@ -319,7 +320,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
                   <tr
                     key={item.idTecnico + '-' + item.matricula}
                     onClick={() => onSelectTecnico(item.rawObj)}
-                    className="hover:bg-cyan-500/5 transition-colors cursor-pointer group"
+                    className="hover:bg-primary/5 transition-colors cursor-pointer group"
                     title={`Clique para abrir o Dashboard de ${item.nomeCompleto}`}
                   >
                     {/* 1. Posição */}
@@ -330,14 +331,14 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
                     {/* 2. Técnico & Base */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
                           {item.nomeCompleto.charAt(0).toUpperCase()}
                         </div>
                         <div className="truncate max-w-[200px] sm:max-w-xs">
-                          <p className="font-bold text-light-text-main dark:text-slate-100 group-hover:text-cyan-400 transition-colors truncate">
+                          <p className="font-bold text-light-text-main dark:text-text-main group-hover:text-primary transition-colors truncate">
                             {toTitleCase(item.nomeCompleto)}
                           </p>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium mt-0.5">
+                          <div className="flex items-center gap-2 text-[10px] text-light-text-muted dark:text-text-muted font-medium mt-0.5">
                             <span className="font-mono">Mat: {item.matricula || 'S/M'}</span>
                             <span>•</span>
                             <span className="truncate">{item.base}</span>
@@ -348,17 +349,17 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
 
                     {/* 3. Pontos Total */}
                     <td className="py-3 px-4 text-center">
-                      <span className="font-black text-base text-light-text-main dark:text-slate-100">
+                      <span className="font-black text-base text-light-text-main dark:text-text-main">
                         {item.pontosTotal.toFixed(1)}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-normal ml-1">pts</span>
+                      <span className="text-[10px] text-light-text-muted dark:text-text-muted font-normal ml-1">pts</span>
                     </td>
 
                     {/* 4. SLA */}
                     <td className="py-3 px-4 text-center">
                       <span className={`inline-flex px-2 py-0.5 rounded-full font-bold text-[11px] ${
                         item.percentualSla >= 90.0 
-                          ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' 
+                          ? 'bg-primary/15 text-primary border border-primary/30' 
                           : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                       }`}>
                         {item.percentualSla.toFixed(1)}%
@@ -399,7 +400,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
                     </td>
 
                     {/* 8. Volume de Produtividade */}
-                    <td className="py-3 px-4 text-center font-bold text-slate-300">
+                    <td className="py-3 px-4 text-center font-bold text-light-text-secondary dark:text-text-main">
                       {item.volumeChamados}
                     </td>
 
@@ -426,7 +427,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
                           e.stopPropagation();
                           onSelectTecnico(item.rawObj);
                         }}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer group-hover:translate-x-0.5 transition-transform"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-light hover:underline cursor-pointer group-hover:translate-x-0.5 transition-transform"
                       >
                         Dashboard
                         <ArrowRight size={13} />
@@ -442,29 +443,29 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
 
       {/* 4. CONTROLES DE PAGINAÇÃO */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-slate-400">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-light-text-muted dark:text-text-muted">
           <p>
-            Exibindo <span className="font-bold text-slate-200">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-bold text-slate-200">{Math.min(currentPage * itemsPerPage, filteredAndSortedList.length)}</span> de <span className="font-bold text-slate-200">{filteredAndSortedList.length}</span> técnicos
+            Exibindo <span className="font-bold text-light-text-main dark:text-text-main">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-bold text-light-text-main dark:text-text-main">{Math.min(currentPage * itemsPerPage, filteredAndSortedList.length)}</span> de <span className="font-bold text-light-text-main dark:text-text-main">{filteredAndSortedList.length}</span> técnicos
           </p>
 
           <div className="flex items-center gap-1">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-slate-300"
+              className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-light-border/40 dark:hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-light-text-main dark:text-text-main"
               title="Página Anterior"
             >
               <ChevronLeft size={16} />
             </button>
             
-            <div className="px-3 py-1 font-bold text-slate-200 bg-slate-900 border border-border rounded-xl">
+            <div className="px-3 py-1 font-bold text-light-text-main dark:text-text-main bg-light-surface dark:bg-input-bg border border-light-borderStrong dark:border-border rounded-xl">
               {currentPage} / {totalPages}
             </div>
 
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-slate-300"
+              className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-light-border/40 dark:hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-light-text-main dark:text-text-main"
               title="Próxima Página"
             >
               <ChevronRight size={16} />
@@ -473,6 +474,6 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
         </div>
       )}
 
-    </div>
+    </BentoCard>
   );
 };

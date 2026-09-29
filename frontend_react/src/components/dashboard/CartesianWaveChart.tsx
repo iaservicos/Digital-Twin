@@ -24,9 +24,9 @@ export default function CartesianWaveChart({
 }: CartesianWaveChartProps) {
   const { theme } = useThemeStore();
   const themeTokens = theme === 'light' ? THEME_COLORS.light : THEME_COLORS.dark;
-  const strokeColor = color || themeTokens.cyanNeon;
-  const secondaryColor = themeTokens.cyanSecondary;
-  const borderColor = themeTokens.border;
+  const strokeColor = color || (themeTokens as any).chart || themeTokens.primary || themeTokens.cyanNeon;
+  const secondaryColor = (themeTokens as any).chart || themeTokens.primary || themeTokens.cyanSecondary;
+  const gridColor = (themeTokens as any).chartGrid || themeTokens.border;
   const surfaceColor = themeTokens.surface;
 
   if (!data || data.length === 0) {
@@ -126,15 +126,15 @@ export default function CartesianWaveChart({
                 y1={y}
                 x2={margin.left + plotWidth}
                 y2={y}
-                stroke={borderColor}
+                stroke={gridColor}
                 strokeDasharray={idx === 2 ? '0' : '3 3'}
-                strokeWidth={idx === 2 ? '1.2' : '0.8'}
+                strokeWidth={idx === 2 ? '1.5' : '1.0'}
               />
               <text
                 x={margin.left - 6}
                 y={y + 3}
                 textAnchor="end"
-                className="fill-light-text-muted dark:fill-slate-400"
+                className="fill-light-text-muted dark:fill-text-muted"
                 style={{ fontSize: '8px', fontWeight: 600, fontFamily: 'monospace' }}
               >
                 {val}
@@ -149,8 +149,8 @@ export default function CartesianWaveChart({
           y1={margin.top}
           x2={margin.left}
           y2={bottomY}
-          stroke={borderColor}
-          strokeWidth="1.2"
+          stroke={gridColor}
+          strokeWidth="1.5"
         />
 
         {/* Área preenchida com gradiente sob a curva */}
@@ -174,7 +174,7 @@ export default function CartesianWaveChart({
             x={pt.x}
             y={viewBoxHeight - 4}
             textAnchor="middle"
-            className="fill-light-text-muted dark:fill-slate-400"
+            className="fill-light-text-muted dark:fill-text-muted"
             style={{ fontSize: '8px', fontWeight: 600 }}
           >
             {pt.label}

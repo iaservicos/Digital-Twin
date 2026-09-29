@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import CartesianWaveChart from './CartesianWaveChart';
+import { BentoCard } from '../ui/BentoCard';
 import { toTitleCase, formatLocalEquipe } from '../../utils/stringFormatters';
 import { api } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 import { 
   Search, 
   Bell, 
@@ -58,11 +60,17 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
   onOpenElegivelModal,
   onOpenInelegivelModal
 }) => {
+  const { user } = useAuthStore();
+  const canToggleTeamReincidencias = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador' || user?.role === 'ADMINISTRADOR' || user?.role === 'SUPERVISOR' || user?.role === 'MODERADOR';
+  const [reincidenciaMode, setReincidenciaMode] = useState<'individual' | 'equipe'>('individual');
   const [searchTerm, setSearchTerm] = useState('');
 
   const percentualConsumo = displayMetricas.percentualEficienciaPecas || 0;
   const percentualSla = displayMetricas.percentualSla || 0;
   const percentualReincidencia = displayMetricas.percentualReincidencia || 0;
+  const percentualReincidenciaFinal = reincidenciaMode === 'equipe'
+    ? (displayMetricas.percentualReincidenciaEquipe !== undefined ? displayMetricas.percentualReincidenciaEquipe : percentualReincidencia)
+    : percentualReincidencia;
   const percentualPerdidos = displayMetricas.percentualPerdidos || 0;
   const pontuacaoTotal = displayMetricas.pontosTotal || 0;
 
@@ -120,13 +128,23 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
   useEffect(() => {
     let isMounted = true;
     const fetchReincidentesSemanais = async () => {
-      if (targetTecnicoId === undefined || targetTecnicoId === null) return;
       try {
         const params: Record<string, string> = {};
         if (selectedMonth && selectedMonth !== 'Campanha Inteira' && selectedMonth !== 'Média Final') {
           params.mesAno = selectedMonth;
         }
-        const res = await api.get(`/dashboard/tecnico/${targetTecnicoId}/reincidentes-semanais`, { params });
+
+        let endpoint = `/dashboard/tecnico/${targetTecnicoId}/reincidentes-semanais`;
+        if (reincidenciaMode === 'equipe') {
+          endpoint = '/dashboard/tecnico/0/reincidentes-semanais';
+          if (user?.localEquipe) {
+            params.equipe = user.localEquipe;
+          }
+        } else if (targetTecnicoId === undefined || targetTecnicoId === null) {
+          return;
+        }
+
+        const res = await api.get(endpoint, { params });
         if (isMounted && Array.isArray(res.data) && res.data.length > 0) {
           setReincidenciasChartData(res.data);
         }
@@ -136,7 +154,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
     };
     fetchReincidentesSemanais();
     return () => { isMounted = false; };
-  }, [targetTecnicoId, selectedMonth]);
+  }, [targetTecnicoId, selectedMonth, reincidenciaMode, user?.localEquipe]);
 
   // Distribuição REAL das 4 categorias de peças elegíveis (Tela LCD, SSD, HD, PLM)
   const [pecasDistribuicao, setPecasDistribuicao] = useState<{
@@ -310,7 +328,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
             placeholder="Buscar chamado, métrica, indicador..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong dark:border-border rounded-full pl-10 pr-4 py-2 text-xs text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+            className="w-full bg-light-surface/65 dark:bg-surface/35 backdrop-blur-bento border border-light-borderStrong/70 dark:border-border/80 rounded-full pl-10 pr-4 py-2 text-xs text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
           />
         </div>
 
@@ -335,11 +353,11 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           )}
 
           <button 
-            className="relative p-2.5 rounded-full bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong dark:border-border text-light-text-muted dark:text-text-muted hover:text-primary transition-colors cursor-pointer"
+            className="relative p-2.5 rounded-full bg-light-surface/65 dark:bg-surface/35 backdrop-blur-bento border border-light-borderStrong/70 dark:border-border/80 text-light-text-muted dark:text-text-muted hover:text-primary hover:border-primary/50 transition-colors cursor-pointer"
             title="Notificações"
           >
             <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_#22d3ee]"></span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full shadow-glow-primary-sm"></span>
           </button>
         </div>
       </header>
@@ -353,18 +371,24 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
         {/* --------------------------------------------------------------------- */}
         {/* CARD 1 (Linha 1, Col 1): Pontuação Global                             */}
         {/* --------------------------------------------------------------------- */}
-        <div 
+        <BentoCard 
+          hoverable
           onClick={onOpenDetailsModal}
-          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all cursor-pointer group relative overflow-hidden"
+          className="min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between"
           title="Clique para ver o detalhamento completo dos 6 KPIs"
         >
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-light-text-main dark:text-text-main">
               Pontuação Global
             </h3>
-            <span className="text-xs text-primary font-semibold group-hover:underline flex items-center gap-0.5">
-              Detalhes <ArrowUpRight size={14} />
-            </span>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onOpenDetailsModal(); }}
+              className="w-8 h-8 rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
+              title="Ver detalhamento completo dos 6 KPIs"
+            >
+              <ArrowUpRight size={16} />
+            </button>
           </div>
 
           {/* Gauge Circular Central com Gap Elegante */}
@@ -376,7 +400,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                   cx="50"
                   cy="50"
                   r={radius}
-                  className="text-slate-200 dark:text-surface-hover transition-all duration-1000 ease-out"
+                  className="text-light-chart-track dark:text-chart-track transition-all duration-1000 ease-out"
                   strokeWidth="10"
                   stroke="currentColor"
                   fill="transparent"
@@ -385,19 +409,21 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                   strokeDashoffset={-(activeLength + gap)}
                 />
                 {/* Arco Ativo de Pontuação (Progresso com gap e pontas arredondadas) */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r={radius}
-                  className="text-primary transition-all duration-1000 ease-out"
-                  strokeWidth="10"
-                  strokeDasharray={`${activeLength} ${circumference}`}
-                  strokeDashoffset={0}
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="transparent"
-                  style={{ filter: 'drop-shadow(0 0 6px rgba(34, 211, 238, 0.4))' }}
-                />
+                {activeLength > 0 && (
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r={radius}
+                    className="text-light-chart dark:text-chart transition-all duration-1000 ease-out"
+                    strokeWidth="10"
+                    strokeDasharray={`${activeLength} ${circumference}`}
+                    strokeDashoffset={0}
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="transparent"
+                    style={{ filter: 'drop-shadow(0 0 2px currentColor)' }}
+                  />
+                )}
               </svg>
               <div className="absolute flex flex-col items-center justify-center">
                 <span className="text-4xl 2xl:text-5xl font-black text-light-text-main dark:text-text-main tracking-tight">
@@ -414,7 +440,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           <div className="space-y-1.5 pt-2 border-t border-light-border dark:border-border/60">
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_6px_#22d3ee]"></span>
+                <span className="w-2 h-2 rounded-full bg-light-chart dark:bg-chart shadow-sm"></span>
                 <span className="text-light-text-secondary dark:text-text-muted font-medium">SLA no Prazo</span>
               </div>
               <span className="font-bold text-light-text-main dark:text-text-main">{percentualSla.toFixed(1)}%</span>
@@ -427,13 +453,13 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
               <span className="font-bold text-light-text-main dark:text-text-main">{percentualConsumo.toFixed(1)}%</span>
             </div>
           </div>
-        </div>
+        </BentoCard>
 
         {/* --------------------------------------------------------------------- */}
         {/* CARD 2 (Linha 1, Col 2): SLA de Atendimento                           */}
         {/* --------------------------------------------------------------------- */}
-        <div 
-          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all relative"
+        <BentoCard 
+          className="min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-light-text-main dark:text-text-main">
@@ -497,17 +523,15 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
               <span className="text-light-text-muted dark:text-text-muted text-[10px]">Meta: ≥ 90%</span>
             </div>
           </div>
-        </div>
+        </BentoCard>
 
         {/* --------------------------------------------------------------------- */}
         {/* CARD 3 (Linha 1, Col 3): Chamados Encerrados & Mini Calendário        */}
         {/* --------------------------------------------------------------------- */}
-        <div 
-          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between relative overflow-hidden group shadow-sm hover:border-primary/40 transition-all"
+        <BentoCard 
+          hoverable
+          className="min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between"
         >
-          {/* Textura sutil geométrica / cyber grid */}
-          <div className="absolute inset-0 opacity-10 dark:opacity-15 pointer-events-none bg-[radial-gradient(#22d3ee_1px,transparent_1px)] [background-size:16px_16px]"></div>
-
           {/* Cabeçalho do Card 3: Título "Chamados Encerrados" + Ações */}
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-2">
@@ -524,8 +548,8 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
               </span>
               <button
                 type="button"
-                onClick={() => onOpenHistoricoModal(selectedDate)}
-                className="p-1 text-primary hover:text-primary-dark transition-colors cursor-pointer"
+                onClick={(e) => { e.stopPropagation(); onOpenHistoricoModal(selectedDate); }}
+                className="w-8 h-8 rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
                 title="Ver lista de chamados"
               >
                 <ArrowUpRight size={16} />
@@ -678,14 +702,15 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
               <ArrowUpRight size={14} />
             </div>
           </div>
-        </div>
+        </BentoCard>
 
         {/* --------------------------------------------------------------------- */}
         {/* CARD 4 (Linha 2, Col 1): Perdas de SLA (Falhas de Gestão & Transf.)   */}
         {/* --------------------------------------------------------------------- */}
-        <div 
+        <BentoCard 
+          hoverable
           onClick={onOpenPerdasModal}
-          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-amber-500/50 hover:shadow-xl hover:shadow-amber-500/10 transition-all cursor-pointer group"
+          className="min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-amber-500/50 hover:shadow-amber-500/10"
           title="Chamados com erro de gestão ou transferência que geraram perda de SLA (Meta: ≤ 1.0%)"
         >
           <div className="flex items-center justify-between">
@@ -695,9 +720,14 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                 Perdas de SLA
               </h3>
             </div>
-            <span className="text-xs text-amber-400 font-semibold group-hover:underline flex items-center gap-0.5">
-              Detalhes <ArrowUpRight size={13} />
-            </span>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onOpenPerdasModal(); }}
+              className="w-8 h-8 rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-amber-500/20 text-light-text-muted dark:text-text-muted hover:text-amber-400 flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
+              title="Ver chamados com perda de SLA"
+            >
+              <ArrowUpRight size={16} />
+            </button>
           </div>
 
           <div className="pt-2">
@@ -720,7 +750,6 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           <div className="w-full pt-2">
             <CartesianWaveChart 
               data={perdasChartData}
-              color="#22d3ee"
               gradientId="technicianPerdasGrad"
               height="7.5rem"
             />
@@ -738,14 +767,15 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
             )}
             <span className="text-light-text-muted dark:text-text-muted text-[10px]">Meta: ≤ 1.0%</span>
           </div>
-        </div>
+        </BentoCard>
 
         {/* --------------------------------------------------------------------- */}
         {/* CARD 5 (Linha 2, Col 2): Reincidências (Taxa de Retorno em 30 Dias)   */}
         {/* --------------------------------------------------------------------- */}
-        <div 
+        <BentoCard 
+          hoverable
           onClick={onOpenReincidentesModal}
-          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all cursor-pointer group overflow-hidden"
+          className="min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between"
           title="Clique para ver a análise detalhada de reincidências"
         >
           <div className="flex items-center justify-between">
@@ -755,24 +785,65 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                 Reincidências
               </h3>
             </div>
-            <span className="text-xs text-primary font-semibold group-hover:underline flex items-center gap-0.5">
-              Detalhes <ArrowUpRight size={13} />
-            </span>
+            <div className="flex items-center gap-2">
+              {canToggleTeamReincidencias && (
+                <div 
+                  onClick={(e) => e.stopPropagation()} 
+                  className="flex items-center p-0.5 rounded-lg bg-light-surface-elevated dark:bg-surface border border-light-border dark:border-border text-[10px] font-bold"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setReincidenciaMode('individual')}
+                    className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                      reincidenciaMode === 'individual'
+                        ? 'bg-primary text-background shadow-xs'
+                        : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
+                    }`}
+                  >
+                    Individual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReincidenciaMode('equipe')}
+                    className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                      reincidenciaMode === 'equipe'
+                        ? 'bg-primary text-background shadow-xs'
+                        : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
+                    }`}
+                  >
+                    Equipe
+                  </button>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onOpenReincidentesModal(); }}
+                className="w-8 h-8 rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
+                title="Ver análise detalhada de reincidências"
+              >
+                <ArrowUpRight size={16} />
+              </button>
+            </div>
           </div>
 
           <div className="pt-2">
             <div className="flex items-baseline gap-2">
               <p className="text-3xl font-black text-light-text-main dark:text-text-main tracking-tight">
-                {percentualReincidencia.toFixed(1)}%
+                {percentualReincidenciaFinal.toFixed(1)}%
               </p>
-              {displayMetricas.reincidenciaQtd !== undefined && (
+              {reincidenciaMode === 'individual' && displayMetricas.reincidenciaQtd !== undefined && (
                 <span className="text-xs text-light-text-muted dark:text-text-muted font-semibold">
                   ({displayMetricas.reincidenciaQtd} retornos)
                 </span>
               )}
+              {reincidenciaMode === 'equipe' && displayMetricas.reincidenciaEquipeQtd !== undefined && (
+                <span className="text-xs text-light-text-muted dark:text-text-muted font-semibold">
+                  ({displayMetricas.reincidenciaEquipeQtd} retornos)
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-light-text-muted dark:text-text-muted font-medium">
-              Taxa de Retorno em 30 Dias (Meta: &lt; 7.0%)
+              {reincidenciaMode === 'equipe' ? 'Taxa de Retorno da Equipe em 30 Dias (Meta: < 7.0%)' : 'Taxa de Retorno em 30 Dias (Meta: < 7.0%)'}
             </p>
           </div>
 
@@ -780,7 +851,6 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           <div className="w-full pt-2">
             <CartesianWaveChart 
               data={reincidenciasChartData}
-              color="#22d3ee"
               gradientId="technicianReincidenciasGrad"
               height="7.5rem"
             />
@@ -792,14 +862,15 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
             </span>
             <span className="text-light-text-muted dark:text-text-muted text-[10px]">Meta: &lt; 7.0%</span>
           </div>
-        </div>
+        </BentoCard>
 
         {/* --------------------------------------------------------------------- */}
         {/* CARD 6 (Linha 2, Col 3): Consumo de Peças (Tela LCD, SSD, HD, PLM)    */}
         {/* --------------------------------------------------------------------- */}
-        <div 
+        <BentoCard 
+          hoverable
           onClick={onOpenPecasModal}
-          className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all cursor-pointer group"
+          className="min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between"
           title="Clique para ver o detalhamento de peças da campanha (Tela LCD, SSD, HD e PLM)"
         >
           <div className="flex items-center justify-between">
@@ -809,9 +880,19 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                 Consumo de Peças
               </h3>
             </div>
-            <span className="text-[11px] text-primary font-bold group-hover:underline">
-              {pecasDistribuicao.totalPecasElegiveis} {pecasDistribuicao.totalPecasElegiveis === 1 ? 'peça aplicada' : 'peças aplicadas'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-primary font-bold">
+                {pecasDistribuicao.totalPecasElegiveis} {pecasDistribuicao.totalPecasElegiveis === 1 ? 'peça aplicada' : 'peças aplicadas'}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onOpenPecasModal(); }}
+                className="w-8 h-8 rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
+                title="Ver detalhamento de peças da campanha"
+              >
+                <ArrowUpRight size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Histograma / Bar Chart Vertical com as 4 Peças Solicitadas: Tela LCD, SSD, HD e PLM */}
@@ -833,9 +914,9 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                     <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md transition-all whitespace-nowrap ${
                       peca.qtd > 0
                         ? isHighlight
-                          ? 'text-primary bg-primary/20 border border-primary/40 shadow-[0_0_8px_rgba(34,211,238,0.3)]'
-                          : 'text-light-text-main dark:text-text-main bg-light-surface-elevated dark:bg-surface border border-light-border dark:border-border'
-                        : 'text-light-text-muted dark:text-slate-500'
+                          ? 'text-white bg-chart shadow-sm'
+                          : 'text-light-text-main dark:text-text-main bg-light-surface/90 dark:bg-surface-elevated border border-light-borderStrong/40 shadow-xs'
+                        : 'text-light-text-muted dark:text-text-muted opacity-60'
                     }`}>
                       {peca.qtd} {peca.qtd === 1 ? 'peça' : 'peças'}
                     </span>
@@ -850,14 +931,14 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                     className={`w-full rounded-t-lg transition-all duration-300 ${
                       peca.qtd > 0
                         ? isHighlight
-                          ? 'bg-primary shadow-[0_0_12px_rgba(34,211,238,0.5)]'
-                          : 'bg-light-surface-elevated dark:bg-surface border border-light-border dark:border-border/60 group-hover/bar:bg-primary/50'
-                        : 'bg-light-surface-hover dark:bg-surface-hover/60 group-hover/bar:bg-primary/30'
+                          ? 'bg-light-chart dark:bg-chart shadow-sm'
+                          : 'bg-light-chart/35 dark:bg-chart/35 hover:bg-light-chart/50 dark:hover:bg-chart/50 transition-colors'
+                        : 'bg-light-chart-track/30 dark:bg-chart-track/30'
                     }`}
                   />
 
                   {/* Rótulo da Peça */}
-                  <span className="text-[9px] text-light-text-muted dark:text-text-muted font-bold uppercase truncate max-w-full group-hover/bar:text-primary transition-colors">
+                  <span className="text-[9px] text-light-text-muted dark:text-text-muted font-bold uppercase truncate max-w-full group-hover/bar:text-light-chart dark:group-hover/bar:text-chart transition-colors">
                     {peca.label}
                   </span>
                 </div>
@@ -866,10 +947,10 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           </div>
 
           <div className="pt-2 border-t border-light-border dark:border-border/60 flex items-center justify-between text-[11px]">
-            <span className="text-light-text-muted dark:text-text-muted">Taxa de Consumo: <b className="text-primary">{percentualConsumo.toFixed(1)}%</b></span>
+            <span className="text-light-text-muted dark:text-text-muted">Taxa de Consumo: <b className="text-light-chart dark:text-chart">{percentualConsumo.toFixed(1)}%</b></span>
             <span className="text-light-text-muted dark:text-text-muted text-[10px]">Meta: ≤ 25.0%</span>
           </div>
-        </div>
+        </BentoCard>
 
       </div>
     </div>

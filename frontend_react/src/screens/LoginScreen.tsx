@@ -80,14 +80,13 @@ export default function LoginScreen() {
 
       <div className="relative z-10 min-h-screen w-full flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24 py-12 px-4 sm:px-6 lg:px-8">
 
-        {/* Coluna Esquerda: Logo Oficial Brilha+ V3 com Animações Originais */}
         <div className="flex flex-col items-center">
-          <div className="logo-container flex items-center justify-center relative pt-2 pb-2">
-            <div className="glow-ring"></div>
+          <div className="animate-float flex items-center justify-center relative pt-2 pb-2">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-primary/20 blur-2xl z-0 pointer-events-none" />
             <img
               src="/Logo/brilha-mais-logo-V3.svg"
               alt="Brilha+ Logo"
-              className="w-[260px] sm:w-[320px] md:w-[400px] lg:w-[440px] h-auto object-contain relative z-10 drop-shadow-[0_0_25px_rgba(34,211,238,0.45)] select-none pointer-events-none"
+              className="w-[260px] sm:w-[320px] md:w-[400px] lg:w-[440px] h-auto object-contain relative z-10 drop-shadow-glow-primary select-none pointer-events-none"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/Logo/brilha-mais-logo-V3-trimmed.png';
               }}
@@ -117,7 +116,7 @@ export default function LoginScreen() {
                 type="text"
                 required
                 autoComplete="username"
-                className="dark-autofill w-full bg-positivo-primary border border-border text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm shadow-inner"
+                className="dark-autofill w-full bg-positivo-primary border border-border text-text-main rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder:text-text-muted text-sm shadow-inner"
                 placeholder="Matrícula"
               />
             </div>
@@ -129,7 +128,7 @@ export default function LoginScreen() {
                 type="password"
                 required
                 autoComplete="current-password"
-                className="dark-autofill w-full bg-positivo-primary border border-border text-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-accent-teal focus:border-accent-teal transition-all placeholder:text-text-muted text-sm shadow-inner"
+                className="dark-autofill w-full bg-positivo-primary border border-border text-text-main rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder:text-text-muted text-sm shadow-inner"
                 placeholder="Senha"
               />
             </div>
@@ -138,7 +137,7 @@ export default function LoginScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-positivo-primary bg-accent-teal hover:bg-primary-light focus:outline-none transition-all shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-positivo-primary bg-primary hover:bg-primary-light focus:outline-none transition-all shadow-glow-primary hover:shadow-glow-primary-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Autenticando...' : 'Entrar'}
               </button>

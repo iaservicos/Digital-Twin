@@ -16,7 +16,7 @@ export const CircularProgress = ({ value, maxValue, color, label, subLabel, isPe
           stroke="currentColor"
           strokeWidth="10"
           fill="transparent"
-          className="text-slate-100 dark:text-light-text-secondary"
+          className="text-chart-track"
         />
         <circle
           cx="56"

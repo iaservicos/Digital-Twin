@@ -269,12 +269,12 @@ export default function ModalChamadosReincidentes({
         {/* HEADER DO MODAL */}
         <div className="p-6 border-b border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 rounded-xl">
+            <div className="p-3 bg-primary/10 border border-primary/20 text-primary rounded-xl">
               <RotateCcw size={24} />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-primary/10 text-primary border border-primary/20">
                   {isSupervisorOrAdmin ? 'VISÃO GERENCIAL' : 'KPI INDIVIDUAL'}
                 </span>
                 {mesFiltroAtivo && (
@@ -295,7 +295,7 @@ export default function ModalChamadosReincidentes({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-slate-100 hover:bg-slate-200 dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer"
+            className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-light-surface-elevated hover:bg-light-surface-hover dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer"
             title="Fechar Modal"
           >
             <X size={20} />
@@ -354,11 +354,11 @@ export default function ModalChamadosReincidentes({
               placeholder="Buscar por chamado, técnico ou defeito..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl pl-9 pr-4 py-2 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-colors shadow-xs"
+              className="w-full bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl pl-9 pr-4 py-2 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors shadow-xs"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 self-end sm:self-auto w-full sm:w-auto overflow-x-auto text-xs">
+          <div className="flex items-center gap-1.5 self-end sm:self-auto w-full sm:w-auto overflow-x-auto scrollbar-hide text-xs">
             <span className="text-[11px] font-bold text-light-text-muted dark:text-text-muted uppercase flex items-center gap-1 mr-1">
               <Filter size={12} />
               Peça:
@@ -367,8 +367,8 @@ export default function ModalChamadosReincidentes({
               onClick={() => setFiltroPeca('TODOS')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 filtroPeca === 'TODOS'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
+                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Todos ({reincidentes.length})
@@ -377,8 +377,8 @@ export default function ModalChamadosReincidentes({
               onClick={() => setFiltroPeca('COM_PECA')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 filtroPeca === 'COM_PECA'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
+                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Com Peça ({totalComPeca})
@@ -387,8 +387,8 @@ export default function ModalChamadosReincidentes({
               onClick={() => setFiltroPeca('SEM_PECA')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 filtroPeca === 'SEM_PECA'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
+                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Sem Peça ({totalSemPeca})
@@ -397,10 +397,10 @@ export default function ModalChamadosReincidentes({
         </div>
 
         {/* CONTEÚDO: LISTA DE CHAMADOS REINCIDENTES */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto scrollbar-hide p-4 sm:p-6 space-y-4">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 text-light-text-muted dark:text-text-muted">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500 mb-3"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3"></div>
               <p className="text-sm font-medium">Carregando chamados reincidentes...</p>
             </div>
           ) : filteredList.length === 0 ? (
@@ -499,7 +499,7 @@ export default function ModalChamadosReincidentes({
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
                               segAnterior === 'Governo'
                                 ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30'
-                                : 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-500/30'
+                                : 'bg-primary/10 text-primary border border-primary/30'
                             }`}>
                               {segAnterior}
                             </span>
@@ -526,11 +526,11 @@ export default function ModalChamadosReincidentes({
                         <div>
                           <span className="text-light-text-muted dark:text-text-muted font-medium block text-[10px] uppercase">Encerramento (1º Atendimento)</span>
                           {item.textoEncerradoAnterior ? (
-                            <div className="text-[11px] text-light-text-secondary dark:text-text-main bg-slate-100/80 dark:bg-background/80 p-2.5 rounded-lg border border-light-borderStrong/60 dark:border-border mt-1 max-h-28 overflow-y-auto pr-1.5 leading-relaxed font-mono select-text">
+                            <div className="text-[11px] text-light-text-secondary dark:text-text-main bg-light-surface-elevated/80 dark:bg-background/80 p-2.5 rounded-lg border border-light-borderStrong/60 dark:border-border mt-1 max-h-28 overflow-y-auto scrollbar-hide pr-1.5 leading-relaxed font-mono select-text">
                               {item.textoEncerradoAnterior}
                             </div>
                           ) : (
-                            <div className="text-[11px] text-light-text-muted dark:text-text-muted italic bg-slate-100/50 dark:bg-background/40 p-2 rounded-lg border border-light-borderStrong/40 dark:border-border/40 mt-1">
+                            <div className="text-[11px] text-light-text-muted dark:text-text-muted italic bg-light-surface-elevated/50 dark:bg-background/40 p-2 rounded-lg border border-light-borderStrong/40 dark:border-border/40 mt-1">
                               Texto de encerramento não registrado.
                             </div>
                           )}
@@ -539,17 +539,17 @@ export default function ModalChamadosReincidentes({
 
                       {/* PEÇA APLICADA (1º ATENDIMENTO) */}
                       <div className="flex items-start gap-1.5 text-[11px] pt-2.5 border-t border-light-borderStrong/40 dark:border-border/40">
-                        <Cpu size={14} className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-cyan-600 dark:text-cyan-400 mt-0.5 shrink-0" : "text-light-text-muted dark:text-text-muted mt-0.5 shrink-0"} />
+                        <Cpu size={14} className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-primary mt-0.5 shrink-0" : "text-light-text-muted dark:text-text-muted mt-0.5 shrink-0"} />
                         <div className="flex flex-col gap-1 w-full">
                           <span className="text-light-text-muted dark:text-text-muted text-[10px] uppercase font-bold">Peça Aplicada (1º Atendimento):</span>
                           {item.subgrupoAnterior && (
                             <div className="flex items-center gap-1">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-primary/10 text-primary border border-primary/20">
                                 Subgrupo: {item.subgrupoAnterior}
                               </span>
                             </div>
                           )}
-                          <strong className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-cyan-700 dark:text-cyan-300 font-medium leading-tight" : "text-light-text-muted dark:text-text-muted font-normal"}>
+                          <strong className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-primary font-medium leading-tight" : "text-light-text-muted dark:text-text-muted font-normal"}>
                             {item.pecaNomeAnterior || (item.aplicadoPecaAnterior === 'Sim' ? 'Sim (Peça Aplicada)' : 'Nenhuma peça aplicada')}
                           </strong>
                         </div>
@@ -557,7 +557,7 @@ export default function ModalChamadosReincidentes({
                     </div>
 
                     {/* COLUNA 2: REINCIDÊNCIA */}
-                    <div className="bg-slate-50 dark:bg-input-bg p-3.5 rounded-xl border border-light-borderStrong/60 dark:border-border/50 space-y-2.5 flex flex-col justify-between">
+                    <div className="bg-light-surface-elevated/50 dark:bg-input-bg p-3.5 rounded-xl border border-light-borderStrong/60 dark:border-border/50 space-y-2.5 flex flex-col justify-between">
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between text-[11px] text-light-text-muted dark:text-text-muted border-b border-light-borderStrong/40 dark:border-border/40 pb-2">
                           <span className="flex items-center gap-1 font-bold text-light-text-main dark:text-text-main">
@@ -591,7 +591,7 @@ export default function ModalChamadosReincidentes({
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
                               segRrc === 'Governo'
                                 ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30'
-                                : 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-500/30'
+                                : 'bg-primary/10 text-primary border border-primary/30'
                             }`}>
                               {segRrc}
                             </span>
@@ -618,11 +618,11 @@ export default function ModalChamadosReincidentes({
                         <div>
                           <span className="text-light-text-muted dark:text-text-muted font-medium block text-[10px] uppercase">Encerramento (Reincidência)</span>
                           {item.textoEncerradoRrc ? (
-                            <div className="text-[11px] text-light-text-secondary dark:text-text-main bg-slate-100/80 dark:bg-background/80 p-2.5 rounded-lg border border-light-borderStrong/60 dark:border-border mt-1 max-h-28 overflow-y-auto pr-1.5 leading-relaxed font-mono select-text">
+                            <div className="text-[11px] text-light-text-secondary dark:text-text-main bg-light-surface-elevated/80 dark:bg-background/80 p-2.5 rounded-lg border border-light-borderStrong/60 dark:border-border mt-1 max-h-28 overflow-y-auto scrollbar-hide pr-1.5 leading-relaxed font-mono select-text">
                               {item.textoEncerradoRrc}
                             </div>
                           ) : (
-                            <div className="text-[11px] text-light-text-muted dark:text-text-muted italic bg-slate-100/50 dark:bg-background/40 p-2 rounded-lg border border-light-borderStrong/40 dark:border-border/40 mt-1">
+                            <div className="text-[11px] text-light-text-muted dark:text-text-muted italic bg-light-surface-elevated/50 dark:bg-background/40 p-2 rounded-lg border border-light-borderStrong/40 dark:border-border/40 mt-1">
                               Texto de encerramento não registrado.
                             </div>
                           )}
@@ -631,17 +631,17 @@ export default function ModalChamadosReincidentes({
 
                       {/* PEÇA APLICADA NA REINCIDÊNCIA */}
                       <div className="flex items-start gap-1.5 text-[11px] pt-2.5 border-t border-light-borderStrong/40 dark:border-border/40">
-                        <Cpu size={14} className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-cyan-600 dark:text-cyan-400 mt-0.5 shrink-0" : "text-light-text-muted dark:text-text-muted mt-0.5 shrink-0"} />
+                        <Cpu size={14} className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-primary mt-0.5 shrink-0" : "text-light-text-muted dark:text-text-muted mt-0.5 shrink-0"} />
                         <div className="flex flex-col gap-1 w-full">
                           <span className="text-light-text-muted dark:text-text-muted text-[10px] uppercase font-bold">Peça Aplicada (Reincidência):</span>
                           {item.subgrupoRrc && (
                             <div className="flex items-center gap-1">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-primary/10 text-primary border border-primary/20">
                                 Subgrupo: {item.subgrupoRrc}
                               </span>
                             </div>
                           )}
-                          <strong className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-cyan-700 dark:text-cyan-300 font-medium leading-tight" : "text-light-text-muted dark:text-text-muted font-normal"}>
+                          <strong className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-primary font-medium leading-tight" : "text-light-text-muted dark:text-text-muted font-normal"}>
                             {item.pecaNomeRrc || (item.aplicadoPecaRrc === 'Sim' ? 'Sim (Peça Aplicada)' : 'Nenhuma peça aplicada')}
                           </strong>
                         </div>
@@ -667,7 +667,7 @@ export default function ModalChamadosReincidentes({
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main font-semibold rounded-xl transition-colors cursor-pointer border border-transparent dark:border-border/50"
+            className="px-5 py-2 bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main font-semibold rounded-xl transition-colors cursor-pointer border border-light-border dark:border-border/50"
           >
             Fechar
           </button>

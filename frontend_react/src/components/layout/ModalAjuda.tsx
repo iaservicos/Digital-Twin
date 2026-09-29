@@ -16,9 +16,9 @@ export default function ModalAjuda({ isOpen, onClose }: ModalAjudaProps) {
         {/* Header */}
         <div className="p-6 border-b border-light-borderStrong dark:border-border flex justify-between items-center bg-light-background dark:bg-background/50">
           <h2 className="text-2xl font-black text-light-text-main dark:text-text-main flex items-center gap-2">
-            <HelpCircle className="text-accent-teal" size={28} /> Central de Ajuda
+            <HelpCircle className="text-primary" size={28} /> Central de Ajuda
           </h2>
-          <button onClick={onClose} className="text-light-text-muted hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <button onClick={onClose} className="text-light-text-muted hover:text-light-text-main dark:hover:text-text-main transition-colors">
             <X size={24} />
           </button>
         </div>
@@ -36,9 +36,9 @@ export default function ModalAjuda({ isOpen, onClose }: ModalAjudaProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Card SLA */}
-            <div className="bg-slate-50 dark:bg-background/50 p-5 rounded-2xl border border-slate-100 dark:border-border/50 hover:border-accent-teal/30 transition-colors">
+            <div className="bg-light-surface-elevated/50 dark:bg-background/50 p-5 rounded-2xl border border-light-border dark:border-border/50 hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-2 mb-3">
-                <Target className="text-accent-teal" size={20} />
+                <Target className="text-primary" size={20} />
                 <h4 className="font-bold text-light-text-main dark:text-text-main">SLA (Equipe)</h4>
               </div>
               <p className="text-sm text-light-text-secondary dark:text-text-muted">
@@ -48,7 +48,7 @@ export default function ModalAjuda({ isOpen, onClose }: ModalAjudaProps) {
             </div>
 
             {/* Card Reincidência */}
-            <div className="bg-slate-50 dark:bg-background/50 p-5 rounded-2xl border border-slate-100 dark:border-border/50 hover:border-status-danger/30 transition-colors">
+            <div className="bg-light-surface-elevated/50 dark:bg-background/50 p-5 rounded-2xl border border-light-border dark:border-border/50 hover:border-status-danger/30 transition-colors">
               <div className="flex items-center gap-2 mb-3">
                 <Info className="text-status-danger" size={20} />
                 <h4 className="font-bold text-light-text-main dark:text-text-main">Reincidência</h4>
@@ -59,9 +59,9 @@ export default function ModalAjuda({ isOpen, onClose }: ModalAjudaProps) {
             </div>
 
             {/* Card Peças */}
-            <div className="bg-slate-50 dark:bg-background/50 p-5 rounded-2xl border border-slate-100 dark:border-border/50 hover:border-cyan-400/30 transition-colors">
+            <div className="bg-light-surface-elevated/50 dark:bg-background/50 p-5 rounded-2xl border border-light-border dark:border-border/50 hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-2 mb-3">
-                <Award className="text-cyan-500" size={20} />
+                <Award className="text-primary" size={20} />
                 <h4 className="font-bold text-light-text-main dark:text-text-main">Uso de Peças</h4>
               </div>
               <p className="text-sm text-light-text-secondary dark:text-text-muted">
@@ -70,9 +70,9 @@ export default function ModalAjuda({ isOpen, onClose }: ModalAjudaProps) {
             </div>
 
             {/* Card Elegibilidade */}
-            <div className="bg-slate-50 dark:bg-background/50 p-5 rounded-2xl border border-slate-100 dark:border-border/50 hover:border-accent-emerald/30 transition-colors">
+            <div className="bg-light-surface-elevated/50 dark:bg-background/50 p-5 rounded-2xl border border-light-border dark:border-border/50 hover:border-primary-dark/30 transition-colors">
               <div className="flex items-center gap-2 mb-3">
-                <Award className="text-accent-emerald" size={20} />
+                <Award className="text-primary-dark" size={20} />
                 <h4 className="font-bold text-light-text-main dark:text-text-main">Premiação</h4>
               </div>
               <p className="text-sm text-light-text-secondary dark:text-text-muted">
@@ -85,7 +85,7 @@ export default function ModalAjuda({ isOpen, onClose }: ModalAjudaProps) {
 
         {/* Footer */}
         <div className="p-6 border-t border-light-borderStrong dark:border-border bg-light-background dark:bg-background/50 text-center">
-          <button onClick={onClose} className="w-full md:w-auto px-8 py-3 bg-accent-teal hover:bg-primary-light text-positivo-primary font-bold rounded-xl transition-all shadow-md">
+          <button onClick={onClose} className="w-full md:w-auto px-8 py-3 bg-primary hover:bg-primary-light text-light-surface dark:text-surface font-bold rounded-xl transition-all shadow-md cursor-pointer">
             Entendido, vamos brilhar!
           </button>
         </div>

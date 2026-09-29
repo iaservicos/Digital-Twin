@@ -229,7 +229,7 @@ export default function ModalChamadosPerdas({
         <div className="relative px-6 py-5 border-b border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 flex items-center gap-1">
+              <span className="text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
                 <AlertTriangle size={12} />
                 {visaoFiltro === 'INDIVIDUAL' ? 'SUAS PERDAS DE PERFORMANCE' : 'PERDAS DA EQUIPE (BASE COMPLETA)'}
               </span>
@@ -244,12 +244,12 @@ export default function ModalChamadosPerdas({
 
           <div className="flex items-center gap-2">
             {isSupervisorOrAdmin && (
-              <div className="flex items-center bg-slate-100 dark:bg-input-bg p-1 rounded-xl border border-light-borderStrong/60 dark:border-border">
+              <div className="flex items-center bg-light-surface-elevated dark:bg-input-bg p-1 rounded-xl border border-light-borderStrong/60 dark:border-border">
                 <button
                   onClick={() => setVisaoFiltro('INDIVIDUAL')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     visaoFiltro === 'INDIVIDUAL' 
-                      ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold' 
+                      ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm font-bold' 
                       : 'text-light-text-secondary hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main'
                   }`}
                   title="Ver apenas as perdas deste técnico"
@@ -261,7 +261,7 @@ export default function ModalChamadosPerdas({
                   onClick={() => setVisaoFiltro('BASE')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     visaoFiltro === 'BASE' 
-                      ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold' 
+                      ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm font-bold' 
                       : 'text-light-text-secondary hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main'
                   }`}
                   title="Ver todas as perdas da base"
@@ -274,7 +274,7 @@ export default function ModalChamadosPerdas({
 
             <button
               onClick={onClose}
-              className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-slate-100 hover:bg-slate-200 dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer"
+              className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-light-surface-elevated hover:bg-light-surface-hover dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer"
               title="Fechar modal"
             >
               <X size={20} />
@@ -287,7 +287,7 @@ export default function ModalChamadosPerdas({
           <div className="bg-light-surface dark:bg-surface-elevated border border-light-borderStrong/60 dark:border-border rounded-xl p-3 flex flex-col shadow-xs">
             <span className="text-[10px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider flex items-center justify-between">
               Taxa de Perdas (Equipe)
-              <span className="text-[9px] text-light-text-secondary bg-slate-100 dark:bg-input-bg dark:text-text-muted px-1.5 py-0.5 rounded font-semibold border border-light-borderStrong/40 dark:border-border/40">Meta ≤ 1%</span>
+              <span className="text-[9px] text-light-text-secondary bg-light-surface-elevated dark:bg-input-bg dark:text-text-muted px-1.5 py-0.5 rounded font-semibold border border-light-borderStrong/40 dark:border-border/40">Meta ≤ 1%</span>
             </span>
             <div className="mt-1 flex items-baseline gap-2">
               <span className={`text-2xl font-black ${percentualPerdidos <= 1.0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
@@ -303,7 +303,7 @@ export default function ModalChamadosPerdas({
             onClick={() => setSelectedClassificacao('FALHA_GESTAO')}
             className={`rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
               selectedClassificacao === 'FALHA_GESTAO' 
-                ? 'border-2 border-cyan-500 bg-cyan-500/10 dark:border-cyan-500/50 shadow-xs' 
+                ? 'border-2 border-primary bg-primary/10 dark:border-primary/50 shadow-glow-primary-sm' 
                 : 'bg-light-surface dark:bg-surface-elevated border border-light-borderStrong/60 dark:border-border hover:border-light-borderStrong dark:hover:border-border-subtle shadow-xs'
             }`}
           >
@@ -320,7 +320,7 @@ export default function ModalChamadosPerdas({
             onClick={() => setSelectedClassificacao('TRANSFERENCIA')}
             className={`rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
               selectedClassificacao === 'TRANSFERENCIA' 
-                ? 'border-2 border-cyan-500 bg-cyan-500/10 dark:border-cyan-500/50 shadow-xs' 
+                ? 'border-2 border-primary bg-primary/10 dark:border-primary/50 shadow-glow-primary-sm' 
                 : 'bg-light-surface dark:bg-surface-elevated border border-light-borderStrong/60 dark:border-border hover:border-light-borderStrong dark:hover:border-border-subtle shadow-xs'
             }`}
           >
@@ -337,7 +337,7 @@ export default function ModalChamadosPerdas({
             onClick={() => setSelectedClassificacao('TODOS')}
             className={`rounded-xl p-3 flex flex-col cursor-pointer transition-all ${
               selectedClassificacao === 'TODOS' 
-                ? 'border-2 border-cyan-500 bg-cyan-500/10 dark:border-cyan-500/50 shadow-xs' 
+                ? 'border-2 border-primary bg-primary/10 dark:border-primary/50 shadow-glow-primary-sm' 
                 : 'bg-light-surface dark:bg-surface-elevated border border-light-borderStrong/60 dark:border-border hover:border-light-borderStrong dark:hover:border-border-subtle shadow-xs'
             }`}
           >
@@ -360,17 +360,17 @@ export default function ModalChamadosPerdas({
               placeholder={isSupervisorOrAdmin ? "Buscar por chamados ou nome do técnico..." : "Buscar por chamado..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-colors shadow-xs"
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors shadow-xs"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 text-xs">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto scrollbar-hide pb-1 sm:pb-0 text-xs">
             <button
               onClick={() => setSelectedClassificacao('TODOS')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedClassificacao === 'TODOS'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
+                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Todos ({stats.total})
@@ -379,8 +379,8 @@ export default function ModalChamadosPerdas({
               onClick={() => setSelectedClassificacao('FALHA_GESTAO')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedClassificacao === 'FALHA_GESTAO'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
+                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Falha Gestão ({stats.falhaGestao})
@@ -389,8 +389,8 @@ export default function ModalChamadosPerdas({
               onClick={() => setSelectedClassificacao('TRANSFERENCIA')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedClassificacao === 'TRANSFERENCIA'
-                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
+                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
               }`}
             >
               Transferência ({stats.transferenciaBases})
@@ -399,10 +399,10 @@ export default function ModalChamadosPerdas({
         </div>
 
         {/* LISTA DE CHAMADOS DE PERDAS */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-3">
+        <div className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-3">
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-3">
-              <div className="w-8 h-8 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
               <p className="text-xs text-light-text-muted dark:text-text-muted">Carregando chamados de perdas...</p>
             </div>
           ) : stats.total === 0 ? (
@@ -448,9 +448,9 @@ export default function ModalChamadosPerdas({
                   <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">20.0 / 20.0 pts</span>
                   <span className="text-[10px] text-light-text-muted dark:text-text-muted">Nota Máxima</span>
                 </div>
-                <div className="bg-cyan-500/5 dark:bg-cyan-950/20 border border-cyan-500/20 rounded-xl p-3 flex flex-col items-center">
+                <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-3 flex flex-col items-center">
                   <span className="text-[10px] uppercase font-bold text-light-text-muted dark:text-text-muted">Taxa de Perdas</span>
-                  <span className="text-xl font-black text-cyan-600 dark:text-cyan-400 mt-0.5">0.0%</span>
+                  <span className="text-xl font-black text-primary mt-0.5">0.0%</span>
                   <span className="text-[10px] text-light-text-muted dark:text-text-muted">Meta: ≤ 1.0%</span>
                 </div>
               </div>
@@ -475,7 +475,7 @@ export default function ModalChamadosPerdas({
                   key={item.chamado}
                   className={`border rounded-xl p-4 transition-all shadow-xs ${
                     isExpanded 
-                      ? 'border-cyan-500/50 bg-light-background dark:bg-input-bg' 
+                      ? 'border-primary/50 bg-light-background dark:bg-input-bg' 
                       : 'bg-light-surface dark:bg-surface-elevated/50 border-light-borderStrong/70 dark:border-border/70 hover:border-light-borderStrong dark:hover:border-border'
                   }`}
                 >
@@ -484,7 +484,7 @@ export default function ModalChamadosPerdas({
                       <div className={`p-2.5 rounded-lg border shrink-0 mt-0.5 ${
                         isFalhaGestao 
                           ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400' 
-                          : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-600 dark:text-cyan-400'
+                          : 'bg-primary/10 border-primary/30 text-primary'
                       }`}>
                         <AlertTriangle size={18} />
                       </div>
@@ -497,7 +497,7 @@ export default function ModalChamadosPerdas({
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                             isFalhaGestao
                               ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30'
-                              : 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/30'
+                              : 'bg-primary/10 text-primary border border-primary/30'
                           }`}>
                             {item.causaPerda}
                           </span>
@@ -522,7 +522,7 @@ export default function ModalChamadosPerdas({
 
                     <button
                       onClick={() => setExpandedChamado(isExpanded ? null : item.chamado)}
-                      className="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 border-light-borderStrong/60 text-light-text-secondary dark:bg-surface-elevated dark:border-border dark:text-text-muted dark:hover:text-text-main rounded-lg flex items-center gap-1.5 transition-all self-end sm:self-center cursor-pointer border"
+                      className="px-3 py-1.5 text-xs font-semibold bg-light-surface-elevated hover:bg-light-surface-hover border-light-borderStrong/60 text-light-text-secondary dark:bg-surface-elevated dark:border-border dark:text-text-muted dark:hover:text-text-main rounded-lg flex items-center gap-1.5 transition-all self-end sm:self-center cursor-pointer border"
                     >
                       <span>{isExpanded ? 'Ocultar Laudo' : 'Ver Laudo Técnico'}</span>
                       {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -531,8 +531,8 @@ export default function ModalChamadosPerdas({
 
                   {/* LAUDO TÉCNICO EXPANSÍVEL */}
                   {isExpanded && (
-                    <div className="mt-3 pt-3 border-t border-light-borderStrong/40 dark:border-border/50 text-xs text-light-text-secondary dark:text-text-main bg-slate-100/80 dark:bg-background/80 p-3 rounded-lg border">
-                      <div className="flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-bold mb-1.5">
+                    <div className="mt-3 pt-3 border-t border-light-borderStrong/40 dark:border-border/50 text-xs text-light-text-secondary dark:text-text-main bg-light-surface-elevated/80 dark:bg-background/80 p-3 rounded-lg border">
+                      <div className="flex items-center gap-1.5 text-primary font-bold mb-1.5">
                         <FileText size={14} />
                         <span>Texto de Encerramento / Laudo Técnico:</span>
                       </div>
@@ -550,12 +550,12 @@ export default function ModalChamadosPerdas({
         {/* FOOTER */}
         <div className="px-6 py-3 bg-light-background dark:bg-input-bg border-t border-light-borderStrong/60 dark:border-border/60 flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
           <div className="flex items-center gap-1.5">
-            <Info size={14} className="text-cyan-600 dark:text-cyan-400" />
+            <Info size={14} className="text-primary" />
             <span>O indicador de Perdas afeta a pontuação geral da equipe caso ultrapasse a meta de 1.0%.</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main rounded-lg font-semibold transition-colors cursor-pointer border border-transparent dark:border-border/50"
+            className="px-4 py-1.5 bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main rounded-lg font-semibold transition-colors cursor-pointer border border-light-border dark:border-border/50"
           >
             Fechar
           </button>

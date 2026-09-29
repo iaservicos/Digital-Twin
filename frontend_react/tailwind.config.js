@@ -10,92 +10,116 @@
  * =============================================================================
  */
 
+/**
+ * 🎨 1. CORES DA MARCA (Compartilhadas entre Tema Claro e Escuro)
+ * Alterar aqui atualiza os gráficos, gauges, botões neon e links em ambos os temas.
+ */
+export function hexToRgba(hex, alpha = 1) {
+    if (!hex) return `rgba(138, 157, 177, ${alpha})`;
+    const cleanHex = hex.replace('#', '');
+    const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
+    const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
+    const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export const themeColors = {
-    // 🌙 TEMA ESCURO OFICIAL (Cyber Navy)
-    /*dark: {
-      background: '#040d1c',               // Fundo principal de toda a aplicação e do canvas
-      surface: '#0a0f1d',                  // Fundo dos Cards Bento, Modais e Sidebar
-      surfaceElevated: '#0e1426',          // Caixas internas elevadas (card de perfil, selects)
-      surfaceHover: '#131b32',             // Cor de hover ao passar o mouse em botões e linhas
-      border: '#1e293b',                   // Bordas principais dos cartões e divisórias
-      borderSubtle: '#151e32',             // Bordas secundárias mais discretas
-      primary: '#22d3ee',                  // Ciano neon oficial do Brilha+ (destaques, gráficos)
-      primaryDark: '#0891b2',              // Ciano escuro para botões pressionados / hover
-      primaryLight: '#67e8f9',             // Ciano claro para iluminação e realces
-      primaryTransparent: 'rgba(34, 211, 238, 0.15)', // Pílulas e ícones translúcidos
-      textMain: '#f8fafc',                 // Texto principal (títulos e métricas grandes)
-      textMuted: '#94a3b8',                // Texto secundário (legendas, rótulos e datas)
-      inputBg: '#070b14',                  // Fundo escuro para campos de digitação e filtros
-    },*/
+    get brand() { return this.dark; },
+
+    // 🌙 TEMA ESCURO (Dark Mode - Cyber Digital Twin)
     dark: {
-        background: '#141414',                             // Fundo principal de toda a aplicação e do canvas
-        surface: '#1f1f1f',                                // Fundo dos Cards Bento, Modais e Sidebar
-        surfaceElevated: '#2a2a2a',                        // Caixas internas elevadas (card de perfil, selects)
-        surfaceHover: '#2e2e2e',                           // Cor de hover ao passar o mouse em botões e linhas
-        border: '#333333',                                 // Bordas principais dos cartões e divisórias
-        borderSubtle: '#262626',                           // Bordas secundárias mais discretas
-        primary: '#22d3ee',                                // Ciano neon oficial do Brilha+ (destaques, gráficos)
-        primaryDark: '#0891b2',                            // Ciano escuro para botões pressionados / hover
-        primaryLight: '#67e8f9',                           // Ciano claro para iluminação e realces
-        primaryTransparent: 'rgba(34, 211, 238, 0.15)',    // Pílulas e ícones translúcidos
-        textMain: '#f5f5f5',                               // Texto principal (títulos e métricas grandes)
-        textMuted: '#a3a3a3',                              // Texto secundário (legendas, rótulos e datas)
-        inputBg: '#171717',                                // Fundo escuro para campos de digitação e filtros
+        // 📊 Tríade de Cores dos Gráficos (Data Viz) no Tema Escuro
+        chart_primary: '#89A8B2',                           // Curva ativa do gráfico de ondas, arco preenchido do gauge de pontuação e barra em destaque no histograma de peças
+        chart_track: '#3542469f',                           // Trilha inativa (fundo apagado do gauge circular) e base das barras vazias de peças
+        chart_grid: '#a06b08ff',                            // Linhas da grade cartesiana pontilhada e eixos X/Y do gráfico de ondas
+
+        // 🎨 Cores da Marca e Destaques
+        primary: '#5F9598',                               // Botões primários ('Entrar', 'Sincronizar'), link ativo da sidebar, badges e brilhos neon
+        primaryDark: '#3b4452ff',                           // Efeito hover de botões primários e relevos sombreados
+        primaryLight: '#e9e6e7',                            // Texto/ícone dentro de botões com fundo escuro e iluminação sutil
+        primaryTransparent: hexToRgba('#7294cfff', 0.15),   // Fundo de pílulas de filtro ativas ('Geral', 'Mês 1') e badges de status
+
+        // 🏢 Estrutura e Superfícies da Interface
+        background: '#141414',                              // Fundo geral da aplicação (tela inteira atrás dos cards) e base do Canvas GPU
+        surface: '#1f1f1f',                                // Fundo dos Cards Bento (Pontuação, SLA, Chamados), painel lateral (Sidebar) e modais
+        surfaceElevated: '#1f1f1f',                         // Caixas internas dentro dos cards (ex: área de datas de chamados, botão secundário)
+        surfaceHover: '#020202ff',                            // Efeito hover ao passar o mouse sobre linhas de tabelas, listas e itens de menu
+
+        // 🔲 Bordas e Divisórias
+        border: '#1f1f1f',                                  // Bordas externas dos cards Bento, contorno de modais, tabelas e caixas de busca
+        borderSubtle: '#262626',                            // Linhas divisórias internas discretas (ex: separadores entre cabeçalho e corpo do card)
+
+        // ✍️ Tipografia e Textos
+        textMain: '#BBBFBF',                                // Títulos dos cards, números grandes de pontuação/SLA e cabeçalhos principais
+        textMuted: '#BBBFBF',                               // Textos secundários, legendas de metas (ex: 'Meta >= 90%') e rótulos auxiliares
+
+        // 📝 Campos de Formulário
+        inputBg: '#171717',                                 // Fundo dos campos de digitação (caixa de busca 'Buscar chamado', inputs de login e formulários)
+
+        // 🔄 Aliases de Compatibilidade Retroativa (JavaScript e TypeScript)
+        get chart() { return this.chart_primary; },         // Atalho compatível para a cor principal do gráfico
+        get chartPrimary() { return this.chart_primary; },  // Atalho em camelCase para chart_primary
+        get chartTrack() { return this.chart_track; },      // Atalho em camelCase para chart_track
+        get chartGrid() { return this.chart_grid; },        // Atalho em camelCase para chart_grid
     },
 
-
-    // ☀️ TEMA CLARO OFICIAL (Clean Slate)
-    /* light: {
-         background: '#f8fafc',               // Fundo principal no modo claro (Slate 50)
-         surface: '#ffffff',                  // Fundo branco dos cards e da sidebar
-         surfaceElevated: '#f1f5f9',          // Superfícies elevadas internas (Slate 100)
-         surfaceHover: '#e2e8f0',             // Cor de hover no modo claro (Slate 200)
-         border: '#e2e8f0',                   // Bordas dos cards no modo claro
-         borderStrong: '#cbd5e1',             // Bordas mais marcadas para contraste
-         primary: '#0891b2',                  // Teal escuro para boa legibilidade sob fundo claro
-         primaryDark: '#0e7490',              // Variação escura de botão
-         primaryLight: '#22d3ee',             // Realce suave
-         primaryTransparent: 'rgba(8, 145, 178, 0.12)',
-         textMain: '#0f172a',                 // Texto principal escuro (Slate 900)
-         textSecondary: '#334155',            // Texto secundário (Slate 700)
-         textMuted: '#64748b',                // Legendas suaves (Slate 500)
-         inputBg: '#ffffff',                  // Fundo de inputs no modo claro
-     },*/
+    // ☀️ TEMA CLARO (Light Mode - Stone Clean)
     light: {
-        /* Fundo azul muito suave (sky-50) e textos em tom de azul marinho. Traz cor mantendo a herança neon do Brilha+. */
-        background: '#32353d38',               // Fundo principal
-        surface: '#ffffff',                    // Fundo dos Cards Bento (Sempre Branco!)
-        surfaceElevated: '#e0f2fe',             // Caixas internas e seletors
-        surfaceHover: '#e0f2fe',             // Cor de hover suave
-        border: '#bae6fd',             // Bordas principais
-        borderStrong: '#cbd5e1',             // Bordas bem discretas
-        primary: '#0ea5e9',             // Cor de destaque com bom contraste
-        primaryDark: '#0284c7',             // Hover do botão
-        primaryLight: '#7dd3fc',             // Realces sutis
-        primaryTransparent: 'rgba(14, 165, 233, 0.15)', // Fundos translúcidos
-        textMain: '#0c4a6e',
-        textSecondary: '#334155',             // Texto principal escuro
-        textMuted: '#475569',             // Texto secundário cinza
-        inputBg: '#ffffff',
+        // 📊 Tríade de Cores dos Gráficos (Data Viz) no Tema Claro
+        chart_primary: '#3f94ad9f',                           // Curva ativa do gráfico de ondas, arco preenchido do gauge de pontuação e barra em destaque no histograma de peças
+        chart_track: '#697f8663',                           // Trilha inativa (fundo apagado do gauge circular) e base das barras vazias de peças
+        chart_grid: '#a06b08ff',                            // Linhas da grade cartesiana pontilhada e eixos X/Y do gráfico de ondas
+
+        // 🎨 Cores da Marca e Destaques
+        primary: '#7294cfff',                               // Botões primários ('Entrar', 'Sincronizar'), link ativo da sidebar, badges e destaques
+        primaryDark: '#3b4452ff',                           // Efeito hover de botões primários e relevos sombreados
+        primaryLight: '#e9e6e7',                            // Texto/ícone dentro de botões com fundo escuro e iluminação sutil
+        primaryTransparent: hexToRgba('#7294cfff', 0.15),   // Fundo de pílulas de filtro ativas ('Geral', 'Mês 1') e badges de status
+
+        // 🏢 Estrutura e Superfícies da Interface
+        background: '#E5E1DA',                              // Fundo geral da aplicação (tela inteira atrás dos cards no tema claro - tom Stone suave)
+        surface: '#EEEEEE',                                 // Fundo dos Cards Bento (Pontuação, SLA, Chamados), painel lateral (Sidebar) e modais
+        surfaceElevated: '#E5E1DA',                         // Caixas internas dentro dos cards (ex: área branca de dias atendidos, botões secundários)
+        surfaceHover: '#E5E1DA',                            // Efeito hover ao passar o mouse sobre linhas de tabelas, listas e itens de menu
+
+        // 🔲 Bordas e Divisórias
+        border: '#E5E1DA',                                  // Bordas externas dos cards Bento e divisórias suaves em harmonia com o fundo
+        borderStrong: '#d6d3d1',                            // Bordas mais marcadas para inputs, tabelas e contorno de modais
+
+        // ✍️ Tipografia e Textos
+        textMain: '#1c1917',                                // Títulos dos cards, números grandes de pontuação/SLA e cabeçalhos principais (escuro nítido)
+        textSecondary: '#44403c',                           // Textos de apoio, subtítulos e nomes de colunas das tabelas
+        textMuted: '#78716c',                               // Textos auxiliares discretos, legendas de metas (ex: 'Meta >= 90%') e rodapés
+
+        // 📝 Campos de Formulário
+        inputBg: '#ffffff',                                 // Fundo dos campos de digitação (caixa de busca 'Buscar chamado', inputs de login e formulários)
+
+        // 🔄 Aliases de Compatibilidade Retroativa (JavaScript e TypeScript)
+        get chart() { return this.chart_primary; },         // Atalho compatível para a cor principal do gráfico
+        get chartPrimary() { return this.chart_primary; },  // Atalho em camelCase para chart_primary
+        get chartTrack() { return this.chart_track; },      // Atalho em camelCase para chart_track
+        get chartGrid() { return this.chart_grid; },        // Atalho em camelCase para chart_grid
     },
 
-    // 🚦 CORES DE STATUS OPERACIONAL (KPIs & METAS)
+    // 🚦 STATUS OPERACIONAL (Regras de Negócio e Metas)
     status: {
-        success: '#10b981',                  // Verde (meta batida / elegível para premiação)
-        warning: '#f59e0b',                  // Âmbar (atenção / intermediário)
-        danger: '#ef4444',                   // Vermelho (meta perdida / não elegível)
-        info: '#3b82f6',                     // Azul neutro informativo
+        success: '#10b981',                                 // Verde: SLA batido, 0 perdas, técnico elegível
+        warning: '#f59e0b',                                 // Âmbar: Alertas de perdas de SLA e atenção
+        danger: '#ef4444',                                  // Vermelho: SLA estourado, técnico inelegível
+        info: '#3b82f6',                                    // Azul: Informativos e sincronização Databricks
     },
 
-    // 🏢 CORES INSTITUCIONAIS POSITIVO
+    // 🏢 INSTITUCIONAL POSITIVO
     corporativo: {
-        primary: '#0f172a',                  // Azul Positivo profundo
-        secondary: '#1e293b',
-        accent: '#3b82f6',
-        gold: '#eab308',                     // Dourado Brilha+
-        goldLight: '#fef08a',
+        primary: '#0f172a',                                 // Azul corporativo Positivo profundo
+        secondary: '#1e293b',                               // Azul marinho secundário
+        accent: '#3b82f6',                                  // Azul vibrante de destaque
+        gold: '#eab308',                                    // Dourado: 1º lugar no ranking e medalhas
+        goldLight: '#fef08a',                               // Realces dourados em premiações
     }
 };
+
+export const brandColors = themeColors.dark;
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -128,12 +152,26 @@ export default {
                     light: themeColors.dark.primaryLight,
                     transparent: themeColors.dark.primaryTransparent,
                 },
+                chart: {
+                    DEFAULT: themeColors.dark.chart_primary,
+                    primary: themeColors.dark.chart_primary,
+                    track: themeColors.dark.chart_track,
+                    grid: themeColors.dark.chart_grid,
+                },
+                'chart-track': themeColors.dark.chart_track,
+                'chart-grid': themeColors.dark.chart_grid,
                 'accent-teal': themeColors.dark.primary,
                 'accent-emerald': themeColors.dark.primaryDark,
                 'input-bg': themeColors.dark.inputBg,
 
                 // Paleta Light
                 light: {
+                    chart: themeColors.light.chart_primary,
+                    chartPrimary: themeColors.light.chart_primary,
+                    chartTrack: themeColors.light.chart_track,
+                    chartGrid: themeColors.light.chart_grid,
+                    'chart-track': themeColors.light.chart_track,
+                    'chart-grid': themeColors.light.chart_grid,
                     background: themeColors.light.background,
                     surface: {
                         DEFAULT: themeColors.light.surface,
@@ -164,14 +202,72 @@ export default {
                 }
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'],
+                sans: ['Montserrat', 'system-ui', 'sans-serif'],
             },
             borderRadius: {
-                'positivo-lg': '16px',
-                'positivo-md': '12px',
-                'positivo-sm': '8px',
-            }
+                'bento': '1.5rem',
+                'positivo-lg': '1rem',
+                'positivo-md': '0.75rem',
+                'positivo-sm': '0.5rem',
+            },
+            backdropBlur: {
+                'bento': '0.125rem',
+                'bento-hover': '0.25rem',
+            },
+            boxShadow: {
+                'glow-primary': `0 0 8px ${hexToRgba(brandColors.primary, 0.18)}`,
+                'glow-primary-sm': `0 0 4px ${hexToRgba(brandColors.primary, 0.12)}`,
+                'glow-primary-lg': `0 0 16px ${hexToRgba(brandColors.primary, 0.22)}`,
+                'sidebar': '8px 0 24px -4px rgba(0, 0, 0, 0.08), 2px 0 6px -2px rgba(0, 0, 0, 0.04)',
+                'sidebar-dark': '14px 0 38px -4px rgba(0, 0, 0, 0.75), 4px 0 12px -2px rgba(0, 0, 0, 0.5)',
+            },
+            dropShadow: {
+                'glow-primary': `0 0 6px ${hexToRgba(brandColors.primary, 0.18)}`,
+                'glow-primary-lg': `0 0 12px ${hexToRgba(brandColors.primary, 0.25)}`,
+            },
+            keyframes: {
+                float: {
+                    '0%, 100%': { transform: 'translateY(0px)' },
+                    '50%': { transform: 'translateY(-10px)' },
+                },
+            },
+            animation: {
+                float: 'float 6s ease-in-out infinite',
+            },
         },
     },
-    plugins: [],
+    plugins: [
+        function ({ addUtilities }) {
+            addUtilities({
+                '.scrollbar-hide': {
+                    '-ms-overflow-style': 'none',
+                    'scrollbar-width': 'none',
+                    '&::-webkit-scrollbar': {
+                        display: 'none',
+                    },
+                },
+                '.dark-autofill': {
+                    'caret-color': '#e2e8f0 !important',
+                    '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active': {
+                        '-webkit-box-shadow': '0 0 0 30px #0f172a inset !important',
+                        '-webkit-text-fill-color': '#e2e8f0 !important',
+                        'transition': 'background-color 5000s ease-in-out 0s',
+                    },
+                },
+                '.bg-grid-pattern': {
+                    'background-color': themeColors.dark.background,
+                    'background-image': `radial-gradient(circle at 50% 50%, ${hexToRgba(brandColors.primary, 0.06)} 0%, transparent 50%), linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)`,
+                    'background-size': '100% 100%, 40px 40px, 40px 40px',
+                    'background-position': 'center center',
+                },
+                '.bg-grid-pattern-light': {
+                    'background-color': themeColors.light.background,
+                    'background-image': `radial-gradient(circle at 50% 50%, ${hexToRgba(brandColors.primary, 0.06)} 0%, transparent 50%), linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px)`,
+                    'background-size': '100% 100%, 40px 40px, 40px 40px',
+                    'background-position': 'center center',
+                },
+            });
+        },
+    ],
 };
+

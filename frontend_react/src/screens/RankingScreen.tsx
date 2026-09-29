@@ -17,6 +17,7 @@ import {
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { toTitleCase, formatLocalEquipe } from '../utils/stringFormatters';
+import { BentoCard } from '../components/ui/BentoCard';
 
 export default function RankingScreen() {
   const { user } = useAuthStore();
@@ -117,7 +118,7 @@ export default function RankingScreen() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -128,19 +129,19 @@ export default function RankingScreen() {
       {/* ========================================================================= */}
       {/* 1. CABEÇALHO DO RANKING & STATUS DO USUÁRIO LOGADO                        */}
       {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/65 dark:bg-surface/35 backdrop-blur-md p-5 md:p-6 rounded-[24px] border border-light-borderStrong/70 dark:border-border/80 shadow-xl">
+      <BentoCard className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 md:p-6 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-inner">
             <Trophy size={26} />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-black text-light-text-main dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <h1 className="text-xl md:text-2xl font-black text-light-text-main dark:text-text-main tracking-tight flex items-center gap-2">
               Ranking Geral da Operação
-              <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
                 {rankingData.length} Técnicos
               </span>
             </h1>
-            <p className="text-xs text-light-text-muted dark:text-slate-400 mt-0.5 font-medium">
+            <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5 font-medium">
               Classificação oficial do programa Brilha+ baseada na matriz de 6 KPIs
             </p>
           </div>
@@ -148,35 +149,35 @@ export default function RankingScreen() {
 
         {/* Pílula de Posição da Pessoa Logada (se encontrada) */}
         {myPos !== '--' && (
-          <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500/10 to-cyan-500/10 border border-cyan-500/30 px-4 py-2.5 rounded-2xl shadow-sm self-start sm:self-auto">
+          <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500/10 to-primary/10 border border-primary/30 px-4 py-2.5 rounded-2xl shadow-sm self-start sm:self-auto">
             <div className="text-right">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sua Posição</p>
-              <p className="text-lg font-black text-cyan-400">{myPos}º Lugar</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Sua Posição</p>
+              <p className="text-lg font-black text-primary">{myPos}º Lugar</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center border border-cyan-500/30">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary-light font-bold flex items-center justify-center border border-primary/30">
               🥇
             </div>
           </div>
         )}
-      </div>
+      </BentoCard>
 
       {/* ========================================================================= */}
       {/* 2. QUADRO DO PÓDIO OLÍMPICO (TOP 3)                                       */}
       {/* ========================================================================= */}
       {rankingData.length >= 3 && (
-        <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+        <BentoCard className="p-6 md:p-8 shadow-2xl relative overflow-hidden">
           
           {/* Textura sutil geométrica */}
-          <div className="absolute inset-0 opacity-10 dark:opacity-15 pointer-events-none bg-[radial-gradient(#0891b2_1px,transparent_1px)] [background-size:20px_20px]"></div>
+          <div className="absolute inset-0 opacity-10 dark:opacity-15 pointer-events-none bg-[radial-gradient(currentColor_1px,transparent_1px)] text-primary/40 [background-size:20px_20px]"></div>
 
           <div className="text-center mb-8 relative z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest mb-2 shadow-sm">
               <Sparkles size={14} /> Pódio dos Campeões • Top 3
             </div>
-            <h2 className="text-xl md:text-2xl font-black text-light-text-main dark:text-slate-100 tracking-tight">
+            <h2 className="text-xl md:text-2xl font-black text-light-text-main dark:text-text-main tracking-tight">
               Os Melhores Técnicos da Campanha
             </h2>
-            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+            <p className="text-xs text-text-muted mt-1 max-w-md mx-auto">
               Reconhecimento oficial de alta performance e excelência operacional
             </p>
           </div>
@@ -197,43 +198,43 @@ export default function RankingScreen() {
               >
                 {/* Avatar do 2º Colocado: Foto ou Bonequinho Vazio */}
                 <div className="relative mb-3">
-                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-slate-300 shadow-xl flex items-center justify-center bg-slate-800 ${
+                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-slate-300 dark:border-border shadow-xl flex items-center justify-center bg-surface ${
                     canViewDetails ? 'group-hover:scale-105 transition-transform' : ''
                   }`}>
                     {top2.fotoPerfil ? (
                       <img src={top2.fotoPerfil} alt={top2.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                      <div className="w-full h-full flex items-center justify-center text-text-muted">
                         <User size={30} />
                       </div>
                     )}
                   </div>
-                  <span className="absolute -bottom-2 -right-1 w-7 h-7 rounded-full bg-slate-300 text-slate-900 font-black text-xs flex items-center justify-center border-2 border-slate-900 shadow-md">
+                  <span className="absolute -bottom-2 -right-1 w-7 h-7 rounded-full bg-slate-300 dark:bg-surface-elevated text-slate-900 dark:text-text-main font-black text-xs flex items-center justify-center border-2 border-surface shadow-md">
                     2º
                   </span>
                 </div>
 
                 <div className="mb-2 w-full px-2">
-                  <p className={`font-bold text-sm text-light-text-main dark:text-slate-100 transition-colors truncate ${
-                    canViewDetails ? 'group-hover:text-cyan-400' : ''
+                  <p className={`font-bold text-sm text-light-text-main dark:text-text-main transition-colors truncate ${
+                    canViewDetails ? 'group-hover:text-primary' : ''
                   }`}>
                     {toTitleCase(top2.name)}
                   </p>
-                  <p className="text-[11px] text-cyan-400 font-medium truncate mt-0.5">
+                  <p className="text-[11px] text-primary font-medium truncate mt-0.5">
                     {top2.base}
                   </p>
-                  <p className="text-base font-black text-slate-200 mt-1">
-                    {top2.score.toFixed(1)} <span className="text-[10px] text-slate-400 font-normal">pts</span>
+                  <p className="text-base font-black text-text-main mt-1">
+                    {top2.score.toFixed(1)} <span className="text-[10px] text-text-muted font-normal">pts</span>
                   </p>
                 </div>
 
                 {/* Pedestal Prata */}
-                <div className="w-full h-36 md:h-44 rounded-t-2xl bg-gradient-to-t from-slate-400/20 via-slate-400/10 to-slate-400/5 border-t-2 border-x-2 border-slate-300/40 flex flex-col items-center justify-center shadow-lg p-3">
+                <div className="w-full h-36 md:h-44 rounded-t-2xl bg-gradient-to-t from-slate-400/20 via-slate-400/10 to-slate-400/5 border-t-2 border-x-2 border-border flex flex-col items-center justify-center shadow-lg p-3">
                   <span className="text-2xl mb-1">🥈</span>
-                  <span className="text-xs font-black text-slate-300 uppercase tracking-wider">
+                  <span className="text-xs font-black text-text-main uppercase tracking-wider">
                     2º Lugar
                   </span>
-                  <span className="text-[10px] text-slate-400 mt-0.5">
+                  <span className="text-[10px] text-text-muted mt-0.5">
                     SLA: {top2.percentualSla.toFixed(1)}%
                   </span>
                 </div>
@@ -256,7 +257,7 @@ export default function RankingScreen() {
                   <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-amber-400 animate-bounce duration-1000">
                     <Crown size={26} />
                   </div>
-                  <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.35)] flex items-center justify-center bg-slate-800 ${
+                  <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.35)] flex items-center justify-center bg-surface ${
                     canViewDetails ? 'group-hover:scale-105 transition-transform' : ''
                   }`}>
                     {top1.fotoPerfil ? (
@@ -267,7 +268,7 @@ export default function RankingScreen() {
                       </div>
                     )}
                   </div>
-                  <span className="absolute -bottom-2 -right-1 w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-slate-900 shadow-md">
+                  <span className="absolute -bottom-2 -right-1 w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-surface shadow-md">
                     1º
                   </span>
                 </div>
@@ -276,7 +277,7 @@ export default function RankingScreen() {
                   <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                     Líder da Campanha
                   </span>
-                  <p className={`font-black text-base text-light-text-main dark:text-slate-100 transition-colors truncate mt-1 ${
+                  <p className={`font-black text-base text-light-text-main dark:text-text-main transition-colors truncate mt-1 ${
                     canViewDetails ? 'group-hover:text-amber-400' : ''
                   }`}>
                     {toTitleCase(top1.name)}
@@ -285,17 +286,17 @@ export default function RankingScreen() {
                     {top1.base}
                   </p>
                   <p className="text-xl font-black text-amber-300 mt-1">
-                    {top1.score.toFixed(1)} <span className="text-xs text-slate-400 font-normal">pts</span>
+                    {top1.score.toFixed(1)} <span className="text-xs text-text-muted font-normal">pts</span>
                   </p>
                 </div>
 
                 {/* Pedestal Ouro */}
-                <div className="w-full h-48 md:h-56 rounded-t-2xl bg-gradient-to-t from-amber-500/25 via-amber-500/15 to-amber-500/5 border-t-2 border-x-2 border-amber-400/60 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.15)] p-4">
-                  <span className="text-3xl mb-1 filter drop-shadow-[0_0_10px_#f59e0b]">🥇</span>
+                <div className="w-full h-48 md:h-56 rounded-t-2xl bg-gradient-to-t from-amber-500/25 via-amber-500/15 to-amber-500/5 border-t-2 border-x-2 border-amber-400/60 flex flex-col items-center justify-center shadow-lg p-4">
+                  <span className="text-3xl mb-1 filter drop-shadow-md">🥇</span>
                   <span className="text-sm font-black text-amber-300 uppercase tracking-widest">
                     Campeão
                   </span>
-                  <span className="text-xs text-slate-300 font-semibold mt-1">
+                  <span className="text-xs text-text-main font-semibold mt-1">
                     SLA: {top1.percentualSla.toFixed(1)}%
                   </span>
                   <span className="text-[10px] text-emerald-400 font-bold mt-0.5">
@@ -318,7 +319,7 @@ export default function RankingScreen() {
               >
                 {/* Avatar do 3º Colocado: Foto ou Bonequinho Vazio */}
                 <div className="relative mb-3">
-                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-orange-400 shadow-xl flex items-center justify-center bg-slate-800 ${
+                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-orange-400 shadow-xl flex items-center justify-center bg-surface ${
                     canViewDetails ? 'group-hover:scale-105 transition-transform' : ''
                   }`}>
                     {top3.fotoPerfil ? (
@@ -329,22 +330,22 @@ export default function RankingScreen() {
                       </div>
                     )}
                   </div>
-                  <span className="absolute -bottom-2 -right-1 w-7 h-7 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center border-2 border-slate-900 shadow-md">
+                  <span className="absolute -bottom-2 -right-1 w-7 h-7 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center border-2 border-surface shadow-md">
                     3º
                   </span>
                 </div>
 
                 <div className="mb-2 w-full px-2">
-                  <p className={`font-bold text-sm text-light-text-main dark:text-slate-100 transition-colors truncate ${
-                    canViewDetails ? 'group-hover:text-cyan-400' : ''
+                  <p className={`font-bold text-sm text-light-text-main dark:text-text-main transition-colors truncate ${
+                    canViewDetails ? 'group-hover:text-primary' : ''
                   }`}>
                     {toTitleCase(top3.name)}
                   </p>
-                  <p className="text-[11px] text-cyan-400 font-medium truncate mt-0.5">
+                  <p className="text-[11px] text-primary font-medium truncate mt-0.5">
                     {top3.base}
                   </p>
-                  <p className="text-base font-black text-slate-200 mt-1">
-                    {top3.score.toFixed(1)} <span className="text-[10px] text-slate-400 font-normal">pts</span>
+                  <p className="text-base font-black text-text-main mt-1">
+                    {top3.score.toFixed(1)} <span className="text-[10px] text-text-muted font-normal">pts</span>
                   </p>
                 </div>
 
@@ -354,7 +355,7 @@ export default function RankingScreen() {
                   <span className="text-xs font-black text-orange-300 uppercase tracking-wider">
                     3º Lugar
                   </span>
-                  <span className="text-[10px] text-slate-400 mt-0.5">
+                  <span className="text-[10px] text-text-muted mt-0.5">
                     SLA: {top3.percentualSla.toFixed(1)}%
                   </span>
                 </div>
@@ -362,22 +363,22 @@ export default function RankingScreen() {
             )}
 
           </div>
-        </div>
+        </BentoCard>
       )}
 
       {/* ========================================================================= */}
       {/* 3. LISTA DE COLOCAÇÕES (PAGINADA & NO PADRÃO CYBER CIANO POSITIVO)        */}
       {/* ========================================================================= */}
-      <div className="bg-white/65 dark:bg-surface/35 backdrop-blur-md border border-light-borderStrong/70 dark:border-border/80 rounded-[24px] p-5 md:p-6 shadow-xl space-y-4">
+      <BentoCard className="p-5 md:p-6 shadow-xl space-y-4">
         
         {/* Cabeçalho da Tabela e Busca */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-light-borderStrong/60 dark:border-border/60">
           <div>
-            <h3 className="text-lg font-black text-light-text-main dark:text-slate-100 tracking-tight flex items-center gap-2">
-              <Medal size={20} className="text-cyan-400" />
+            <h3 className="text-lg font-black text-light-text-main dark:text-text-main tracking-tight flex items-center gap-2">
+              <Medal size={20} className="text-primary" />
               Classificação Completa dos Colaboradores
             </h3>
-            <p className="text-xs text-light-text-muted dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5">
               {canViewDetails 
                 ? "Consulte a colocação de qualquer técnico e audite os 6 KPIs oficiais" 
                 : "Consulte a classificação geral e acompanhe o ranking oficial da campanha"}
@@ -385,7 +386,7 @@ export default function RankingScreen() {
           </div>
 
           <div className="relative w-full sm:w-72">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input
               type="text"
               placeholder="Buscar técnico, matrícula ou base..."
@@ -394,16 +395,16 @@ export default function RankingScreen() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-slate-200 text-xs font-semibold rounded-xl pl-9 pr-3 py-2.5 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all shadow-inner"
+              className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl pl-9 pr-3 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-inner"
             />
           </div>
         </div>
 
         {/* Tabela de Ranking */}
-        <div className="overflow-x-auto rounded-2xl border border-light-borderStrong dark:border-border">
+        <div className="overflow-x-auto scrollbar-hide rounded-2xl border border-light-borderStrong dark:border-border">
           <table className="w-full text-left border-collapse min-w-[850px]">
             <thead>
-              <tr className="bg-light-background dark:bg-input-bg text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-light-borderStrong dark:border-border">
+              <tr className="bg-light-background dark:bg-input-bg text-text-muted text-[11px] font-bold uppercase tracking-wider border-b border-light-borderStrong dark:border-border">
                 <th className="py-3 px-4 text-center w-16">#</th>
                 <th className="py-3 px-4">Técnico</th>
                 <th className="py-3 px-4 text-center">Pontos Total</th>
@@ -416,9 +417,9 @@ export default function RankingScreen() {
             <tbody className="divide-y divide-light-borderStrong/60 dark:divide-border/60 text-xs">
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={canViewDetails ? 7 : 6} className="py-12 text-center text-slate-400">
+                  <td colSpan={canViewDetails ? 7 : 6} className="py-12 text-center text-text-muted">
                     <p className="text-sm font-semibold">Nenhum técnico encontrado.</p>
-                    <p className="text-xs text-slate-500 mt-1">Verifique o termo digitado na busca.</p>
+                    <p className="text-xs text-text-muted mt-1">Verifique o termo digitado na busca.</p>
                   </td>
                 </tr>
               ) : (
@@ -430,17 +431,17 @@ export default function RankingScreen() {
                       key={usr.id + '-' + index}
                       onClick={() => canViewDetails && setSelectedTecnico(usr)}
                       className={`transition-colors ${
-                        canViewDetails ? 'hover:bg-cyan-500/5 cursor-pointer group' : ''
-                      } ${usr.isMe ? 'bg-cyan-500/10 font-bold relative' : ''}`}
+                        canViewDetails ? 'hover:bg-primary/5 cursor-pointer group' : ''
+                      } ${usr.isMe ? 'bg-primary/10 font-bold relative' : ''}`}
                     >
                       {/* Posição */}
                       <td className="py-3 px-4 text-center">
                         <span className={`w-7 h-7 rounded-full font-bold text-xs flex items-center justify-center mx-auto border ${
                           rankPos === 1 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
-                          rankPos === 2 ? 'bg-slate-300/20 text-slate-200 border-slate-300/40' :
+                          rankPos === 2 ? 'bg-surface-elevated/40 text-text-main border-border' :
                           rankPos === 3 ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' :
-                          usr.isMe ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' :
-                          'bg-slate-800 text-slate-400 border-slate-700'
+                          usr.isMe ? 'bg-primary/20 text-primary-light border-primary/40' :
+                          'bg-surface text-text-muted border-border'
                         }`}>
                           {rankPos === 1 ? '🥇' : rankPos === 2 ? '🥈' : rankPos === 3 ? '🥉' : rankPos}
                         </span>
@@ -449,7 +450,7 @@ export default function RankingScreen() {
                       {/* Foto / Bonequinho Vazio + Nome + Base */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-700 bg-slate-800 shrink-0 flex items-center justify-center text-slate-400">
+                          <div className="w-9 h-9 rounded-full overflow-hidden border border-border bg-surface shrink-0 flex items-center justify-center text-text-muted">
                             {usr.fotoPerfil ? (
                               <img src={usr.fotoPerfil} alt={usr.name} className="w-full h-full object-cover" />
                             ) : (
@@ -458,16 +459,16 @@ export default function RankingScreen() {
                           </div>
                           <div className="truncate max-w-xs sm:max-w-md">
                             <div className="flex items-center gap-2">
-                              <p className="font-bold text-light-text-main dark:text-slate-100 group-hover:text-cyan-400 transition-colors truncate">
+                              <p className="font-bold text-light-text-main dark:text-text-main group-hover:text-primary transition-colors truncate">
                                 {toTitleCase(usr.name)}
                               </p>
                               {usr.isMe && (
-                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/20 text-primary-light border border-primary/30 shrink-0">
                                   Você
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                            <p className="text-[11px] text-text-muted mt-0.5 truncate">
                               {usr.base}
                             </p>
                           </div>
@@ -476,17 +477,17 @@ export default function RankingScreen() {
 
                       {/* Pontos Total */}
                       <td className="py-3 px-4 text-center">
-                        <span className="font-black text-sm text-light-text-main dark:text-slate-100">
+                        <span className="font-black text-sm text-light-text-main dark:text-text-main">
                           {typeof usr.score === 'number' ? usr.score.toFixed(1) : usr.score}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-normal ml-1">pts</span>
+                        <span className="text-[10px] text-text-muted font-normal ml-1">pts</span>
                       </td>
 
                       {/* SLA */}
                       <td className="py-3 px-4 text-center">
                         <span className={`inline-flex px-2 py-0.5 rounded-full font-bold text-[11px] ${
                           usr.percentualSla >= 90.0 
-                            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' 
+                            ? 'bg-primary/15 text-primary border border-primary/30' 
                             : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                         }`}>
                           {usr.percentualSla?.toFixed(1)}%
@@ -522,7 +523,7 @@ export default function RankingScreen() {
                         <td className="py-3 px-4 text-right">
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 group-hover:translate-x-0.5 transition-transform"
+                            className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-light group-hover:translate-x-0.5 transition-transform"
                           >
                             Detalhes
                             <ArrowUpRight size={13} />
@@ -539,29 +540,29 @@ export default function RankingScreen() {
 
         {/* Paginação */}
         {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 text-xs text-slate-400">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 text-xs text-text-muted">
             <p>
-              Exibindo <span className="font-bold text-slate-200">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-bold text-slate-200">{Math.min(currentPage * itemsPerPage, filteredRanking.length)}</span> de <span className="font-bold text-slate-200">{filteredRanking.length}</span> técnicos
+              Exibindo <span className="font-bold text-text-main">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-bold text-text-main">{Math.min(currentPage * itemsPerPage, filteredRanking.length)}</span> de <span className="font-bold text-text-main">{filteredRanking.length}</span> técnicos
             </p>
 
             <div className="flex items-center gap-1">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-slate-300"
+                className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-text-main"
                 title="Página Anterior"
               >
                 <ChevronLeft size={16} />
               </button>
               
-              <div className="px-3 py-1 font-bold text-slate-200 bg-slate-900 border border-border rounded-xl">
+              <div className="px-3 py-1 font-bold text-text-main bg-surface-elevated border border-border rounded-xl">
                 {currentPage} / {totalPages}
               </div>
 
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-slate-300"
+                className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-text-main"
                 title="Próxima Página"
               >
                 <ChevronRight size={16} />
@@ -570,17 +571,17 @@ export default function RankingScreen() {
           </div>
         )}
 
-      </div>
+      </BentoCard>
 
       {/* ========================================================================= */}
       {/* 4. MODAL OFICIAL DE DESEMPENHO DO TÉCNICO                                 */}
       {/* ========================================================================= */}
       {canViewDetails && selectedTecnico && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-bento p-4 animate-in fade-in">
           <div className="bg-light-surface dark:bg-surface rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-light-borderStrong dark:border-border animate-in zoom-in-95">
             <div className="p-5 border-b border-light-borderStrong dark:border-border flex justify-between items-center bg-light-background dark:bg-input-bg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center text-slate-400">
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-border bg-surface flex items-center justify-center text-text-muted">
                   {selectedTecnico.fotoPerfil ? (
                     <img src={selectedTecnico.fotoPerfil} alt={selectedTecnico.name} className="w-full h-full object-cover" />
                   ) : (
@@ -588,17 +589,17 @@ export default function RankingScreen() {
                   )}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-light-text-main dark:text-slate-100 flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-light-text-main dark:text-text-main flex items-center gap-2">
                     Desempenho de {toTitleCase(selectedTecnico.name)}
                   </h2>
-                  <p className="text-xs text-light-text-muted dark:text-slate-400">
+                  <p className="text-xs text-light-text-muted dark:text-text-muted">
                     Base: {selectedTecnico.base} • Posição: {selectedTecnico.posicaoRanking || '--'}º Lugar
                   </p>
                 </div>
               </div>
               <button 
                 onClick={() => setSelectedTecnico(null)} 
-                className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                className="text-text-muted hover:text-text-main p-2 rounded-lg hover:bg-surface-hover transition-colors cursor-pointer"
               >
                 <XCircle size={22} />
               </button>
@@ -607,7 +608,7 @@ export default function RankingScreen() {
             <div className="p-6 overflow-x-auto overflow-y-auto max-h-[70vh] scrollbar-hide">
               <table className="w-full text-left border-collapse min-w-[750px]">
                 <thead>
-                  <tr className="bg-light-background dark:bg-input-bg text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-border">
+                  <tr className="bg-light-background dark:bg-input-bg text-text-muted text-xs font-bold uppercase tracking-wider border-b border-border">
                     <th className="p-3">Mês</th>
                     <th className="p-3 text-center">SLA</th>
                     <th className="p-3 text-center">Reincidência</th>
@@ -621,24 +622,24 @@ export default function RankingScreen() {
                   {selectedTecnico.rawDto?.historico?.map((h: any, i: number) => {
                     const isMedia = h.mes === 'Média Final';
                     return (
-                      <tr key={i} className={`hover:bg-cyan-500/5 transition-colors ${isMedia ? 'bg-cyan-500/10 font-bold' : ''}`}>
-                        <td className="p-3 font-bold text-light-text-main dark:text-slate-100 flex items-center gap-2">
-                          {isMedia && <TrendingUp size={14} className="text-cyan-400"/>}
+                      <tr key={i} className={`hover:bg-primary/5 transition-colors ${isMedia ? 'bg-primary/10 font-bold' : ''}`}>
+                        <td className="p-3 font-bold text-light-text-main dark:text-text-main flex items-center gap-2">
+                          {isMedia && <TrendingUp size={14} className="text-primary"/>}
                           {h.mes}
                         </td>
                         <td className="p-3 text-center">
-                          <span className="font-bold text-slate-200">{h.percentualSla?.toFixed(1)}%</span>
+                          <span className="font-bold text-text-main">{h.percentualSla?.toFixed(1)}%</span>
                         </td>
                         <td className="p-3 text-center">
-                          <span className="font-bold text-slate-200">{h.percentualReincidencia?.toFixed(1)}%</span>
+                          <span className="font-bold text-text-main">{h.percentualReincidencia?.toFixed(1)}%</span>
                         </td>
                         <td className="p-3 text-center">
-                          <span className="font-bold text-slate-200">{h.percentualEficienciaPecas?.toFixed(1)}%</span>
+                          <span className="font-bold text-text-main">{h.percentualEficienciaPecas?.toFixed(1)}%</span>
                         </td>
                         <td className="p-3 text-center">
-                          <span className="font-bold text-slate-200">{h.percentualPerdidos?.toFixed(1)}%</span>
+                          <span className="font-bold text-text-main">{h.percentualPerdidos?.toFixed(1)}%</span>
                         </td>
-                        <td className="p-3 text-center font-black text-sm text-cyan-400">
+                        <td className="p-3 text-center font-black text-sm text-primary">
                           {h.pontosTotal}
                         </td>
                         <td className="p-3 text-center">
@@ -658,8 +659,8 @@ export default function RankingScreen() {
                 </tbody>
               </table>
               {(!selectedTecnico.rawDto?.historico || selectedTecnico.rawDto.historico.length === 0) && (
-                <div className="p-8 text-center text-slate-400">
-                  Pontuação consolidada: <span className="font-black text-cyan-400">{selectedTecnico.score.toFixed(1)} pts</span>
+                <div className="p-8 text-center text-text-muted">
+                  Pontuação consolidada: <span className="font-black text-primary">{selectedTecnico.score.toFixed(1)} pts</span>
                 </div>
               )}
             </div>

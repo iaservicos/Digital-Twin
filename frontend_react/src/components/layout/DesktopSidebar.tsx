@@ -76,7 +76,7 @@ export const DesktopSidebar: React.FC = () => {
             <img
               src={theme === 'light' ? '/Logo/brilha-mais-logo-V3-light.svg' : '/Logo/brilha-mais-logo-V3.svg'}
               alt="Brilha+"
-              className="w-full max-w-[215px] h-auto max-h-12 object-contain transition-all duration-300 group-hover:scale-105 select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_0_15px_rgba(34,211,238,0.35)]"
+              className="w-full max-w-[165px] h-auto max-h-[35px] object-contain transition-all duration-300 group-hover:scale-105 select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.12)] dark:drop-shadow-glow-primary"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = theme === 'light' ? '/Logo/brilha-mais-logo-V3-light.png' : '/Logo/brilha-mais-logo-V3.png';
               }}
@@ -86,7 +86,7 @@ export const DesktopSidebar: React.FC = () => {
 
         {/* 2. Card do Usuário Logado */}
         <div className="flex flex-col items-center text-center p-3.5 bg-light-surface-elevated dark:bg-surface-elevated border border-light-border dark:border-border rounded-2xl shadow-sm">
-          <div className="w-14 h-14 rounded-full bg-light-surface dark:bg-surface border-2 border-primary/40 p-0.5 shadow-md mb-2 overflow-hidden flex items-center justify-center">
+          <div className="w-[62px] h-[62px] rounded-full bg-light-surface dark:bg-surface border-2 border-primary/40 p-0.5 shadow-md mb-2 overflow-hidden flex items-center justify-center">
             {user?.fotoPerfil ? (
               <img src={user.fotoPerfil} alt="Perfil" className="w-full h-full object-cover rounded-full" />
             ) : (
@@ -115,8 +115,8 @@ export const DesktopSidebar: React.FC = () => {
           <button
             onClick={() => navigate('/dashboard')}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${location.pathname === '/dashboard' || location.pathname === '/'
-                ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-                : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
+              ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
+              : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
               }`}
           >
             <LayoutDashboard
@@ -132,8 +132,8 @@ export const DesktopSidebar: React.FC = () => {
           <button
             onClick={() => navigate('/ranking')}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${location.pathname === '/ranking'
-                ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-                : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
+              ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
+              : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
               }`}
           >
             <Trophy size={18} className={location.pathname === '/ranking' ? 'text-primary' : 'text-light-text-muted dark:text-text-muted'} />
@@ -145,8 +145,8 @@ export const DesktopSidebar: React.FC = () => {
             <button
               onClick={() => navigate('/supervisao')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${location.pathname === '/supervisao'
-                  ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-                  : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
+                ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
+                : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
                 }`}
             >
               <Users size={18} className={location.pathname === '/supervisao' ? 'text-primary' : 'text-light-text-muted dark:text-text-muted'} />
@@ -159,8 +159,8 @@ export const DesktopSidebar: React.FC = () => {
             <button
               onClick={() => navigate('/configuracoes')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${location.pathname === '/configuracoes'
-                  ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-                  : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
+                ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
+                : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
                 }`}
             >
               <Settings size={18} className={location.pathname === '/configuracoes' ? 'text-primary' : 'text-light-text-muted dark:text-text-muted'} />
@@ -172,8 +172,8 @@ export const DesktopSidebar: React.FC = () => {
           <button
             onClick={() => navigate('/profile')}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${location.pathname === '/profile'
-                ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-                : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
+              ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
+              : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
               }`}
           >
             <User size={18} className={location.pathname === '/profile' ? 'text-primary' : 'text-light-text-muted dark:text-text-muted'} />

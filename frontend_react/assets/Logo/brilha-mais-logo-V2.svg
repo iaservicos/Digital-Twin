@@ -9,6 +9,9 @@
 
 
 
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&amp;display=swap');
+    </style>
   </defs>
   
   <!-- Brilho Halo atrás do sinal de + -->
@@ -17,13 +20,13 @@
   <!-- Texto Principal: BRILHA + perfeitamente alinhado e sem sobreposição -->
   <text x="300" y="125" text-anchor="middle">
     <tspan fill="#FFFFFF" 
-           font-family="'Arial Black', Impact, 'Montserrat Black', 'Segoe UI Black', sans-serif" 
+           font-family="'Montserrat', 'Montserrat Black', sans-serif" 
            font-weight="900" 
            font-size="74" 
            letter-spacing="-0.04em">BRILHA</tspan>
     <tspan dx="10" dy="-2"
            fill="url(#plusGrad)" 
-           font-family="'Arial Black', Impact, 'Montserrat Black', 'Segoe UI Black', sans-serif" 
+           font-family="'Montserrat', 'Montserrat Black', sans-serif" 
            font-weight="900" 
            font-size="86" 
            filter="url(#neonGlow)">+</tspan>
