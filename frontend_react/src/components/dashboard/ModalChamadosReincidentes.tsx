@@ -263,11 +263,11 @@ export default function ModalChamadosReincidentes({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+      <div className="glass-bento border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
         
         {/* HEADER DO MODAL */}
-        <div className="p-6 border-b border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg flex items-start justify-between">
+        <div className="p-6 border-b border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60 flex items-start justify-between">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-primary/10 border border-primary/20 text-primary rounded-xl">
               <RotateCcw size={24} />
@@ -295,7 +295,7 @@ export default function ModalChamadosReincidentes({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-light-surface-elevated hover:bg-light-surface-hover dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover transition-all cursor-pointer"
             title="Fechar Modal"
           >
             <X size={20} />
@@ -346,7 +346,7 @@ export default function ModalChamadosReincidentes({
         </div>
 
         {/* BARRA DE FILTROS E BUSCA */}
-        <div className="p-4 bg-light-background dark:bg-input-bg border-b border-light-borderStrong/60 dark:border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="p-4 bg-light-background/60 dark:bg-input-bg/60 border-b border-light-border dark:border-border flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted" size={15} />
             <input
@@ -354,7 +354,7 @@ export default function ModalChamadosReincidentes({
               placeholder="Buscar por chamado, técnico ou defeito..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl pl-9 pr-4 py-2 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors shadow-xs"
+              className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl pl-9 pr-4 py-2 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-xs"
             />
           </div>
 
@@ -367,8 +367,8 @@ export default function ModalChamadosReincidentes({
               onClick={() => setFiltroPeca('TODOS')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 filtroPeca === 'TODOS'
-                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
-                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-slate-950 shadow-glow-primary-sm'
+                  : 'bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}
             >
               Todos ({reincidentes.length})
@@ -377,8 +377,8 @@ export default function ModalChamadosReincidentes({
               onClick={() => setFiltroPeca('COM_PECA')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 filtroPeca === 'COM_PECA'
-                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
-                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-slate-950 shadow-glow-primary-sm'
+                  : 'bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}
             >
               Com Peça ({totalComPeca})
@@ -387,8 +387,8 @@ export default function ModalChamadosReincidentes({
               onClick={() => setFiltroPeca('SEM_PECA')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 filtroPeca === 'SEM_PECA'
-                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
-                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-slate-950 shadow-glow-primary-sm'
+                  : 'bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}
             >
               Sem Peça ({totalSemPeca})
@@ -661,13 +661,13 @@ export default function ModalChamadosReincidentes({
         </div>
 
         {/* FOOTER */}
-        <div className="p-4 bg-light-background dark:bg-input-bg border-t border-light-borderStrong/60 dark:border-border/60 flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
+        <div className="p-4 bg-light-background/60 dark:bg-input-bg/60 border-t border-light-border dark:border-border flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
           <span>
             Mostrando <strong className="text-light-text-main dark:text-text-main">{filteredList.length}</strong> de <strong className="text-light-text-main dark:text-text-main">{reincidentes.length}</strong> chamados reincidentes
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main font-semibold rounded-xl transition-colors cursor-pointer border border-light-border dark:border-border/50"
+            className="px-5 py-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main font-semibold transition-all cursor-pointer"
           >
             Fechar
           </button>

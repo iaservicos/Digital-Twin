@@ -151,13 +151,13 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto scrollbar-hide animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-positivo-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 overflow-y-auto scrollbar-hide animate-in fade-in duration-200">
+      <div className="relative w-full max-w-5xl glass-bento border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header do Modal */}
-        <div className="flex items-center justify-between p-6 border-b border-light-border dark:border-border/60 bg-slate-50 dark:bg-background/50">
+        <div className="flex items-center justify-between p-6 border-b border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-positivo-md bg-amber-500/10 text-amber-500 border border-amber-500/20">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
               <UserX size={24} />
             </div>
             <div>
@@ -176,7 +176,8 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-positivo-md text-light-text-muted hover:text-light-text-main dark:hover:text-text-main hover:bg-slate-200 dark:hover:bg-surface transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover transition-all cursor-pointer"
+            title="Fechar Modal"
           >
             <X size={20} />
           </button>
@@ -185,25 +186,25 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
         {/* Resumo de Cards */}
         {data && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-6 pb-2">
-            <div className="bg-slate-50 dark:bg-background/40 p-3.5 rounded-positivo-lg border border-light-border dark:border-border/40">
+            <div className="bg-slate-50 dark:bg-input-bg p-3.5 rounded-xl border border-light-border dark:border-border">
               <p className="text-xs font-medium text-light-text-muted dark:text-text-muted">Total sem Técnico</p>
               <p className="text-2xl font-bold text-light-text-main dark:text-text-main mt-0.5">
                 {data.totalGeral}
               </p>
             </div>
-            <div className="bg-slate-50 dark:bg-background/40 p-3.5 rounded-positivo-lg border border-light-border dark:border-border/40">
+            <div className="bg-slate-50 dark:bg-input-bg p-3.5 rounded-xl border border-light-border dark:border-border">
               <p className="text-xs font-medium text-light-text-muted dark:text-text-muted">Bases Impactadas</p>
-              <p className="text-2xl font-bold text-accent-teal mt-0.5">
+              <p className="text-2xl font-bold text-primary mt-0.5">
                 {data.totalBasesAfetadas}
               </p>
             </div>
-            <div className="bg-slate-50 dark:bg-background/40 p-3.5 rounded-positivo-lg border border-light-border dark:border-border/40">
+            <div className="bg-slate-50 dark:bg-input-bg p-3.5 rounded-xl border border-light-border dark:border-border">
               <p className="text-xs font-medium text-light-text-muted dark:text-text-muted">Dentro do SLA</p>
               <p className="text-2xl font-bold text-status-success mt-0.5">
                 {data.regioes.reduce((acc, r) => acc + r.dentroSla, 0)}
               </p>
             </div>
-            <div className="bg-slate-50 dark:bg-background/40 p-3.5 rounded-positivo-lg border border-light-border dark:border-border/40">
+            <div className="bg-slate-50 dark:bg-input-bg p-3.5 rounded-xl border border-light-border dark:border-border">
               <p className="text-xs font-medium text-light-text-muted dark:text-text-muted">Fora do SLA</p>
               <p className="text-2xl font-bold text-status-error mt-0.5">
                 {data.regioes.reduce((acc, r) => acc + r.foraSla, 0)}
@@ -213,15 +214,15 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
         )}
 
         {/* Barra de Filtros e Abas */}
-        <div className="p-6 pt-3 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-light-border dark:border-border/40">
+        <div className="p-6 pt-3 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-light-border dark:border-border">
           
           {/* Abas */}
-          <div className="inline-flex bg-slate-100 dark:bg-background p-1 rounded-positivo-lg border border-light-border dark:border-border/50">
+          <div className="inline-flex bg-slate-100 dark:bg-input-bg p-1 rounded-xl border border-light-border dark:border-border">
             <button
               onClick={() => { setActiveTab('regioes'); setCurrentPage(1); }}
-              className={`px-4 py-1.5 rounded-positivo-md text-xs font-bold transition-colors cursor-pointer ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'regioes'
-                  ? 'bg-light-surface dark:bg-surface text-accent-teal shadow-sm border border-light-borderStrong/40 dark:border-border'
+                  ? 'bg-primary text-slate-950 shadow-sm'
                   : 'text-light-text-muted hover:text-light-text-main dark:hover:text-text-main'
               }`}
             >
@@ -229,9 +230,9 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
             </button>
             <button
               onClick={() => { setActiveTab('extrato'); setCurrentPage(1); }}
-              className={`px-4 py-1.5 rounded-positivo-md text-xs font-bold transition-colors cursor-pointer ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'extrato'
-                  ? 'bg-light-surface dark:bg-surface text-accent-teal shadow-sm border border-light-borderStrong/40 dark:border-border'
+                  ? 'bg-primary text-slate-950 shadow-sm'
                   : 'text-light-text-muted hover:text-light-text-main dark:hover:text-text-main'
               }`}
             >
@@ -245,7 +246,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
             <select
               value={selectedUf}
               onChange={(e) => { setSelectedUf(e.target.value); setCurrentPage(1); }}
-              className="bg-slate-50 dark:bg-background border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs rounded-positivo-md p-2 outline-none"
+              className="bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border text-light-text-main dark:text-text-main text-xs rounded-xl p-2 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer"
             >
               <option value="all">Todas as Regiões (UFs)</option>
               {ufsDisponiveis.map(uf => (
@@ -261,7 +262,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
                 placeholder="Buscar chamado, base, CT..."
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-background border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs rounded-positivo-md focus:ring-accent-teal focus:border-accent-teal outline-none"
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border text-light-text-main dark:text-text-main text-xs rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
               />
             </div>
           </div>
@@ -271,12 +272,12 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
         <div className="flex-1 overflow-y-auto scrollbar-hide p-6 pt-2">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 text-light-text-muted">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-teal mb-3" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3" />
               <p className="text-sm">Carregando auditoria de chamados sem técnico...</p>
             </div>
           ) : activeTab === 'regioes' ? (
             /* TABELA POR REGIÃO / BASE */
-            <div className="overflow-x-auto scrollbar-hide border border-light-border dark:border-border/60 rounded-positivo-lg">
+            <div className="overflow-x-auto scrollbar-hide border border-light-border dark:border-border rounded-xl">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-background/70 border-b border-light-border dark:border-border/60 text-light-text-muted uppercase text-[10px] tracking-wider">
@@ -301,7 +302,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
                     regioesFiltradas.map((r, idx) => (
                       <tr key={`${r.ctCodigo}-${idx}`} className="hover:bg-slate-50/50 dark:hover:bg-surface/50 transition-colors">
                         <td className="py-3 px-4 font-bold flex items-center gap-1.5">
-                          <MapPin size={13} className="text-accent-teal" />
+                          <MapPin size={13} className="text-primary" />
                           <span>{r.uf}</span>
                         </td>
                         <td className="py-3 px-4 font-medium">{r.atpNome}</td>
@@ -326,7 +327,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
                               setActiveTab('extrato');
                               setCurrentPage(1);
                             }}
-                            className="inline-flex items-center gap-1 text-[11px] text-accent-teal font-semibold hover:underline cursor-pointer"
+                            className="inline-flex items-center gap-1 text-[11px] text-primary font-semibold hover:underline cursor-pointer"
                           >
                             <span>Ver Extrato</span>
                             <ArrowRight size={12} />
@@ -341,7 +342,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
           ) : (
             /* TABELA DE EXTRATO DETALHADO */
             <div className="space-y-4">
-              <div className="overflow-x-auto scrollbar-hide border border-light-border dark:border-border/60 rounded-positivo-lg">
+              <div className="overflow-x-auto scrollbar-hide border border-light-border dark:border-border rounded-xl">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-background/70 border-b border-light-border dark:border-border/60 text-light-text-muted uppercase text-[10px] tracking-wider">
@@ -405,14 +406,14 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
                     <button
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="px-3 py-1 bg-slate-100 dark:bg-background border border-light-border dark:border-border rounded-positivo-md text-xs disabled:opacity-40 cursor-pointer"
+                      className="px-3 py-1 bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border rounded-xl text-xs text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
                       Anterior
                     </button>
                     <button
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-1 bg-slate-100 dark:bg-background border border-light-border dark:border-border rounded-positivo-md text-xs disabled:opacity-40 cursor-pointer"
+                      className="px-3 py-1 bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border rounded-xl text-xs text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
                       Próxima
                     </button>
@@ -424,14 +425,14 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 dark:bg-background/60 border-t border-light-border dark:border-border/60 flex items-center justify-between text-xs text-light-text-muted">
+        <div className="p-4 bg-light-background/60 dark:bg-input-bg/60 border-t border-light-border dark:border-border flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
           <div className="flex items-center gap-1.5">
             <ShieldAlert size={14} className="text-amber-500" />
             <span>Estes chamados impactam o SLA da Base coletiva, mas não pontuam individualmente para nenhum técnico.</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-positivo-md text-xs font-semibold text-light-text-main dark:text-text-main hover:bg-slate-100 dark:hover:bg-surface/80 transition-colors cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main font-semibold transition-all cursor-pointer"
           >
             Fechar
           </button>

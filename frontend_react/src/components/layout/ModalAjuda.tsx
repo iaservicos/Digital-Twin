@@ -10,7 +10,7 @@ export default function ModalAjuda({ isOpen, onClose }: ModalAjudaProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
       <div className="bg-light-surface dark:bg-surface rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-light-borderStrong dark:border-border animate-in zoom-in-95 relative flex flex-col max-h-[90vh]">
         
         {/* Header */}

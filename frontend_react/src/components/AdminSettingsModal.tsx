@@ -67,20 +67,20 @@ export default function AdminSettingsModal({ isOpen, onClose }: AdminSettingsMod
   if (!isOpen || !isAdmin) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-light-surface dark:bg-surface rounded-positivo-xl shadow-xl w-full max-w-lg overflow-hidden border border-light-borderStrong dark:border-border animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="glass-bento border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header do Modal */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-light-border dark:border-border bg-light-background dark:bg-surface/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-positivo-primary/10 rounded-lg text-positivo-primary">
+            <div className="p-2 bg-primary/10 border border-primary/20 rounded-xl text-primary">
               <Calendar size={20} />
             </div>
             <h2 className="text-lg font-bold text-light-text-main dark:text-text-main">Período de Apuração</h2>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 text-light-text-muted hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            className="p-1.5 text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main rounded-xl hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -90,15 +90,15 @@ export default function AdminSettingsModal({ isOpen, onClose }: AdminSettingsMod
         <div className="p-6 overflow-y-auto max-h-[70vh] scrollbar-hide">
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-teal"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
             <>
               {mensagem && (
-                <div className={`mb-6 p-4 rounded-md flex items-start space-x-3 ${
+                <div className={`mb-6 p-4 rounded-xl flex items-start space-x-3 ${
                   mensagem.tipo === 'sucesso' 
-                    ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' 
-                    : 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                 }`}>
                   {mensagem.tipo === 'sucesso' ? <CheckCircle size={20} className="mt-0.5" /> : <AlertCircle size={20} className="mt-0.5" />}
                   <p className="text-sm font-medium">{mensagem.texto}</p>
@@ -108,7 +108,7 @@ export default function AdminSettingsModal({ isOpen, onClose }: AdminSettingsMod
               <form onSubmit={salvarCampanha} className="space-y-5">
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="dataInicio" className="block text-sm font-bold text-light-text-secondary dark:text-text-main mb-1.5">
+                    <label htmlFor="dataInicio" className="block text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase mb-1.5 ml-0.5">
                       Data de Início
                     </label>
                     <input
@@ -117,12 +117,12 @@ export default function AdminSettingsModal({ isOpen, onClose }: AdminSettingsMod
                       value={dataInicio}
                       onChange={(e) => setDataInicio(e.target.value)}
                       required
-                      className="w-full px-4 py-2.5 border border-light-borderStrong dark:border-border rounded-lg shadow-sm focus:ring-2 focus:ring-positivo-primary focus:border-positivo-primary bg-light-surface dark:bg-background text-light-text-main dark:text-text-main"
+                      className="w-full px-4 py-2.5 border border-light-border dark:border-border rounded-xl bg-slate-50 dark:bg-input-bg text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="dataFim" className="block text-sm font-bold text-light-text-secondary dark:text-text-main mb-1.5">
+                    <label htmlFor="dataFim" className="block text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase mb-1.5 ml-0.5">
                       Data de Fim
                     </label>
                     <input
@@ -131,7 +131,7 @@ export default function AdminSettingsModal({ isOpen, onClose }: AdminSettingsMod
                       value={dataFim}
                       onChange={(e) => setDataFim(e.target.value)}
                       required
-                      className="w-full px-4 py-2.5 border border-light-borderStrong dark:border-border rounded-lg shadow-sm focus:ring-2 focus:ring-positivo-primary focus:border-positivo-primary bg-light-surface dark:bg-background text-light-text-main dark:text-text-main"
+                      className="w-full px-4 py-2.5 border border-light-border dark:border-border rounded-xl bg-slate-50 dark:bg-input-bg text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     />
                   </div>
                 </div>
@@ -140,11 +140,11 @@ export default function AdminSettingsModal({ isOpen, onClose }: AdminSettingsMod
                   <button
                     type="submit"
                     disabled={saving || !dataInicio || !dataFim}
-                    className="w-full flex justify-center items-center px-4 py-2.5 bg-positivo-primary text-text-main rounded-lg font-bold hover:bg-positivo-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-positivo-primary disabled:opacity-50 transition-colors shadow-sm"
+                    className="w-full flex justify-center items-center px-4 py-2.5 bg-primary hover:brightness-110 active:scale-[0.98] text-slate-950 rounded-xl font-bold transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary disabled:opacity-50 cursor-pointer"
                   >
                     {saving ? (
                       <span className="flex items-center">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                        <div className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin mr-2"></div>
                         Aplicando...
                       </span>
                     ) : (

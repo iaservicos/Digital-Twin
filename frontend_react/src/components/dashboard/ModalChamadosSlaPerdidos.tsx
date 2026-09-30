@@ -219,11 +219,11 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-light-text-main dark:text-text-main relative transition-colors">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-black/60 backdrop-blur-md animate-fade-in">
+      <div className="glass-bento border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-light-text-main dark:text-text-main relative transition-colors">
         
         {/* Top Header */}
-        <div className="p-6 border-b border-light-borderStrong dark:border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-light-background dark:bg-input-bg">
+        <div className="p-6 border-b border-light-border dark:border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-light-background/60 dark:bg-input-bg/60">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
@@ -238,7 +238,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
 
           <button
             onClick={onClose}
-            className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-light-surface-elevated hover:bg-light-surface-hover dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer self-end sm:self-center"
+            className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover transition-all cursor-pointer self-end sm:self-center"
             title="Fechar Modal"
           >
             <X size={20} />
@@ -292,7 +292,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
         </div>
 
         {/* Barra de Filtros e Busca */}
-        <div className="p-4 sm:p-6 pb-2 border-b border-light-borderStrong/60 dark:border-border/60 flex flex-col gap-3 bg-light-background dark:bg-input-bg">
+        <div className="p-4 sm:p-6 pb-2 border-b border-light-border dark:border-border flex flex-col gap-3 bg-light-background/60 dark:bg-input-bg/60">
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             {/* Input de Busca */}
             <div className="relative flex-1">
@@ -302,7 +302,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                 placeholder={isSupervisorOrAdmin ? "Buscar por chamados ou nome do técnico..." : "Buscar por chamado..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all shadow-xs"
+                className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-xs"
               />
               {searchTerm && (
                 <button
@@ -324,8 +324,8 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
               onClick={() => setSelectedCausa('TODOS')}
               className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedCausa === 'TODOS'
-                  ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
-                  : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                  ? 'bg-primary text-slate-950 shadow-glow-primary-sm'
+                  : 'bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}
             >
               Todas ({chamados.length})
@@ -338,8 +338,8 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                   onClick={() => setSelectedCausa(causa)}
                   className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap cursor-pointer ${
                     selectedCausa === causa
-                      ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm'
-                      : 'bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-secondary dark:bg-surface-elevated dark:text-text-muted dark:hover:text-text-main dark:hover:bg-surface-hover'
+                      ? 'bg-primary text-slate-950 shadow-glow-primary-sm'
+                      : 'bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
                   }`}
                 >
                   {causa} ({count})
@@ -448,11 +448,11 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-light-borderStrong/60 dark:border-border/60 flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted bg-light-background dark:bg-input-bg">
+        <div className="p-4 border-t border-light-border dark:border-border flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted bg-light-background/60 dark:bg-input-bg/60">
           <span>Total exibido: <strong className="text-light-text-main dark:text-text-main">{filteredChamados.length}</strong> de <strong className="text-light-text-main dark:text-text-main">{chamados.length}</strong> chamados fora do SLA</span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main rounded-xl font-bold transition-colors cursor-pointer border border-light-border dark:border-border/50"
+            className="px-5 py-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main font-semibold transition-all cursor-pointer"
           >
             Fechar
           </button>

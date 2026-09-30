@@ -122,42 +122,45 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="bg-light-surface dark:bg-surface rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-light-borderStrong dark:border-border animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="glass-bento border rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         
         {/* Header */}
-        <div className="p-6 border-b border-light-borderStrong dark:border-border flex justify-between items-center bg-light-background dark:bg-background/50">
-          <h2 className="text-xl font-black text-light-text-main dark:text-text-main">
+        <div className="p-6 border-b border-light-border dark:border-border flex justify-between items-center bg-light-background/60 dark:bg-input-bg/60">
+          <h2 className="text-xl font-bold text-light-text-main dark:text-text-main">
             Configurações
           </h2>
-          <button onClick={onClose} className="text-light-text-muted hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-            <X size={24} />
+          <button 
+            onClick={onClose} 
+            className="p-1.5 text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main rounded-xl hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover transition-colors cursor-pointer"
+          >
+            <X size={20} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-light-borderStrong dark:border-border px-6">
+        <div className="flex border-b border-light-border dark:border-border px-6">
           <button 
             onClick={() => setActiveTab('perfil')}
-            className={`py-4 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'perfil' ? 'border-accent-teal text-accent-teal' : 'border-transparent text-light-text-muted hover:text-light-text-secondary'}`}
+            className={`py-3.5 px-4 font-bold text-sm border-b-2 transition-colors cursor-pointer ${activeTab === 'perfil' ? 'border-primary text-primary' : 'border-transparent text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover'}`}
           >
             Perfil
           </button>
           <button 
             onClick={() => setActiveTab('senha')}
-            className={`py-4 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'senha' ? 'border-accent-teal text-accent-teal' : 'border-transparent text-light-text-muted hover:text-light-text-secondary'}`}
+            className={`py-3.5 px-4 font-bold text-sm border-b-2 transition-colors cursor-pointer ${activeTab === 'senha' ? 'border-primary text-primary' : 'border-transparent text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover'}`}
           >
             Segurança
           </button>
           <button 
             onClick={() => setActiveTab('campanha')}
-            className={`py-4 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'campanha' ? 'border-accent-teal text-accent-teal' : 'border-transparent text-light-text-muted hover:text-light-text-secondary'}`}
+            className={`py-3.5 px-4 font-bold text-sm border-b-2 transition-colors cursor-pointer ${activeTab === 'campanha' ? 'border-primary text-primary' : 'border-transparent text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover'}`}
           >
             Histórico de campanhas
           </button>
           <button 
             onClick={() => setActiveTab('aparencia')}
-            className={`py-4 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'aparencia' ? 'border-accent-teal text-accent-teal' : 'border-transparent text-light-text-muted hover:text-light-text-secondary'}`}
+            className={`py-3.5 px-4 font-bold text-sm border-b-2 transition-colors cursor-pointer ${activeTab === 'aparencia' ? 'border-primary text-primary' : 'border-transparent text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover'}`}
           >
             Aparência
           </button>
@@ -198,7 +201,7 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
               </div>
 
               {imgMensagem.texto && (
-                <div className={`p-3 rounded-lg text-sm font-medium ${imgMensagem.tipo === 'sucesso' ? 'bg-accent-emerald/10 text-accent-emerald' : 'bg-status-danger/10 text-status-danger'}`}>
+                <div className={`p-3 rounded-xl text-sm font-medium ${imgMensagem.tipo === 'sucesso' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'}`}>
                   {imgMensagem.texto}
                 </div>
               )}
@@ -206,7 +209,7 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
               <button 
                 onClick={handleSaveImage}
                 disabled={loadingImg || !previewImagem || previewImagem === user?.fotoPerfil}
-                className="w-full py-3 bg-accent-teal hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed text-positivo-primary font-bold rounded-xl transition-all shadow-md"
+                className="w-full py-3 bg-primary hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary cursor-pointer"
               >
                 {loadingImg ? 'Salvando...' : 'Salvar Imagem'}
               </button>
@@ -218,12 +221,12 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
             <div className="space-y-6">
               {/* Seção de Seleção de Campanha */}
               <div>
-                <label className="block text-xs font-bold text-light-text-secondary dark:text-text-muted mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-light-text-secondary dark:text-text-muted mb-2 uppercase tracking-wider">
                   Campanha Selecionada (Histórico)
                 </label>
-                <div className="flex items-center space-x-3 bg-slate-50 dark:bg-background border border-light-borderStrong dark:border-border rounded-xl p-3">
-                  <div className="p-2 bg-slate-200 dark:bg-surface rounded-lg">
-                    <Calendar size={20} className="text-light-text-muted dark:text-text-muted" />
+                <div className="flex items-center space-x-3 bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl p-3">
+                  <div className="p-2 bg-primary/10 border border-primary/20 text-primary rounded-lg">
+                    <Calendar size={20} />
                   </div>
                   <div className="flex-1">
                     <select 
@@ -233,7 +236,7 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
                         const camp = campanhas.find(c => c.idCampanha === Number(e.target.value));
                         if (camp) {
                           setSelectedCampanha(camp);
-                          window.location.reload(); // Força o refresh da tela com a nova campanha
+                          window.location.reload();
                         }
                       }}
                     >
@@ -256,14 +259,14 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
           {activeTab === 'senha' && (
             <form onSubmit={handleSavePassword} className="space-y-5">
               
-              <div className="bg-light-surface dark:bg-background p-4 rounded-xl border border-light-borderStrong dark:border-border mb-4">
+              <div className="bg-light-surface/50 dark:bg-surface/30 p-4 rounded-xl border border-light-border dark:border-border mb-4">
                 <div className="flex items-center gap-3 text-light-text-main dark:text-text-main mb-1">
-                  <Lock size={20} className="text-accent-teal" />
+                  <Lock size={20} className="text-primary" />
                   <h3 className="font-bold text-sm">Alterar Senha</h3>
                 </div>
                 <p className="text-xs text-light-text-muted">Atualize sua credencial de acesso ao sistema.</p>
                 {!isElevado && (
-                  <div className="mt-3 p-2.5 bg-accent-teal/10 border border-accent-teal/20 rounded-lg text-xs text-accent-teal">
+                  <div className="mt-3 p-2.5 bg-primary/10 border border-primary/20 rounded-lg text-xs text-primary">
                     <span className="font-bold">Esqueceu a senha?</span> Solicite suporte ao seu Administrador para redefinir.
                   </div>
                 )}
@@ -271,16 +274,16 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
 
               {isElevado && (
                 <div>
-                  <label className="block text-xs font-bold text-light-text-secondary dark:text-text-muted mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-light-text-secondary dark:text-text-muted mb-1.5 uppercase tracking-wider">
                     Matrícula Alvo (Apenas Admins)
                   </label>
                   <div className="relative">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-muted" />
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted" />
                     <input 
                       type="text" 
                       value={matriculaAlvo}
                       onChange={(e) => setMatriculaAlvo(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-light-background dark:bg-background border border-light-borderStrong dark:border-border rounded-xl focus:outline-none focus:border-accent-teal text-light-text-main dark:text-text-main text-sm transition-colors"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-light-text-main dark:text-text-main text-sm transition-all"
                       placeholder="Ex: P123456"
                     />
                   </div>
@@ -289,47 +292,47 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
 
               {!isElevado && (
                 <div>
-                  <label className="block text-xs font-bold text-light-text-secondary dark:text-text-muted mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-light-text-secondary dark:text-text-muted mb-1.5 uppercase tracking-wider">
                     Senha Atual
                   </label>
                   <input 
                     type="password" 
                     value={senhaAtual}
                     onChange={(e) => setSenhaAtual(e.target.value)}
-                    className="w-full px-4 py-3 bg-light-background dark:bg-background border border-light-borderStrong dark:border-border rounded-xl focus:outline-none focus:border-accent-teal text-light-text-main dark:text-text-main text-sm transition-colors"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-light-text-main dark:text-text-main text-sm transition-all"
                     placeholder="Sua senha atual"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-light-text-secondary dark:text-text-muted mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-light-text-secondary dark:text-text-muted mb-1.5 uppercase tracking-wider">
                   Nova Senha
                 </label>
                 <input 
                   type="password" 
                   value={novaSenha}
                   onChange={(e) => setNovaSenha(e.target.value)}
-                  className="w-full px-4 py-3 bg-light-background dark:bg-background border border-light-borderStrong dark:border-border rounded-xl focus:outline-none focus:border-accent-teal text-light-text-main dark:text-text-main text-sm transition-colors"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-light-text-main dark:text-text-main text-sm transition-all"
                   placeholder="Mínimo 6 caracteres"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-light-text-secondary dark:text-text-muted mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-light-text-secondary dark:text-text-muted mb-1.5 uppercase tracking-wider">
                   Confirmar Nova Senha
                 </label>
                 <input 
                   type="password" 
                   value={confirmaSenha}
                   onChange={(e) => setConfirmaSenha(e.target.value)}
-                  className="w-full px-4 py-3 bg-light-background dark:bg-background border border-light-borderStrong dark:border-border rounded-xl focus:outline-none focus:border-accent-teal text-light-text-main dark:text-text-main text-sm transition-colors"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-light-text-main dark:text-text-main text-sm transition-all"
                   placeholder="Repita a senha"
                 />
               </div>
 
               {senhaMensagem.texto && (
-                <div className={`p-3 flex items-start gap-2 rounded-lg text-sm font-medium ${senhaMensagem.tipo === 'sucesso' ? 'bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/20' : 'bg-status-danger/10 text-status-danger border border-status-danger/20'}`}>
+                <div className={`p-3 flex items-start gap-2 rounded-xl text-sm font-medium ${senhaMensagem.tipo === 'sucesso' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'}`}>
                   {senhaMensagem.tipo === 'sucesso' && <CheckCircle2 size={18} className="mt-0.5 shrink-0" />}
                   <span>{senhaMensagem.texto}</span>
                 </div>
@@ -338,7 +341,7 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
               <button 
                 type="submit"
                 disabled={loadingSenha}
-                className="w-full py-3 mt-4 bg-accent-teal hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed text-positivo-primary font-bold rounded-xl transition-all shadow-md"
+                className="w-full py-3 mt-4 bg-primary hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary cursor-pointer"
               >
                 {loadingSenha ? 'Alterando...' : 'Salvar Nova Senha'}
               </button>
@@ -348,7 +351,7 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
           {/* TAB APARÊNCIA / PREFERÊNCIAS */}
           {activeTab === 'aparencia' && (
             <div className="space-y-6">
-              <div className="bg-light-background dark:bg-background/60 p-5 rounded-2xl border border-light-borderStrong dark:border-border">
+              <div className="bg-light-surface/50 dark:bg-surface/30 p-5 rounded-2xl border border-light-border dark:border-border">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -379,7 +382,7 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
                   </button>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-light-borderStrong dark:border-border flex items-center justify-between text-xs">
+                <div className="mt-4 pt-3 border-t border-light-border dark:border-border flex items-center justify-between text-xs">
                   <span className="text-light-text-muted dark:text-text-muted">Status do efeito:</span>
                   <span className={`font-bold ${backgroundDistortion ? 'text-emerald-500 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'}`}>
                     {backgroundDistortion ? 'Ativado (Dinâmico)' : 'Desativado (Estático)'}

@@ -205,11 +205,11 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto scrollbar-hide">
-      <div className="bg-light-surface dark:bg-surface rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-light-borderStrong dark:border-border mt-10">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md overflow-y-auto scrollbar-hide animate-in fade-in duration-200">
+      <div className="glass-bento border rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col mt-10 overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-light-borderStrong dark:border-border">
+        <div className="flex items-center justify-between p-6 border-b border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60">
           <div>
             <h2 className="text-xl font-bold text-light-text-main dark:text-text-main">
               Editar Configurações da Campanha
@@ -220,7 +220,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
           </div>
           <button 
             onClick={onClose}
-            className="p-2 text-light-text-muted dark:text-text-muted hover:bg-light-background dark:hover:bg-background rounded-full transition-colors"
+            className="p-1.5 text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover rounded-xl transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -230,14 +230,14 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
         <div className="p-6 overflow-y-auto scrollbar-hide flex-1">
           {loading ? (
             <div className="flex justify-center p-8">
-              <RefreshCw className="animate-spin text-accent-teal" size={32} />
+              <RefreshCw className="animate-spin text-primary" size={32} />
             </div>
           ) : (
             <div className="space-y-8">
               
               {/* Configurações Gerais da Campanha */}
               {campanha && (
-                <div className="bg-light-background dark:bg-background p-5 rounded-xl border border-light-border dark:border-border shadow-sm">
+                <div className="bg-light-surface/50 dark:bg-surface/30 p-5 rounded-2xl border border-light-border dark:border-border shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="font-bold text-light-text-main dark:text-text-main text-base">Período da Campanha</h3>
@@ -246,9 +246,9 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
                     <button
                       onClick={handleSaveCampanha}
                       disabled={savingCampanha}
-                      className="text-sm flex items-center gap-1.5 bg-accent-teal text-white px-3 py-1.5 rounded-lg hover:bg-accent-teal/90 transition-colors disabled:opacity-50 font-medium"
+                      className="text-xs flex items-center gap-1.5 bg-primary hover:brightness-110 active:scale-[0.98] text-slate-950 font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary disabled:opacity-50 cursor-pointer"
                     >
-                      {savingCampanha ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />} 
+                      {savingCampanha ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />} 
                       Salvar Período
                     </button>
                   </div>
@@ -262,7 +262,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
                         type="date"
                         value={campanha.dataInicio}
                         onChange={(e) => setCampanha({ ...campanha, dataInicio: e.target.value })}
-                        className="w-full bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-lg px-3 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:ring-1 focus:ring-accent-teal transition-shadow"
+                        className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl px-3 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                       />
                     </div>
                     <div>
@@ -275,7 +275,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
                         max="12"
                         value={campanha.duracaoMeses}
                         onChange={(e) => setCampanha({ ...campanha, duracaoMeses: parseInt(e.target.value) || 3 })}
-                        className="w-full bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-lg px-3 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:ring-1 focus:ring-accent-teal transition-shadow"
+                        className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl px-3 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                       />
                     </div>
                   </div>
@@ -284,7 +284,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
 
               {/* Regras e Faixas */}
               {regras.map((regra) => (
-                <div key={regra.idRegra} className="bg-light-background dark:bg-background p-5 rounded-xl border border-light-border dark:border-border shadow-sm">
+                <div key={regra.idRegra} className="bg-light-surface/50 dark:bg-surface/30 p-5 rounded-2xl border border-light-border dark:border-border shadow-sm">
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <h3 className="font-semibold text-light-text-main dark:text-text-main">{regra.nomeIndicador}</h3>
@@ -292,7 +292,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
                     </div>
                     <button
                       onClick={() => handleAddFaixa(regra.idRegra)}
-                      className="text-xs flex items-center gap-1 bg-accent-teal/10 text-accent-teal px-2 py-1 rounded hover:bg-accent-teal/20 transition-colors"
+                      className="text-xs font-semibold flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-lg hover:bg-primary/20 transition-colors cursor-pointer"
                     >
                       <Plus size={14} /> Adicionar Faixa
                     </button>
@@ -316,7 +316,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
                             max="100"
                             value={faixa.valorMinimo}
                             onChange={(e) => handleUpdateFaixa(regra.idRegra, index, 'valorMinimo', e.target.value)}
-                            className="w-full bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-lg pl-3 pr-6 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:ring-1 focus:ring-accent-teal transition-shadow"
+                            className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl pl-3 pr-6 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted text-xs">%</span>
                         </div>
@@ -327,7 +327,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
                             max="100"
                             value={faixa.valorMaximo}
                             onChange={(e) => handleUpdateFaixa(regra.idRegra, index, 'valorMaximo', e.target.value)}
-                            className="w-full bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-lg pl-3 pr-6 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:ring-1 focus:ring-accent-teal transition-shadow"
+                            className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl pl-3 pr-6 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted text-xs">%</span>
                         </div>
@@ -337,21 +337,21 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
                             step="0.5"
                             value={faixa.pontosObtidos}
                             onChange={(e) => handleUpdateFaixa(regra.idRegra, index, 'pontosObtidos', e.target.value)}
-                            className="w-full bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-lg px-3 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:ring-1 focus:ring-accent-teal transition-shadow"
+                            className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl px-3 py-2 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                           />
                         </div>
                         <div className="col-span-3 flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleSaveFaixa(regra.idRegra, faixa)}
                             disabled={saving === faixa.idFaixa || (saving === -1 && faixa.idFaixa === 0)}
-                            className="p-1.5 text-accent-teal hover:bg-accent-teal/10 rounded transition-colors disabled:opacity-50"
+                            className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                             title="Salvar"
                           >
                             <Save size={16} />
                           </button>
                           <button
                             onClick={() => handleDeleteFaixa(regra.idRegra, faixa.idFaixa, index)}
-                            className="p-1.5 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                            className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
                             title="Remover"
                           >
                             <Trash2 size={16} />
@@ -372,12 +372,12 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-light-borderStrong dark:border-border bg-light-background dark:bg-background/50 flex justify-between items-center rounded-b-xl">
+        <div className="p-6 border-t border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60 flex justify-between items-center">
           <div className="flex flex-col gap-1">
-            <div className={`text-sm font-semibold flex items-center gap-2 ${sumMaxPoints === 100 ? 'text-accent-teal' : 'text-red-500'}`}>
+            <div className={`text-sm font-semibold flex items-center gap-2 ${sumMaxPoints === 100 ? 'text-primary' : 'text-rose-500'}`}>
               Distribuição Total: {sumMaxPoints.toFixed(1)} / 100 Pontos
               {sumMaxPoints !== 100 && (
-                <span className="text-xs font-normal bg-red-500/10 px-2 py-0.5 rounded text-red-500">
+                <span className="text-xs font-normal bg-rose-500/10 px-2 py-0.5 rounded text-rose-500 border border-rose-500/20">
                   A soma máxima deve ser exatamente 100
                 </span>
               )}
@@ -389,7 +389,7 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
           <button
             onClick={onProcessarMes}
             disabled={isProcessing || sumMaxPoints !== 100}
-            className="flex items-center gap-2 bg-accent-teal hover:bg-accent-teal/90 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-primary hover:brightness-110 active:scale-[0.98] text-slate-950 px-6 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary"
           >
             <RefreshCw size={18} className={isProcessing ? 'animate-spin' : ''} />
             {isProcessing ? 'Processando Mês...' : 'Processar Mês'}

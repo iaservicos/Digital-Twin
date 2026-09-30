@@ -102,7 +102,7 @@ export const ChamadoItem = ({ item }: any) => {
       {/* Modal de Detalhes do Chamado */}
       {modalOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" 
+          className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" 
           onClick={() => setModalOpen(false)}
         >
           <div 

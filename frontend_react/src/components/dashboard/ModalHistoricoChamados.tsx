@@ -18,7 +18,7 @@ export const ModalHistoricoChamados: React.FC<ModalHistoricoChamadosProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
       <div className="bg-light-surface dark:bg-surface rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-light-borderStrong dark:border-border animate-in zoom-in-95">
         <div className="p-5 border-b border-light-borderStrong dark:border-border/60 flex justify-between items-center bg-light-background dark:bg-input-bg">
           <div className="flex items-center gap-3">

@@ -15,11 +15,11 @@ export const ModalDetalhesPontuacao: React.FC<ModalDetalhesPontuacaoProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
-      <div className="bg-light-surface dark:bg-surface rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden border border-light-borderStrong dark:border-border animate-in zoom-in-95">
-        <div className="p-6 border-b border-light-borderStrong dark:border-border/60 flex justify-between items-center bg-light-background dark:bg-input-bg">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
+      <div className="glass-bento border rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95">
+        <div className="p-6 border-b border-light-border dark:border-border flex justify-between items-center bg-light-background/60 dark:bg-input-bg/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent-teal/10 border border-accent-teal/20 flex items-center justify-center text-accent-teal">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
               <Award size={22} />
             </div>
             <div>
@@ -33,42 +33,43 @@ export const ModalDetalhesPontuacao: React.FC<ModalDetalhesPontuacaoProps> = ({
           </div>
           <button 
             onClick={onClose} 
-            className="text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-surface-elevated transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main transition-all cursor-pointer"
+            title="Fechar Modal"
           >
-            <XCircle size={22} />
+            <XCircle size={20} />
           </button>
         </div>
 
         <div className="p-6 overflow-x-auto overflow-y-auto max-h-[70vh] scrollbar-hide">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
-              <tr className="bg-slate-100 dark:bg-surface-elevated text-light-text-secondary dark:text-text-muted text-xs font-bold uppercase tracking-wider">
-                <th className="p-4 border-b border-light-borderStrong dark:border-border/60 rounded-tl-xl">Mês</th>
-                <th className="p-4 border-b border-light-borderStrong dark:border-border/60 text-center" title="SLA Equipe (Máx 32,5 pts)">SLA Equipe</th>
-                <th className="p-4 border-b border-light-borderStrong dark:border-border/60 text-center" title="Perdas SLA Performance da Base (Máx 20,0 pts)">Perdas Equipe</th>
-                <th className="p-4 border-b border-light-borderStrong dark:border-border/60 text-center" title="NPS da Equipe (Máx 5,0 pts)">NPS Equipe</th>
-                <th className="p-4 border-b border-light-borderStrong dark:border-border/60 text-center" title="Reincidência da Base (Máx 15,0 pts)">Reinc. Equipe</th>
-                <th className="p-4 border-b border-light-borderStrong dark:border-border/60 text-center" title="Reincidência Individual do Técnico (Máx 15,0 pts)">Reinc. Indiv.</th>
-                <th className="p-4 border-b border-light-borderStrong dark:border-border/60 text-center" title="Consumo de Peças Individual (Máx 12,5 pts)">Peças</th>
-                <th className="p-4 border-b border-light-borderStrong dark:border-border/60 text-center">Total</th>
-                <th className="p-4 border-b border-light-borderStrong dark:border-border/60 text-center rounded-tr-xl">Elegibilidade</th>
+              <tr className="bg-light-surface/60 dark:bg-surface-elevated/60 text-light-text-secondary dark:text-text-muted text-xs font-bold uppercase tracking-wider">
+                <th className="p-4 border-b border-light-border dark:border-border rounded-tl-xl">Mês</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="SLA Equipe (Máx 32,5 pts)">SLA Equipe</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Perdas SLA Performance da Base (Máx 20,0 pts)">Perdas Equipe</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="NPS da Equipe (Máx 5,0 pts)">NPS Equipe</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Reincidência da Base (Máx 15,0 pts)">Reinc. Equipe</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Reincidência Individual do Técnico (Máx 15,0 pts)">Reinc. Indiv.</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Consumo de Peças Individual (Máx 12,5 pts)">Peças</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center">Total</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center rounded-tr-xl">Elegibilidade</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-light-borderStrong/60 dark:divide-border/40 bg-light-surface dark:bg-surface">
+            <tbody className="divide-y divide-light-border dark:divide-border/40 bg-light-surface/40 dark:bg-surface/40">
               {metricas?.historico?.map((h: any, index: number) => {
                 const isMedia = h.mes === 'Média Final';
                 return (
-                  <tr key={index} className={`hover:bg-light-background dark:hover:bg-surface-elevated transition-colors ${isMedia ? 'bg-light-background/80 dark:bg-input-bg font-semibold' : ''}`}>
+                  <tr key={index} className={`hover:bg-light-background/80 dark:hover:bg-surface-elevated/80 transition-colors ${isMedia ? 'bg-light-background/90 dark:bg-input-bg font-semibold' : ''}`}>
                     {/* 1. Mês */}
                     <td className="p-4 font-bold text-light-text-main dark:text-text-main flex items-center gap-2">
-                      {isMedia ? <TrendingUp size={16} className="text-accent-teal"/> : null}
+                      {isMedia ? <TrendingUp size={16} className="text-primary"/> : null}
                       {h.mes}
                     </td>
 
                     {/* 2. SLA Equipe (Máx 32.5 pts) */}
                     <td className="p-4 text-center">
                       <div className="font-bold text-light-text-secondary dark:text-text-main">{h.percentualSla?.toFixed(2)}%</div>
-                      <div className="text-xs font-medium text-accent-teal bg-accent-teal/10 border border-accent-teal/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosSla} pts</div>
+                      <div className="text-xs font-medium text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosSla} pts</div>
                     </td>
 
                     {/* 3. Perdas Performance Equipe (Máx 20.0 pts) */}
@@ -98,7 +99,7 @@ export const ModalDetalhesPontuacao: React.FC<ModalDetalhesPontuacaoProps> = ({
                     {/* 7. Consumo de Peças Individual (Máx 12.5 pts) */}
                     <td className="p-4 text-center">
                       <div className="font-bold text-light-text-secondary dark:text-text-main">{h.percentualEficienciaPecas?.toFixed(2)}%</div>
-                      <div className="text-xs font-medium text-accent-teal bg-accent-teal/10 border border-accent-teal/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosPecas} pts</div>
+                      <div className="text-xs font-medium text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosPecas} pts</div>
                     </td>
 
                     {/* 8. Pontuação Total (com suporte a decimais .5) */}
@@ -128,10 +129,10 @@ export const ModalDetalhesPontuacao: React.FC<ModalDetalhesPontuacaoProps> = ({
           </table>
         </div>
 
-        <div className="p-4 bg-light-background dark:bg-input-bg border-t border-light-borderStrong dark:border-border/60 flex justify-end">
+        <div className="p-4 bg-light-background/60 dark:bg-input-bg/60 border-t border-light-border dark:border-border flex justify-end">
           <button 
             onClick={onClose} 
-            className="bg-slate-200 hover:bg-slate-300 dark:bg-surface-elevated dark:hover:bg-surface-hover text-light-text-main dark:text-text-main px-6 py-2.5 rounded-xl font-bold transition-colors shadow-xs border border-transparent dark:border-border/50 focus:outline-none cursor-pointer"
+            className="px-6 py-2.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main font-semibold transition-all cursor-pointer"
           >
             Fechar
           </button>

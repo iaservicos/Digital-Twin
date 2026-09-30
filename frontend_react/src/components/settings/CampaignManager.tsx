@@ -252,7 +252,7 @@ export default function CampaignManager() {
             <button 
               onClick={handleProcessarCalculos}
               disabled={isProcessing || tracker.status === 'processing'}
-              className={`bg-primary hover:bg-primary-dark text-background dark:text-background px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20 cursor-pointer ${!isModerador ? 'md:col-span-3' : ''}`}
+              className={`bg-primary hover:brightness-110 active:scale-[0.98] text-slate-950 px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary cursor-pointer ${!isModerador ? 'md:col-span-3' : ''}`}
             >
               <RefreshCw size={18} className={(isProcessing || tracker.status === 'processing') ? 'animate-spin' : ''} />
               {(isProcessing || tracker.status === 'processing') ? 'Calculando...' : 'Atualizar Pontuações'}
@@ -262,7 +262,7 @@ export default function CampaignManager() {
           isModerador && (
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="mt-4 bg-primary hover:bg-primary-dark text-background dark:text-background px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-md shadow-primary/20 cursor-pointer"
+              className="mt-4 bg-primary hover:brightness-110 active:scale-[0.98] text-slate-950 px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary cursor-pointer"
             >
               <Plus size={20} />
               Nova Campanha
@@ -272,9 +272,9 @@ export default function CampaignManager() {
       </div>
 
       {isModalOpen && isModerador && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-          <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg">
+        <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="glass-bento border rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60">
               {campanhaAtual ? (
                 <h3 className="text-2xl font-bold text-rose-500 dark:text-rose-400 flex items-center gap-2">
                   <AlertTriangle />
@@ -300,7 +300,7 @@ export default function CampaignManager() {
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Nova Data de Início</label>
                   <input 
                     type="date" 
-                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-borderStrong dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     value={dataInicio}
                     onChange={(e) => setDataInicio(e.target.value)}
                   />
@@ -308,7 +308,7 @@ export default function CampaignManager() {
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Duração (Meses)</label>
                   <select
-                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-borderStrong dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-all"
                     value={duracaoMeses}
                     onChange={(e) => setDuracaoMeses(Number(e.target.value))}
                   >
@@ -328,7 +328,7 @@ export default function CampaignManager() {
                       checked={limparDadosBrutos}
                       onChange={(e) => setLimparDadosBrutos(e.target.checked)}
                     />
-                    <div className={`w-5 h-5 rounded border ${limparDadosBrutos ? 'bg-rose-500 border-rose-500' : 'bg-slate-100 dark:bg-input-bg border-light-borderStrong dark:border-border'} transition-colors flex items-center justify-center`}>
+                    <div className={`w-5 h-5 rounded border ${limparDadosBrutos ? 'bg-rose-500 border-rose-500' : 'bg-slate-100 dark:bg-input-bg border-light-border dark:border-border'} transition-colors flex items-center justify-center`}>
                       {limparDadosBrutos && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                     </div>
                   </div>
@@ -347,7 +347,7 @@ export default function CampaignManager() {
                 <input 
                   type="text" 
                   placeholder="CONFIRMAR"
-                  className="w-full bg-slate-50 dark:bg-input-bg border border-light-borderStrong dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400"
+                  className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 transition-all"
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
                 />
@@ -356,10 +356,10 @@ export default function CampaignManager() {
               {error && <p className="text-sm text-rose-500 dark:text-rose-400 font-semibold">{error}</p>}
             </div>
 
-            <div className="p-6 border-t border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg flex justify-end gap-3">
+            <div className="p-6 border-t border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60 flex justify-end gap-3">
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="px-6 py-2.5 rounded-xl text-light-text-secondary dark:text-text-muted font-semibold hover:bg-slate-200 dark:hover:bg-surface-elevated transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main font-semibold transition-all cursor-pointer disabled:opacity-50"
                 disabled={loading}
               >
                 Cancelar
@@ -367,7 +367,7 @@ export default function CampaignManager() {
               <button 
                 onClick={handleReset}
                 disabled={loading || confirmText !== 'CONFIRMAR'}
-                className="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer shadow-sm shadow-rose-500/20"
+                className="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer shadow-md shadow-rose-500/20 border border-rose-500/50 hover:brightness-105"
               >
                 {loading ? 'Processando...' : 'Iniciar Nova Campanha'}
               </button>

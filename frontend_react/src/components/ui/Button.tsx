@@ -29,8 +29,8 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     neon: "bg-primary/20 text-primary-light border-2 border-primary/80 font-bold shadow-md shadow-primary/25 hover:bg-primary/30 hover:border-primary hover:shadow-lg hover:shadow-primary/30 transition-all duration-200",
-    primary: "bg-primary hover:bg-primary-dark text-slate-950 shadow-md shadow-primary/20",
-    secondary: "bg-surface-elevated hover:bg-surface-hover text-text-main border border-border",
+    primary: "bg-primary hover:brightness-110 active:scale-[0.98] text-slate-950 border border-primary shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30",
+    secondary: "bg-light-buttonBg dark:bg-buttonBg hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main border border-light-border dark:border-white/10 hover:border-light-borderStrong dark:hover:border-white/20 shadow-sm",
     ghost: "bg-transparent hover:bg-white/10 dark:hover:bg-surface/40 text-light-text-main dark:text-text-main",
     danger: "bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40 shadow-sm shadow-red-500/10",
   };

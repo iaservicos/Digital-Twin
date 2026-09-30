@@ -545,24 +545,24 @@ export default function RankingScreen() {
               Exibindo <span className="font-bold text-text-main">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-bold text-text-main">{Math.min(currentPage * itemsPerPage, filteredRanking.length)}</span> de <span className="font-bold text-text-main">{filteredRanking.length}</span> técnicos
             </p>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-text-main"
+                className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                 title="Página Anterior"
               >
                 <ChevronLeft size={16} />
               </button>
               
-              <div className="px-3 py-1 font-bold text-text-main bg-surface-elevated border border-border rounded-xl">
+              <div className="px-3 py-1 font-bold text-light-text-main dark:text-text-main bg-light-surface/60 dark:bg-surface-elevated border border-light-border dark:border-border rounded-xl">
                 {currentPage} / {totalPages}
               </div>
 
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-xl border border-light-borderStrong dark:border-border hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-text-main"
+                className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                 title="Próxima Página"
               >
                 <ChevronRight size={16} />
@@ -577,11 +577,11 @@ export default function RankingScreen() {
       {/* 4. MODAL OFICIAL DE DESEMPENHO DO TÉCNICO                                 */}
       {/* ========================================================================= */}
       {canViewDetails && selectedTecnico && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-bento p-4 animate-in fade-in">
-          <div className="bg-light-surface dark:bg-surface rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-light-borderStrong dark:border-border animate-in zoom-in-95">
-            <div className="p-5 border-b border-light-borderStrong dark:border-border flex justify-between items-center bg-light-background dark:bg-input-bg">
+        <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="glass-bento border rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-5 border-b border-light-border dark:border-border flex justify-between items-center bg-light-background/60 dark:bg-input-bg/60">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden border border-border bg-surface flex items-center justify-center text-text-muted">
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-light-border dark:border-border bg-surface flex items-center justify-center text-text-muted">
                   {selectedTecnico.fotoPerfil ? (
                     <img src={selectedTecnico.fotoPerfil} alt={selectedTecnico.name} className="w-full h-full object-cover" />
                   ) : (
@@ -599,16 +599,17 @@ export default function RankingScreen() {
               </div>
               <button 
                 onClick={() => setSelectedTecnico(null)} 
-                className="text-text-muted hover:text-text-main p-2 rounded-lg hover:bg-surface-hover transition-colors cursor-pointer"
+                className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main transition-all cursor-pointer"
+                title="Fechar"
               >
-                <XCircle size={22} />
+                <XCircle size={20} />
               </button>
             </div>
 
             <div className="p-6 overflow-x-auto overflow-y-auto max-h-[70vh] scrollbar-hide">
               <table className="w-full text-left border-collapse min-w-[750px]">
                 <thead>
-                  <tr className="bg-light-background dark:bg-input-bg text-text-muted text-xs font-bold uppercase tracking-wider border-b border-border">
+                  <tr className="bg-light-surface/60 dark:bg-surface-elevated/60 text-text-muted text-xs font-bold uppercase tracking-wider border-b border-light-border dark:border-border">
                     <th className="p-3">Mês</th>
                     <th className="p-3 text-center">SLA</th>
                     <th className="p-3 text-center">Reincidência</th>
@@ -618,7 +619,7 @@ export default function RankingScreen() {
                     <th className="p-3 text-center">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/60 text-xs">
+                <tbody className="divide-y divide-light-border dark:divide-border/60 text-xs">
                   {selectedTecnico.rawDto?.historico?.map((h: any, i: number) => {
                     const isMedia = h.mes === 'Média Final';
                     return (
@@ -663,6 +664,15 @@ export default function RankingScreen() {
                   Pontuação consolidada: <span className="font-black text-primary">{selectedTecnico.score.toFixed(1)} pts</span>
                 </div>
               )}
+            </div>
+
+            <div className="p-4 bg-light-background/60 dark:bg-input-bg/60 border-t border-light-border dark:border-border flex justify-end">
+              <button 
+                onClick={() => setSelectedTecnico(null)} 
+                className="px-6 py-2.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main font-semibold transition-all cursor-pointer"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>

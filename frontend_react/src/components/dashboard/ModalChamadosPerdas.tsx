@@ -220,13 +220,13 @@ export default function ModalChamadosPerdas({
   const periodoLabel = selectedMonth && selectedMonth !== 'Média Final' ? selectedMonth : 'Campanha Completa';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
       <div 
-        className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors"
+        className="glass-bento border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors"
         onClick={(e) => e.stopPropagation()}
       >
         {/* TOP HEADER */}
-        <div className="relative px-6 py-5 border-b border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg flex items-start justify-between gap-4">
+        <div className="relative px-6 py-5 border-b border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60 flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
@@ -244,13 +244,13 @@ export default function ModalChamadosPerdas({
 
           <div className="flex items-center gap-2">
             {isSupervisorOrAdmin && (
-              <div className="flex items-center bg-light-surface-elevated dark:bg-input-bg p-1 rounded-xl border border-light-borderStrong/60 dark:border-border">
+              <div className="flex items-center bg-light-surface-elevated/80 dark:bg-surface-elevated/80 p-1 rounded-xl border border-light-border dark:border-border">
                 <button
                   onClick={() => setVisaoFiltro('INDIVIDUAL')}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                     visaoFiltro === 'INDIVIDUAL' 
-                      ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm font-bold' 
-                      : 'text-light-text-secondary hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main'
+                      ? 'bg-primary text-slate-950 font-bold shadow-md shadow-primary/20' 
+                      : 'text-light-text-muted dark:text-text-muted hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
                   }`}
                   title="Ver apenas as perdas deste técnico"
                 >
@@ -259,10 +259,10 @@ export default function ModalChamadosPerdas({
                 </button>
                 <button
                   onClick={() => setVisaoFiltro('BASE')}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                     visaoFiltro === 'BASE' 
-                      ? 'bg-primary text-light-surface dark:text-surface shadow-glow-primary-sm font-bold' 
-                      : 'text-light-text-secondary hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main'
+                      ? 'bg-primary text-slate-950 font-bold shadow-md shadow-primary/20' 
+                      : 'text-light-text-muted dark:text-text-muted hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
                   }`}
                   title="Ver todas as perdas da base"
                 >
@@ -274,7 +274,7 @@ export default function ModalChamadosPerdas({
 
             <button
               onClick={onClose}
-              className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-light-surface-elevated hover:bg-light-surface-hover dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer"
+              className="p-1.5 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover rounded-xl transition-colors cursor-pointer"
               title="Fechar modal"
             >
               <X size={20} />
@@ -548,14 +548,14 @@ export default function ModalChamadosPerdas({
         </div>
 
         {/* FOOTER */}
-        <div className="px-6 py-3 bg-light-background dark:bg-input-bg border-t border-light-borderStrong/60 dark:border-border/60 flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
+        <div className="px-6 py-3.5 bg-light-background/60 dark:bg-input-bg/60 border-t border-light-border dark:border-border flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
           <div className="flex items-center gap-1.5">
             <Info size={14} className="text-primary" />
             <span>O indicador de Perdas afeta a pontuação geral da equipe caso ultrapasse a meta de 1.0%.</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-light-surface-elevated hover:bg-light-surface-hover text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main rounded-lg font-semibold transition-colors cursor-pointer border border-light-border dark:border-border/50"
+            className="px-5 py-2 bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main rounded-xl font-semibold transition-all cursor-pointer"
           >
             Fechar
           </button>

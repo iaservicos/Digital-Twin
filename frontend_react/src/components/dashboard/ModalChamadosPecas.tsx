@@ -174,11 +174,11 @@ export default function ModalChamadosPecas({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
+    <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+      <div className="glass-bento border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
         
         {/* HEADER DO MODAL */}
-        <div className="p-6 border-b border-light-borderStrong dark:border-border/60 bg-light-background dark:bg-input-bg flex items-start justify-between">
+        <div className="p-6 border-b border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60 flex items-start justify-between">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-primary/10 border border-primary/20 text-primary rounded-xl">
               <Cpu size={24} />
@@ -204,7 +204,7 @@ export default function ModalChamadosPecas({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main bg-light-border/40 hover:bg-light-border/60 dark:bg-surface-elevated dark:hover:bg-surface-hover rounded-xl transition-colors cursor-pointer"
+            className="p-1.5 text-light-text-muted hover:text-light-text-main dark:text-text-muted dark:hover:text-text-main hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover rounded-xl transition-colors cursor-pointer"
             title="Fechar Modal"
           >
             <X size={20} />
@@ -492,13 +492,13 @@ export default function ModalChamadosPecas({
         </div>
 
         {/* FOOTER DO MODAL */}
-        <div className="p-4 bg-light-background dark:bg-input-bg border-t border-light-borderStrong/60 dark:border-border/60 flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
+        <div className="p-4 bg-light-background/60 dark:bg-input-bg/60 border-t border-light-border dark:border-border flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
           <span>
             Mostrando <strong className="text-light-text-main dark:text-text-main">{filteredPecas.length}</strong> de <strong className="text-light-text-main dark:text-text-main">{pecas.length}</strong> peças aplicadas
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-light-border/60 hover:bg-light-border/80 text-light-text-main dark:bg-surface-elevated dark:hover:bg-surface-hover dark:text-text-main font-semibold rounded-xl transition-colors cursor-pointer border border-transparent dark:border-border/50"
+            className="px-5 py-2 bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main font-semibold rounded-xl transition-all cursor-pointer"
           >
             Fechar
           </button>
