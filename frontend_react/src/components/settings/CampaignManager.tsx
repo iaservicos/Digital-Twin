@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
-import { Calendar, AlertTriangle, ShieldAlert, Edit2, Check, X, PowerOff, Plus, RefreshCw, Settings, Sparkles, Clock, Loader2 } from 'lucide-react';
+import { Calendar, Check, X, PowerOff, Plus, Settings, Clock, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSyncStore } from '../../store/syncStore';
 import { EditCampaignModal } from '../modals/EditCampaignModal';
@@ -9,11 +9,11 @@ export default function CampaignManager() {
   const { token, user } = useAuthStore();
   const { tracker, triggerCampaignRecalculation } = useSyncStore();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEncerrarModalOpen, setIsEncerrarModalOpen] = useState(false);
+  const [isNovaCampanhaModalOpen, setIsNovaCampanhaModalOpen] = useState(false);
   const [dataInicio, setDataInicio] = useState('');
   const [duracaoMeses, setDuracaoMeses] = useState<number>(1);
   const [limparDadosBrutos, setLimparDadosBrutos] = useState(false);
-  const [confirmText, setConfirmText] = useState('');
   const [loading, setLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -52,7 +52,6 @@ export default function CampaignManager() {
 
   const fetchCampanhaAtual = async () => {
     try {
-      const baseURL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8080/api/v1';
       const response = await api.get('/campanha/ativa');
       setCampanhaAtual(response.data);
     } catch (err) {
@@ -77,12 +76,31 @@ export default function CampaignManager() {
     }
   };
 
-  const handleReset = async () => {
-    if (confirmText !== 'CONFIRMAR') {
-      setError('Digite CONFIRMAR para prosseguir.');
-      return;
+  const handleEncerrarCampanhaSubmit = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      await api.post(`/campanha/encerrar`, {
+        limparDadosBrutos
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setSuccessMessage('Campanha encerrada com sucesso!');
+      setIsEncerrarModalOpen(false);
+      setLimparDadosBrutos(false);
+      await fetchCampanhaAtual();
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao encerrar a campanha.');
+    } finally {
+      setLoading(false);
     }
-    
+  };
+
+  const handleCriarNovaCampanha = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!dataInicio || !duracaoMeses) {
       setError('Preencha a data de início e a duração da nova campanha.');
       return;
@@ -92,19 +110,16 @@ export default function CampaignManager() {
     setError('');
 
     try {
-      const baseURL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8080/api/v1';
       await api.post(`/campanha/nova-campanha`, {
         dataInicio,
-        duracaoMeses,
-        limparDadosBrutos
+        duracaoMeses
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       setSuccessMessage('Nova campanha criada com sucesso! Iniciando processamento de pontuações...');
-      setIsModalOpen(false);
-      setConfirmText('');
-      setLimparDadosBrutos(false);
+      setIsNovaCampanhaModalOpen(false);
+      setDataInicio('');
       await fetchCampanhaAtual();
       
       // Engatilha o cálculo automaticamente com barra de progresso
@@ -114,10 +129,6 @@ export default function CampaignManager() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEncerrarCampanha = async () => {
-    setIsModalOpen(true);
   };
 
   return (
@@ -223,7 +234,7 @@ export default function CampaignManager() {
 
         {/* Ações da Campanha */}
         {campanhaAtual ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Configurar Regras da Campanha */}
             {isModerador && (
               <button 
@@ -239,7 +250,7 @@ export default function CampaignManager() {
             {/* Encerrar Campanha */}
             {isModerador && (
               <button 
-                onClick={handleEncerrarCampanha}
+                onClick={() => setIsEncerrarModalOpen(true)}
                 disabled={isProcessing || tracker.status === 'processing'}
                 className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-600 dark:text-rose-400 px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
               >
@@ -247,21 +258,11 @@ export default function CampaignManager() {
                 Encerrar Campanha
               </button>
             )}
-
-            {/* Atualizar Pontuações */}
-            <button 
-              onClick={handleProcessarCalculos}
-              disabled={isProcessing || tracker.status === 'processing'}
-              className={`bg-primary hover:brightness-110 active:scale-[0.98] text-slate-950 px-4 py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary cursor-pointer ${!isModerador ? 'md:col-span-3' : ''}`}
-            >
-              <RefreshCw size={18} className={(isProcessing || tracker.status === 'processing') ? 'animate-spin' : ''} />
-              {(isProcessing || tracker.status === 'processing') ? 'Calculando...' : 'Atualizar Pontuações'}
-            </button>
           </div>
         ) : (
           isModerador && (
             <button 
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => setIsNovaCampanhaModalOpen(true)}
               className="mt-4 bg-primary hover:brightness-110 active:scale-[0.98] text-slate-950 px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary cursor-pointer"
             >
               <Plus size={20} />
@@ -271,55 +272,26 @@ export default function CampaignManager() {
         )}
       </div>
 
-      {isModalOpen && isModerador && (
+      {/* Modal 1: Encerrar Campanha */}
+      {isEncerrarModalOpen && isModerador && (
         <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
           <div className="glass-bento border rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60">
-              {campanhaAtual ? (
-                <h3 className="text-2xl font-bold text-rose-500 dark:text-rose-400 flex items-center gap-2">
-                  <AlertTriangle />
-                  Atenção: Ação Irreversível
-                </h3>
-              ) : (
-                <h3 className="text-2xl font-bold text-primary flex items-center gap-2">
-                  <Calendar />
-                  Configurar Nova Campanha
-                </h3>
-              )}
+              <h3 className="text-2xl font-bold text-rose-500 dark:text-rose-400 flex items-center gap-2">
+                <PowerOff size={24} />
+                Encerrar Campanha
+              </h3>
             </div>
             
             <div className="p-6 space-y-4">
-              <p className="text-light-text-secondary dark:text-text-muted text-sm">
-                {campanhaAtual 
-                  ? "Você está prestes a encerrar a campanha atual. Configure o próximo ciclo abaixo:" 
-                  : "Preencha as informações abaixo para iniciar um novo ciclo de campanha:"}
+              <p className="text-light-text-main dark:text-text-main text-base font-medium">
+                Você deseja encerrar a campanha atual?
+              </p>
+              <p className="text-light-text-secondary dark:text-text-muted text-sm leading-relaxed">
+                Ao encerrar, a campanha ativa será finalizada e ficará disponível no histórico de ciclos concluídos.
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Nova Data de Início</label>
-                  <input 
-                    type="date" 
-                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    value={dataInicio}
-                    onChange={(e) => setDataInicio(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Duração (Meses)</label>
-                  <select
-                    className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-all"
-                    value={duracaoMeses}
-                    onChange={(e) => setDuracaoMeses(Number(e.target.value))}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 12].map(meses => (
-                      <option key={meses} value={meses}>{meses} {meses === 1 ? 'Mês' : 'Meses'}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl space-y-2 mt-6">
+              <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl space-y-2 mt-4">
                 <label className="flex items-start gap-3 cursor-pointer group">
                   <div className="relative flex items-center mt-0.5">
                     <input 
@@ -342,36 +314,92 @@ export default function CampaignManager() {
                 </label>
               </div>
 
-              <div className="space-y-1 mt-6">
-                <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Digite CONFIRMAR para prosseguir</label>
-                <input 
-                  type="text" 
-                  placeholder="CONFIRMAR"
-                  className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 transition-all"
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                />
-              </div>
-
               {error && <p className="text-sm text-rose-500 dark:text-rose-400 font-semibold">{error}</p>}
             </div>
 
             <div className="p-6 border-t border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60 flex justify-end gap-3">
               <button 
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => setIsEncerrarModalOpen(false)}
                 className="px-5 py-2.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main font-semibold transition-all cursor-pointer disabled:opacity-50"
                 disabled={loading}
               >
                 Cancelar
               </button>
               <button 
-                onClick={handleReset}
-                disabled={loading || confirmText !== 'CONFIRMAR'}
+                onClick={handleEncerrarCampanhaSubmit}
+                disabled={loading}
                 className="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer shadow-md shadow-rose-500/20 border border-rose-500/50 hover:brightness-105"
               >
-                {loading ? 'Processando...' : 'Iniciar Nova Campanha'}
+                {loading ? 'Encerrando...' : 'Sim, Encerrar Campanha'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: Nova Campanha */}
+      {isNovaCampanhaModalOpen && isModerador && (
+        <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="glass-bento border rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60">
+              <h3 className="text-2xl font-bold text-primary flex items-center gap-2">
+                <Calendar />
+                Configurar Nova Campanha
+              </h3>
+            </div>
+            
+            <form onSubmit={handleCriarNovaCampanha}>
+              <div className="p-6 space-y-4">
+                <p className="text-light-text-secondary dark:text-text-muted text-sm">
+                  Preencha as informações abaixo para iniciar um novo ciclo de campanha:
+                </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Data de Início</label>
+                    <input 
+                      type="date" 
+                      required
+                      className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      value={dataInicio}
+                      onChange={(e) => setDataInicio(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase">Duração (Meses)</label>
+                    <select
+                      className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl p-3 text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-all"
+                      value={duracaoMeses}
+                      onChange={(e) => setDuracaoMeses(Number(e.target.value))}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 12].map(meses => (
+                        <option key={meses} value={meses}>{meses} {meses === 1 ? 'Mês' : 'Meses'}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {error && <p className="text-sm text-rose-500 dark:text-rose-400 font-semibold">{error}</p>}
+              </div>
+
+              <div className="p-6 border-t border-light-border dark:border-border bg-light-background/60 dark:bg-input-bg/60 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsNovaCampanhaModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main font-semibold transition-all cursor-pointer disabled:opacity-50"
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:brightness-110 active:scale-[0.98] text-slate-950 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 border border-primary"
+                >
+                  {loading ? 'Iniciando...' : 'Iniciar Nova Campanha'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
