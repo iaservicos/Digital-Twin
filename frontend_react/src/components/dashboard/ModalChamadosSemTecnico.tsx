@@ -262,7 +262,7 @@ export const ModalChamadosSemTecnico: React.FC<ModalChamadosSemTecnicoProps> = (
                 placeholder="Buscar chamado, base, CT..."
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border text-light-text-main dark:text-text-main text-xs rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                className="w-full pl-8 pr-3 py-1.5 glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs rounded-full focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner placeholder:text-light-text-muted dark:placeholder:text-text-muted/60"
               />
             </div>
           </div>

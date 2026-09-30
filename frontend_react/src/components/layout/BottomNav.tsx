@@ -35,6 +35,7 @@ export default function BottomNav() {
     // Supervisor
     navItems = [
       { path: '/supervisao', icon: Users, label: 'Supervisionar' },
+      { action: 'config', icon: Settings, label: 'Configurações' },
       { path: '/profile', icon: User, label: 'Perfil' }
     ];
   } else {

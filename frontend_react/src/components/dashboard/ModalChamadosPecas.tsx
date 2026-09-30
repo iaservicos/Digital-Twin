@@ -271,7 +271,7 @@ export default function ModalChamadosPecas({
               placeholder="Buscar por chamado, peça ou laudo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-light-surface dark:bg-surface-elevated border border-light-borderStrong dark:border-border rounded-xl pl-9 pr-4 py-2 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors shadow-xs"
+              className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full pl-10 pr-4 py-2.5 text-xs text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
             />
           </div>
 

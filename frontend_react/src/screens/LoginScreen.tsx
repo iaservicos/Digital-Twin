@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import { jwtDecode } from 'jwt-decode';
+import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import IntroSplashOverlay from '../components/common/IntroSplashOverlay';
 import MatrixBackground from '../components/common/MatrixBackground';
 
@@ -11,6 +12,7 @@ export default function LoginScreen() {
   const setAuth = useAuthStore((state) => state.setAuth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Controle de reprodução da intro do vídeo BrilhaMaisV7.mp4 na abertura do site
   const [showIntro, setShowIntro] = useState(() => {
@@ -108,36 +110,46 @@ export default function LoginScreen() {
           )}
 
           <form className="space-y-4" onSubmit={handleLogin}>
-            <div>
+            <div className="relative">
               <label htmlFor="userId" className="sr-only">Matrícula</label>
+              <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
               <input
                 id="userId"
                 name="userId"
                 type="text"
                 required
                 autoComplete="username"
-                className="dark-autofill w-full bg-positivo-primary border border-border text-text-main rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder:text-text-muted text-sm shadow-inner"
+                className="dark-autofill w-full glass-bento border border-light-border dark:border-white/10 text-light-text-main dark:text-text-main rounded-full pl-11 pr-4 py-3.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-light-text-muted dark:placeholder:text-text-muted text-sm shadow-inner"
                 placeholder="Matrícula"
               />
             </div>
-            <div>
+            <div className="relative">
               <label htmlFor="password" className="sr-only">Senha</label>
+              <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 autoComplete="current-password"
-                className="dark-autofill w-full bg-positivo-primary border border-border text-text-main rounded-xl px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder:text-text-muted text-sm shadow-inner"
+                className="dark-autofill w-full glass-bento border border-light-border dark:border-white/10 text-light-text-main dark:text-text-main rounded-full pl-11 pr-11 py-3.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-light-text-muted dark:placeholder:text-text-muted text-sm shadow-inner"
                 placeholder="Senha"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted hover:text-primary transition-colors cursor-pointer"
+                title={showPassword ? "Ocultar senha" : "Ver senha"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
             <div className="pt-2">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-positivo-primary bg-primary hover:bg-primary-light focus:outline-none transition-all shadow-glow-primary hover:shadow-glow-primary-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center py-3.5 px-6 border border-primary/40 text-sm font-bold rounded-full text-slate-950 bg-primary hover:brightness-110 active:scale-[0.98] focus:outline-none transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer tracking-wider"
               >
                 {loading ? 'Autenticando...' : 'Entrar'}
               </button>

@@ -302,7 +302,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                 placeholder={isSupervisorOrAdmin ? "Buscar por chamados ou nome do técnico..." : "Buscar por chamado..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-xs"
+                className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full pl-10 pr-4 py-2.5 text-xs text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
               />
               {searchTerm && (
                 <button

@@ -292,11 +292,19 @@ export default {
                     },
                 },
                 '.dark-autofill': {
+                    'caret-color': 'currentColor !important',
+                    '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active': {
+                        '-webkit-box-shadow': '0 0 0 1000px rgba(255, 255, 255, 0.95) inset !important',
+                        '-webkit-text-fill-color': '#0f172a !important',
+                        'transition': 'background-color 5000000s ease-in-out 0s',
+                    },
+                },
+                '.dark .dark-autofill': {
                     'caret-color': '#e2e8f0 !important',
                     '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active': {
-                        '-webkit-box-shadow': '0 0 0 30px #0f172a inset !important',
+                        '-webkit-box-shadow': '0 0 0 1000px #1a1a1a inset, 0 1px 0 0 rgba(255, 255, 255, 0.12) inset !important',
                         '-webkit-text-fill-color': '#e2e8f0 !important',
-                        'transition': 'background-color 5000s ease-in-out 0s',
+                        'transition': 'background-color 5000000s ease-in-out 0s',
                     },
                 },
                 '.bg-grid-pattern': {

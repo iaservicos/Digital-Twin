@@ -20,7 +20,8 @@ interface Tecnico {
 }
 
 export default function TecnicosManager() {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
+  const isModerador = user?.role === 'MODERADOR' || user?.cargo === 'Moderador';
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -109,14 +110,25 @@ export default function TecnicosManager() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Tem certeza que deseja excluir este usuário? Esta ação é irreversível e pode afetar históricos.')) return;
+    const tecToDelete = tecnicos.find(t => t.idTecnico === id);
+    if (tecToDelete?.matricula === '72916' || tecToDelete?.role === 'MODERADOR') {
+      alert('Operação não permitida: contas com perfil de Moderador não podem ser excluídas.');
+      return;
+    }
+    if (!isModerador && tecToDelete?.role !== 'PADRAO') {
+      alert('Operação não permitida: Supervisores só podem gerenciar técnicos com perfil padrão.');
+      return;
+    }
+    if (!window.confirm(`Tem certeza que deseja excluir o usuário ${tecToDelete?.nomeCompleto || ''}? Esta ação é irreversível e pode afetar históricos.`)) return;
     
     try {
-            await api.delete(`/tecnicos/${id}`);
+      await api.delete(`/tecnicos/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setTecnicos(tecnicos.filter(t => t.idTecnico !== id));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao deletar', err);
-      alert('Erro ao excluir usuário.');
+      alert(err.response?.data?.message || 'Erro ao excluir usuário.');
     }
   };
 
@@ -153,7 +165,7 @@ export default function TecnicosManager() {
       nomeCompleto: nomeCompletoFormatted,
       matricula: matricula.trim(),
       ctBases: cleanCtBases,
-      role,
+      role: isModerador ? role : 'PADRAO',
       ativo
     };
 
@@ -234,7 +246,7 @@ export default function TecnicosManager() {
             <input 
               type="text" 
               placeholder="Buscar por nome, matrícula..."
-              className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong/70 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl pl-9 pr-3 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-inner placeholder-light-text-muted dark:placeholder-text-muted/60"
+              className="w-full glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-10 pr-4 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner placeholder:text-light-text-muted dark:placeholder:text-text-muted/60"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -315,29 +327,34 @@ export default function TecnicosManager() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button 
-                        onClick={() => openEditModal(t)} 
-                        className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-primary/50 hover:bg-primary/10 hover:text-primary transition-all cursor-pointer" 
-                        title="Editar Usuário"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button 
-                        onClick={() => openPasswordModal(t)} 
-                        className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-400 transition-all cursor-pointer" 
-                        title="Redefinir Senha"
-                      >
-                        <KeyRound size={15} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(t.idTecnico)} 
-                        className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer" 
-                        title="Excluir Usuário"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
+                    {(!isModerador && t.role !== 'PADRAO') ? (
+                      <span className="text-[11px] text-light-text-muted dark:text-text-muted italic px-2">Acesso restrito</span>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button 
+                          onClick={() => openEditModal(t)} 
+                          className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-primary/50 hover:bg-primary/10 hover:text-primary transition-all cursor-pointer" 
+                          title="Editar Usuário"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button 
+                          onClick={() => openPasswordModal(t)} 
+                          className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-400 transition-all cursor-pointer" 
+                          title="Redefinir Senha"
+                        >
+                          <KeyRound size={15} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(t.idTecnico)} 
+                          disabled={t.matricula === '72916' || t.role === 'MODERADOR'}
+                          className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" 
+                          title="Excluir Usuário"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))
@@ -385,7 +402,7 @@ export default function TecnicosManager() {
                     required
                     type="text" 
                     placeholder="Ex: João"
-                    className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong/70 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
                     value={primeiroNome}
                     onChange={e => setPrimeiroNome(e.target.value)}
                   />
@@ -398,7 +415,7 @@ export default function TecnicosManager() {
                     required
                     type="text" 
                     placeholder="Ex: Silva Ramos"
-                    className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong/70 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
                     value={sobrenome}
                     onChange={e => setSobrenome(e.target.value)}
                   />
@@ -410,20 +427,20 @@ export default function TecnicosManager() {
                   <input 
                     type="text" 
                     placeholder="Ex: 74233"
-                    className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong/70 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
                     value={matricula}
                     onChange={e => setMatricula(e.target.value)}
                   />
                 </div>
 
                 {/* CT BASES DINÂMICAS COM BOTÃO + */}
-                <div className="space-y-2.5 col-span-1 sm:col-span-2 bg-light-surface/40 dark:bg-surface-elevated/40 p-4 rounded-xl border border-light-borderStrong/40 dark:border-white/5">
+                <div className="space-y-2.5 col-span-1 sm:col-span-2 bg-light-surface/40 dark:bg-surface-elevated/40 p-4 rounded-2xl border border-light-borderStrong/40 dark:border-white/5">
                   <div className="flex justify-between items-center mb-1">
                     <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Bases ATP (CT Base)</label>
                     <button
                       type="button"
                       onClick={handleAddCtBase}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-light bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-light bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-full transition-colors cursor-pointer"
                     >
                       <Plus size={14} />
                       Adicionar mais uma base
@@ -435,7 +452,7 @@ export default function TecnicosManager() {
                       <input 
                         type="text" 
                         placeholder="Ex: 8788711"
-                        className="flex-grow bg-light-background dark:bg-input-bg border border-light-borderStrong/70 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
+                        className="flex-grow glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
                         value={ctCode}
                         onChange={e => handleCtBaseChange(index, e.target.value)}
                       />
@@ -443,7 +460,7 @@ export default function TecnicosManager() {
                         <button
                           type="button"
                           onClick={() => handleRemoveCtBase(index)}
-                          className="p-2.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all cursor-pointer"
+                          className="p-2.5 rounded-full bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all cursor-pointer"
                           title="Remover Base"
                         >
                           <Trash2 size={16} />
@@ -454,7 +471,7 @@ export default function TecnicosManager() {
                 </div>
 
                 {!selectedTecnico && (
-                  <div className="col-span-1 sm:col-span-2 p-4 bg-light-surface/40 dark:bg-surface-elevated/40 border border-light-borderStrong/40 dark:border-white/5 rounded-xl space-y-3">
+                  <div className="col-span-1 sm:col-span-2 p-4 bg-light-surface/40 dark:bg-surface-elevated/40 border border-light-borderStrong/40 dark:border-white/5 rounded-2xl space-y-3">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input 
                         type="checkbox" 
@@ -473,7 +490,7 @@ export default function TecnicosManager() {
                         <input 
                           required={!autoPassword}
                           type="text" 
-                          className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong/70 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
+                          className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
                           value={createPassword}
                           onChange={e => setCreatePassword(e.target.value)}
                           placeholder="Digite a senha..."
@@ -484,15 +501,23 @@ export default function TecnicosManager() {
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Perfil (Role)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Perfil (Role)</label>
+                    {!isModerador && (
+                      <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
+                        Restrito a Técnico
+                      </span>
+                    )}
+                  </div>
                   <select 
-                    className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong/70 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                    disabled={!isModerador}
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed shadow-inner"
                     value={role}
                     onChange={e => setRole(e.target.value)}
                   >
                     <option value="PADRAO">Técnico Padrão</option>
-                    <option value="ADMINISTRADOR">Administrador / Supervisor</option>
-                    <option value="MODERADOR">Moderador (Acesso Total)</option>
+                    {isModerador && <option value="ADMINISTRADOR">Administrador / Supervisor</option>}
+                    {isModerador && <option value="MODERADOR">Moderador (Acesso Total)</option>}
                   </select>
                 </div>
 
@@ -573,7 +598,7 @@ export default function TecnicosManager() {
                 <input 
                   required
                   type="text" 
-                  className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong/70 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder-light-text-muted dark:placeholder-text-muted/60 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all shadow-inner"
+                  className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all shadow-inner"
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   placeholder="Ex: Temp@2025"

@@ -154,8 +154,8 @@ export const DesktopSidebar: React.FC = () => {
             </button>
           )}
 
-          {/* Configurações (se Moderador) */}
-          {(isAdmin || isModerador) && (
+          {/* Configurações (se Moderador ou Supervisor) */}
+          {(isAdmin || isModerador || isSupervisor) && (
             <button
               onClick={() => navigate('/configuracoes')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${location.pathname === '/configuracoes'

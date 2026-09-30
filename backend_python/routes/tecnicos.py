@@ -10,16 +10,23 @@ router = APIRouter(tags=["Técnicos & Equipes"])
 
 class TecnicoCreateRequest(BaseModel):
     matricula: str
-    nomeCompleto: str
-    cargo: Optional[str] = "Técnico de Campo"
+    nomeCompleto: Optional[str] = None
+    primeiroNome: Optional[str] = None
+    sobrenome: Optional[str] = None
+    cargo: Optional[str] = "Tecnico de Campo"
     idSupervisor: Optional[int] = None
     role: Optional[str] = "PADRAO"
     cpf: Optional[str] = None
     email: Optional[str] = None
+    senha: Optional[str] = None
+    ativo: Optional[bool] = True
     ctBases: Optional[List[str]] = []
 
 class TecnicoUpdateRequest(BaseModel):
     nomeCompleto: Optional[str] = None
+    primeiroNome: Optional[str] = None
+    sobrenome: Optional[str] = None
+    matricula: Optional[str] = None
     cargo: Optional[str] = None
     idSupervisor: Optional[int] = None
     role: Optional[str] = None
@@ -27,11 +34,15 @@ class TecnicoUpdateRequest(BaseModel):
     email: Optional[str] = None
     ctBases: Optional[List[str]] = None
 
+class ResetSenhaRequest(BaseModel):
+    novaSenha: Optional[str] = None
+
 @router.get("/tecnicos")
 def list_tecnicos(idSupervisor: Optional[int] = Query(None)):
     with get_db_cursor() as cur:
         sql = """
-            SELECT t.id_tecnico, t.matricula, t.nome_completo, t.cargo, t.role, t.ativo,
+            SELECT t.id_tecnico, t.matricula, t.nome_completo, t.primeiro_nome, t.sobrenome,
+                   t.cargo, t.role, t.ativo,
                    t.id_supervisor, t.email, t.cpf, t.is_primeiro_acesso,
                    t.celular_corporativo, t.regiao, t.tipo_contrato, t.afastado,
                    t.dia_inventario, t.horario_inventario, t.nome_databricks,
@@ -54,6 +65,8 @@ def list_tecnicos(idSupervisor: Optional[int] = Query(None)):
                 "idTecnico": r["id_tecnico"],
                 "matricula": r["matricula"],
                 "nomeCompleto": r["nome_completo"],
+                "primeiroNome": r.get("primeiro_nome"),
+                "sobrenome": r.get("sobrenome"),
                 "cargo": r.get("cargo"),
                 "role": r.get("role"),
                 "ativo": r.get("ativo", True),
@@ -81,14 +94,38 @@ def list_tecnicos(idSupervisor: Optional[int] = Query(None)):
 @router.post("/tecnicos")
 def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
     mat = request.matricula.strip()
-    senha_hash = hash_password(mat)
+    
+    # Regra de Negócio: Supervisores e perfis não-moderadores só podem cadastrar perfil 'PADRAO' (técnico)
+    user_role = current_user.get("role", "").upper()
+    role_to_set = "PADRAO" if user_role != "MODERADOR" else (request.role or "PADRAO")
+    
+    # Tratamento consistente de primeiro nome, sobrenome e nome completo
+    primeiro_nome = request.primeiroNome.strip() if request.primeiroNome else ""
+    sobrenome = request.sobrenome.strip() if request.sobrenome else ""
+    if request.nomeCompleto and not (primeiro_nome and sobrenome):
+        parts = request.nomeCompleto.strip().split()
+        if not primeiro_nome and parts:
+            primeiro_nome = parts[0]
+        if not sobrenome and len(parts) > 1:
+            sobrenome = " ".join(parts[1:])
+    nome_completo = f"{primeiro_nome} {sobrenome}".strip() or (request.nomeCompleto.strip() if request.nomeCompleto else mat)
+
+    # Senha inicial
+    raw_senha = request.senha.strip() if request.senha and request.senha.strip() else mat
+    senha_hash = hash_password(raw_senha)
+    
+    id_sup = request.idSupervisor
+    if not id_sup and current_user.get("id_supervisor"):
+        id_sup = current_user.get("id_supervisor")
+
+    ativo_val = True if request.ativo is None else request.ativo
 
     with get_db_cursor(commit=True) as cur:
         cur.execute("""
-            INSERT INTO tb_tecnico (matricula, nome_completo, cargo, id_supervisor, role, cpf, email, senha, ativo, is_primeiro_acesso)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, true, true)
+            INSERT INTO tb_tecnico (matricula, nome_completo, primeiro_nome, sobrenome, cargo, id_supervisor, role, cpf, email, senha, ativo, is_primeiro_acesso)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true)
             RETURNING id_tecnico;
-        """, (mat, request.nomeCompleto.strip(), request.cargo, request.idSupervisor, request.role, request.cpf, request.email, senha_hash))
+        """, (mat, nome_completo, primeiro_nome, sobrenome, request.cargo or "Tecnico de Campo", id_sup, role_to_set, request.cpf, request.email, senha_hash, ativo_val))
         novo = cur.fetchone()
         id_tec = novo["id_tecnico"]
 
@@ -100,21 +137,47 @@ def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] =
 
 @router.put("/tecnicos/{id_tecnico}")
 def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
+    user_role = current_user.get("role", "").upper()
+    
     with get_db_cursor(commit=True) as cur:
         updates = []
         params = []
+        
+        if request.primeiroNome is not None:
+            updates.append("primeiro_nome = %s")
+            params.append(request.primeiroNome.strip())
+        if request.sobrenome is not None:
+            updates.append("sobrenome = %s")
+            params.append(request.sobrenome.strip())
         if request.nomeCompleto is not None:
             updates.append("nome_completo = %s")
             params.append(request.nomeCompleto.strip())
+        elif request.primeiroNome is not None or request.sobrenome is not None:
+            # Se atualizou primeiroNome ou sobrenome mas não passou nomeCompleto, computa
+            cur.execute("SELECT primeiro_nome, sobrenome FROM tb_tecnico WHERE id_tecnico = %s;", (id_tecnico,))
+            curr = cur.fetchone()
+            p_nome = request.primeiroNome.strip() if request.primeiroNome is not None else (curr["primeiro_nome"] or "")
+            s_nome = request.sobrenome.strip() if request.sobrenome is not None else (curr["sobrenome"] or "")
+            updates.append("nome_completo = %s")
+            params.append(f"{p_nome} {s_nome}".strip())
+
+        if request.matricula is not None:
+            updates.append("matricula = %s")
+            params.append(request.matricula.strip())
         if request.cargo is not None:
             updates.append("cargo = %s")
             params.append(request.cargo)
         if request.idSupervisor is not None:
             updates.append("id_supervisor = %s")
             params.append(request.idSupervisor)
+            
         if request.role is not None:
+            # Supervisores não podem alterar papéis para moderador/administrador
+            if user_role != "MODERADOR" and request.role != "PADRAO":
+                raise HTTPException(status_code=403, detail="Supervisores só podem gerenciar usuários com perfil técnico.")
             updates.append("role = %s")
             params.append(request.role)
+            
         if request.ativo is not None:
             updates.append("ativo = %s")
             params.append(request.ativo)
@@ -142,16 +205,22 @@ def delete_tecnico(id_tecnico: int, current_user: Dict[str, Any] = Depends(get_c
         return {"message": "Técnico removido com sucesso."}
 
 @router.put("/tecnicos/{id_tecnico}/reset-senha")
-def reset_senha(id_tecnico: int, current_user: Dict[str, Any] = Depends(get_current_user)):
+def reset_senha(id_tecnico: int, request: Optional[ResetSenhaRequest] = None, current_user: Dict[str, Any] = Depends(get_current_user)):
     with get_db_cursor(commit=True) as cur:
         cur.execute("SELECT matricula FROM tb_tecnico WHERE id_tecnico = %s;", (id_tecnico,))
         t = cur.fetchone()
         if not t:
             raise HTTPException(status_code=404, detail="Técnico não encontrado.")
         
-        senha_hash = hash_password(t["matricula"])
+        if request and request.novaSenha and request.novaSenha.strip():
+            senha_hash = hash_password(request.novaSenha.strip())
+            msg = "Senha redefinida com sucesso."
+        else:
+            senha_hash = hash_password(t["matricula"])
+            msg = "Senha resetada para a matrícula com sucesso."
+
         cur.execute("UPDATE tb_tecnico SET senha = %s, is_primeiro_acesso = true WHERE id_tecnico = %s;", (senha_hash, id_tecnico))
-        return {"message": "Senha resetada para a matrícula com sucesso."}
+        return {"message": msg}
 
 @router.get("/supervisores")
 def list_supervisores():

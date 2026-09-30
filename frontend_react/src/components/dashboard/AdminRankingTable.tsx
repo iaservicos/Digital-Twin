@@ -170,7 +170,7 @@ export const AdminRankingTable: React.FC<AdminRankingTableProps> = ({
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl pl-9 pr-3 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all shadow-inner"
+            className="w-full glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-10 pr-4 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner placeholder:text-light-text-muted dark:placeholder:text-text-muted/60"
           />
         </div>
       </div>

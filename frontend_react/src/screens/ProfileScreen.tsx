@@ -504,7 +504,7 @@ export default function ProfileScreen() {
                       value={senhaAtual}
                       onChange={(e) => setSenhaAtual(e.target.value)}
                       placeholder="Digite sua senha atual"
-                      className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl pl-3.5 pr-10 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      className="w-full glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-5 pr-11 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner placeholder:text-light-text-muted dark:placeholder:text-text-muted/60"
                     />
                     <button
                       type="button"
@@ -530,12 +530,12 @@ export default function ProfileScreen() {
                       value={novaSenha}
                       onChange={(e) => setNovaSenha(e.target.value)}
                       placeholder="Mínimo de 5 caracteres"
-                      className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl pl-3.5 pr-10 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      className="w-full glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-5 pr-11 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner placeholder:text-light-text-muted dark:placeholder:text-text-muted/60"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNovaSenha(!showNovaSenha)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main transition-colors cursor-pointer"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main transition-colors cursor-pointer"
                     >
                       {showNovaSenha ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
@@ -553,7 +553,7 @@ export default function ProfileScreen() {
                       value={confirmaSenha}
                       onChange={(e) => setConfirmaSenha(e.target.value)}
                       placeholder="Repita a nova senha"
-                      className="w-full bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl pl-3.5 pr-10 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      className="w-full glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-5 pr-11 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner placeholder:text-light-text-muted dark:placeholder:text-text-muted/60"
                     />
                     <button
                       type="button"

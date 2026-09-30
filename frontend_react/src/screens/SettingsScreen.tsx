@@ -274,13 +274,16 @@ const UploadCard: React.FC<UploadCardProps> = ({
 // COMPONENTE PRINCIPAL SETTINGSSCREEN
 // =============================================================================
 export default function SettingsScreen() {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const { tracker, triggerSync } = useSyncStore();
   const { backgroundDistortion, toggleBackgroundDistortion } = useThemeStore();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const isModerador = user?.role === 'MODERADOR' || user?.cargo === 'Moderador';
+
   // Estados de Navegação
-  const tabParam = (searchParams.get('tab') as TabType) || 'UPLOADS';
+  const defaultTab: TabType = isModerador ? 'UPLOADS' : 'TECNICOS';
+  const tabParam = (searchParams.get('tab') as TabType) || defaultTab;
   const modeParam = (searchParams.get('mode') as IngestMode) || 'planilhas';
 
   const [activeTab, setActiveTab] = useState<TabType>(tabParam);
@@ -292,12 +295,18 @@ export default function SettingsScreen() {
     const tab = searchParams.get('tab') as TabType;
     const mode = searchParams.get('mode') as IngestMode;
     if (tab && ['UPLOADS', 'TECNICOS', 'CAMPANHA', 'PREFERENCIAS'].includes(tab)) {
-      setActiveTab(tab);
+      if (!isModerador && (tab === 'UPLOADS' || tab === 'CAMPANHA')) {
+        setActiveTab('TECNICOS');
+      } else {
+        setActiveTab(tab);
+      }
+    } else if (!isModerador) {
+      setActiveTab('TECNICOS');
     }
     if (mode && ['planilhas', 'databricks'].includes(mode)) {
       setIngestMode(mode);
     }
-  }, [searchParams]);
+  }, [searchParams, isModerador]);
 
   const handleTabChange = (newTab: TabType) => {
     setActiveTab(newTab);
@@ -503,50 +512,56 @@ export default function SettingsScreen() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-300">
 
-      {/* Header Enxuto do Painel do Moderador */}
+      {/* Header Enxuto do Painel do Moderador / Supervisor */}
       <BentoCard className="p-6 sm:p-8 shadow-xl space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-teal/10 border border-accent-teal/30 text-accent-teal text-xs font-semibold">
               <ShieldCheck size={14} />
-              Painel do Moderador
+              {isModerador ? 'Painel do Moderador' : 'Painel de Gestão'}
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-light-text-main dark:text-text-main tracking-tight">
-              Gestão Operacional & Ingestão
+              {isModerador ? 'Gestão Operacional & Ingestão' : 'Gestão de Colaboradores & Preferências'}
             </h1>
             <p className="text-light-text-muted dark:text-text-muted text-xs sm:text-sm max-w-2xl">
-              Alimente a base de dados via planilhas ou sincronize com o Databricks para atualizar as pontuações e metas dos técnicos na campanha Brilha+.
+              {isModerador
+                ? 'Alimente a base de dados via planilhas ou sincronize com o Databricks para atualizar as pontuações e metas dos técnicos na campanha Brilha+.'
+                : 'Consulte, crie e administre os acessos e bases dos colaboradores da sua equipe.'}
             </p>
           </div>
 
-          {/* Botão Auxiliar de Recálculo Rápido */}
-          <div className="flex items-center shrink-0">
-            <Button
-              variant="neon"
-              size="sm"
-              onClick={handleRecalcularCampanha}
-              disabled={recalculating}
-              icon={<BarChart3 size={15} className={`text-accent-teal ${recalculating ? 'animate-pulse' : ''}`} />}
-              className="text-xs"
-              title="Executa o motor analítico e atualiza a campanha."
-            >
-              {recalculating ? 'Atualizando Campanha...' : 'Atualizar Campanha'}
-            </Button>
-          </div>
+          {/* Botão Auxiliar de Recálculo Rápido (Apenas Moderador) */}
+          {isModerador && (
+            <div className="flex items-center shrink-0">
+              <Button
+                variant="neon"
+                size="sm"
+                onClick={handleRecalcularCampanha}
+                disabled={recalculating}
+                icon={<BarChart3 size={15} className={`text-accent-teal ${recalculating ? 'animate-pulse' : ''}`} />}
+                className="text-xs"
+                title="Executa o motor analítico e atualiza a campanha."
+              >
+                {recalculating ? 'Atualizando Campanha...' : 'Atualizar Campanha'}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Abas Principais */}
         <div className="flex items-center gap-2 p-1.5 glass-bento border rounded-2xl w-fit flex-wrap">
-          <button
-            onClick={() => handleTabChange('UPLOADS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'UPLOADS'
-              ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
-              : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
-              }`}
-          >
-            <DatabaseZap size={16} />
-            Ingestão de Dados
-          </button>
+          {isModerador && (
+            <button
+              onClick={() => handleTabChange('UPLOADS')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'UPLOADS'
+                ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
+                : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
+                }`}
+            >
+              <DatabaseZap size={16} />
+              Ingestão de Dados
+            </button>
+          )}
           <button
             onClick={() => handleTabChange('TECNICOS')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'TECNICOS'
@@ -557,16 +572,18 @@ export default function SettingsScreen() {
             <Users size={16} />
             Gestão de Usuários
           </button>
-          <button
-            onClick={() => handleTabChange('CAMPANHA')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'CAMPANHA'
-              ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
-              : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
-              }`}
-          >
-            <ShieldCheck size={16} />
-            Gestão de Campanha
-          </button>
+          {isModerador && (
+            <button
+              onClick={() => handleTabChange('CAMPANHA')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'CAMPANHA'
+                ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
+                : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
+                }`}
+            >
+              <ShieldCheck size={16} />
+              Gestão de Campanha
+            </button>
+          )}
           <button
             onClick={() => handleTabChange('PREFERENCIAS')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'PREFERENCIAS'
@@ -582,7 +599,7 @@ export default function SettingsScreen() {
 
       {/* Conteúdo das Abas */}
       <div>
-        {activeTab === 'UPLOADS' && (
+        {activeTab === 'UPLOADS' && isModerador && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
 
             {/* Seletor Enxuto de Modo de Ingestão: Planilhas vs. Databricks */}
@@ -933,7 +950,7 @@ export default function SettingsScreen() {
           </div>
         )}
 
-        {activeTab === 'CAMPANHA' && (
+        {activeTab === 'CAMPANHA' && isModerador && (
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
             <CampaignManager />
           </div>
