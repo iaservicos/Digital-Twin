@@ -92,7 +92,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
               className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${
                 isCampanhaInteira
                   ? 'bg-light-surface dark:bg-surface text-accent-teal shadow-md border border-light-borderStrong/50 dark:border-border transform scale-105'
-                  : 'text-light-text-muted dark:text-light-text-muted hover:text-light-text-secondary dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-surface/50'
+                  : 'text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover border border-transparent hover:border-light-borderHover dark:hover:border-borderHover'
               }`}
             >
               Campanha Inteira
@@ -112,7 +112,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
                     className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${
                       isSelected
                         ? 'bg-light-surface dark:bg-surface text-accent-teal shadow-md border border-light-borderStrong/50 dark:border-border transform scale-105'
-                        : 'text-light-text-muted dark:text-light-text-muted hover:text-light-text-secondary dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-surface/50'
+                        : 'text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover border border-transparent hover:border-light-borderHover dark:hover:border-borderHover'
                     }`}
                   >
                     {labelMes}

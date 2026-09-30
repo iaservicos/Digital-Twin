@@ -404,14 +404,14 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
           <div className="grid grid-cols-2 gap-2 my-2">
             <button
               onClick={() => setSelectedMonth('Campanha Inteira')}
-              className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer border ${
+              className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer border group/btn ${
                 isCampanhaInteira
                   ? 'bg-primary/15 border-primary/40 text-primary shadow-sm'
-                  : 'bg-light-background dark:bg-surface-elevated border-light-borderStrong/60 dark:border-border text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
+                  : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
               }`}
             >
-              <p className="text-[10px] uppercase font-semibold">Geral</p>
-              <p className="text-xs font-black">Campanha</p>
+              <p className={`text-[10px] uppercase font-semibold transition-colors ${isCampanhaInteira ? 'text-primary' : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>Geral</p>
+              <p className={`text-xs font-black transition-colors ${isCampanhaInteira ? 'text-primary' : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>Campanha</p>
             </button>
             <div className="py-2 px-1 rounded-xl text-center border bg-light-background dark:bg-surface-elevated border-light-borderStrong/60 dark:border-border text-light-text-secondary dark:text-text-main">
               <p className="text-[10px] uppercase font-semibold text-light-text-muted dark:text-text-muted">Escopo</p>
@@ -495,20 +495,24 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
                       key={pill.dStr}
                       type="button"
                       onClick={() => setSelectedDate(pill.dStr)}
-                      className={`flex-1 flex flex-col items-center justify-center py-2 px-1.5 rounded-2xl transition-all cursor-pointer select-none ${
+                      className={`flex-1 flex flex-col items-center justify-center py-2 px-1.5 rounded-2xl border transition-all cursor-pointer select-none group/btn ${
                         pill.isSelected
-                          ? 'bg-primary text-light-surface dark:text-surface font-black shadow-glow-primary-sm scale-[1.03]'
-                          : 'bg-light-background dark:bg-surface-elevated/80 border border-light-borderStrong/60 dark:border-border/60 text-light-text-muted dark:text-text-muted hover:border-primary/50'
+                          ? 'bg-primary text-slate-950 font-black shadow-glow-primary-sm scale-[1.03] border-primary'
+                          : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
                       }`}
                     >
-                      <span className="text-[10px] uppercase font-bold tracking-wider opacity-85">
+                      <span className={`text-[10px] uppercase font-bold tracking-wider opacity-85 transition-colors ${
+                        pill.isSelected ? 'text-slate-950' : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
+                      }`}>
                         {pill.diaSemana}
                       </span>
-                      <span className="text-base font-black leading-tight mt-0.5">
+                      <span className={`text-base font-black leading-tight mt-0.5 transition-colors ${
+                        pill.isSelected ? 'text-slate-950' : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
+                      }`}>
                         {pill.diaNum}
                       </span>
                       {pill.count > 0 ? (
-                        <span className={`w-1.5 h-1.5 rounded-full mt-1 ${pill.isSelected ? 'bg-surface' : 'bg-primary'}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full mt-1 ${pill.isSelected ? 'bg-slate-950' : 'bg-primary'}`} />
                       ) : (
                         <span className="w-1.5 h-1.5 mt-1" />
                       )}

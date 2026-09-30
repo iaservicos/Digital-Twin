@@ -669,7 +669,7 @@ export default function AdminDashboardScreen() {
             <button
               type="button"
               onClick={handleResetToAll}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-light-surface dark:bg-surface hover:bg-primary/20 text-light-text-main dark:text-text-main hover:text-primary text-xs font-bold border border-light-borderStrong dark:border-border hover:border-primary/40 transition-all cursor-pointer shadow-md self-start sm:self-auto shrink-0"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-light-surface dark:bg-surface hover:bg-primary/20 text-light-text-main dark:text-text-main hover:text-primary text-xs font-bold border border-light-borderStrong dark:border-border hover:border-light-borderHover dark:hover:border-borderHover transition-all cursor-pointer shadow-md self-start sm:self-auto shrink-0"
             >
               <ArrowLeft size={15} />
               Voltar para Visão da Operação / Ranking

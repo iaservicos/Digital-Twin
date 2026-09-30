@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+/* Glassmorphism SSOT token trigger */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {

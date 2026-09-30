@@ -43,15 +43,25 @@ export const themeColors = {
         background: '#141414',                              // Fundo geral da aplicação (tela inteira atrás dos cards) e base do Canvas GPU
         surface: '#1f1f1f',                                // Fundo dos Cards Bento (Pontuação, SLA, Chamados), painel lateral (Sidebar) e modais
         surfaceElevated: '#1f1f1f',                         // Caixas internas dentro dos cards (ex: área de datas de chamados, botão secundário)
-        surfaceHover: '#020202ff',                            // Efeito hover ao passar o mouse sobre linhas de tabelas, listas e itens de menu
+        surfaceHover: '#1d1c1cff',                            // Efeito hover ao passar o mouse sobre linhas de tabelas, listas e itens de menu
+        buttonBg: '#181717ff',                                // Fundo próprio para botões interativos e de filtro (ajuste a cor aqui)
+        buttonBgHover: 'rgba(254, 254, 255, 0.06)',                         // Fundo de botões interativos ao passar o mouse (hover) (ajuste a cor aqui)
 
         // 🔲 Bordas e Divisórias
         border: '#1f1f1f',                                  // Bordas externas dos cards Bento, contorno de modais, tabelas e caixas de busca
-        borderSubtle: '#262626',                            // Linhas divisórias internas discretas (ex: separadores entre cabeçalho e corpo do card)
+        borderSubtle: '#142020ff',                            // Linhas divisórias internas discretas (ex: separadores entre cabeçalho e corpo do card)
+        borderHover: 'rgba(0, 0, 0, 0.1) ',           // Cor da borda ao passar o mouse sobre botões e itens interativos (ajuste cor e opacidade aqui)
+        gridLines: '#5f95981a',                             // Linhas da malha de fundo (InteractiveWaterRippleGrid) - ajuste a cor e opacidade aqui
+
+        // 🪟 Efeito Vidro (Glassmorphism Bento - Tema Escuro)
+        surfaceGlass: 'rgba(31, 31, 31, 0.45)',             // Fundo translúcido dos cards Bento no tema escuro (ajuste aqui cor e opacidade)
+        borderGlass: 'rgba(255, 255, 255, 0)',           // Borda translúcida de reflexo do vidro escuro (ajuste aqui)
+        glassBlur: '0.01px',                                   // Desfoque do vidro escuro (8px mantém a textura de fundo visível sob o vidro)
 
         // ✍️ Tipografia e Textos
         textMain: '#BBBFBF',                                // Títulos dos cards, números grandes de pontuação/SLA e cabeçalhos principais
         textMuted: '#BBBFBF',                               // Textos secundários, legendas de metas (ex: 'Meta >= 90%') e rótulos auxiliares
+        textHover: '#5F9598',                               // Cor do texto ao passar o mouse (hover) sobre botões e itens interativos
 
         // 📝 Campos de Formulário
         inputBg: '#171717',                                 // Fundo dos campos de digitação (caixa de busca 'Buscar chamado', inputs de login e formulários)
@@ -81,15 +91,25 @@ export const themeColors = {
         surface: '#EEEEEE',                                 // Fundo dos Cards Bento (Pontuação, SLA, Chamados), painel lateral (Sidebar) e modais
         surfaceElevated: '#E5E1DA',                         // Caixas internas dentro dos cards (ex: área branca de dias atendidos, botões secundários)
         surfaceHover: '#E5E1DA',                            // Efeito hover ao passar o mouse sobre linhas de tabelas, listas e itens de menu
+        buttonBg: '#EEEEEE',                                // Fundo próprio para botões interativos e de filtro no tema claro (ajuste a cor aqui)
+        buttonBgHover: '#E5E1DA',                           // Fundo de botões interativos ao passar o mouse no tema claro (hover) (ajuste a cor aqui)
 
         // 🔲 Bordas e Divisórias
         border: '#E5E1DA',                                  // Bordas externas dos cards Bento e divisórias suaves em harmonia com o fundo
         borderStrong: '#d6d3d1',                            // Bordas mais marcadas para inputs, tabelas e contorno de modais
+        borderHover: hexToRgba('#5F9598', 0.50),            // Cor da borda ao passar o mouse sobre botões e itens no tema claro (ajuste cor e opacidade aqui)
+        gridLines: 'rgba(15, 23, 42, 0.1)',                // Linhas da malha de fundo no tema claro - ajuste a cor e opacidade aqui
+
+        // 🪟 Efeito Vidro (Glassmorphism Bento - Tema Claro)
+        surfaceGlass: 'rgba(255, 255, 255, 0.45)',          // Fundo translúcido dos cards Bento no tema claro (ajuste aqui cor e opacidade)
+        borderGlass: 'rgba(255, 255, 255, 0)',           // Borda translúcida do vidro claro (ajuste aqui)
+        glassBlur: '0.01px',                                   // Desfoque do vidro claro (8px mantém a textura de fundo visível sob o vidro)
 
         // ✍️ Tipografia e Textos
         textMain: '#1c1917',                                // Títulos dos cards, números grandes de pontuação/SLA e cabeçalhos principais (escuro nítido)
         textSecondary: '#44403c',                           // Textos de apoio, subtítulos e nomes de colunas das tabelas
         textMuted: '#78716c',                               // Textos auxiliares discretos, legendas de metas (ex: 'Meta >= 90%') e rodapés
+        textHover: '#000000',                               // Cor do texto ao passar o mouse (hover) no tema claro
 
         // 📝 Campos de Formulário
         inputBg: '#ffffff',                                 // Fundo dos campos de digitação (caixa de busca 'Buscar chamado', inputs de login e formulários)
@@ -138,14 +158,27 @@ export default {
                     elevated: themeColors.dark.surfaceElevated,
                     hover: themeColors.dark.surfaceHover,
                 },
+                buttonBg: themeColors.dark.buttonBg,
+                buttonBgHover: themeColors.dark.buttonBgHover,
+                'button-bg': themeColors.dark.buttonBg,
+                'button-bg-hover': themeColors.dark.buttonBgHover,
                 border: {
                     DEFAULT: themeColors.dark.border,
                     subtle: themeColors.dark.borderSubtle,
+                    hover: themeColors.dark.borderHover,
                 },
+                borderHover: themeColors.dark.borderHover,
+                'border-hover': themeColors.dark.borderHover,
+                gridLines: themeColors.dark.gridLines,
+                'surface-glass': themeColors.dark.surfaceGlass,
+                'border-glass': themeColors.dark.borderGlass,
                 text: {
                     main: themeColors.dark.textMain,
                     muted: themeColors.dark.textMuted,
+                    hover: themeColors.dark.textHover,
                 },
+                textHover: themeColors.dark.textHover,
+                'text-hover': themeColors.dark.textHover,
                 primary: {
                     DEFAULT: themeColors.dark.primary,
                     dark: themeColors.dark.primaryDark,
@@ -178,13 +211,25 @@ export default {
                         elevated: themeColors.light.surfaceElevated,
                         hover: themeColors.light.surfaceHover,
                     },
+                    buttonBg: themeColors.light.buttonBg,
+                    buttonBgHover: themeColors.light.buttonBgHover,
+                    'button-bg': themeColors.light.buttonBg,
+                    'button-bg-hover': themeColors.light.buttonBgHover,
                     border: themeColors.light.border,
                     borderStrong: themeColors.light.borderStrong,
+                    borderHover: themeColors.light.borderHover,
+                    'border-hover': themeColors.light.borderHover,
+                    gridLines: themeColors.light.gridLines,
+                    'surface-glass': themeColors.light.surfaceGlass,
+                    'border-glass': themeColors.light.borderGlass,
                     text: {
                         main: themeColors.light.textMain,
                         secondary: themeColors.light.textSecondary,
                         muted: themeColors.light.textMuted,
-                    }
+                        hover: themeColors.light.textHover,
+                    },
+                    textHover: themeColors.light.textHover,
+                    'text-hover': themeColors.light.textHover,
                 },
 
                 // Status
@@ -211,8 +256,8 @@ export default {
                 'positivo-sm': '0.5rem',
             },
             backdropBlur: {
-                'bento': '0.125rem',
-                'bento-hover': '0.25rem',
+                'bento': '16px',
+                'bento-hover': '20px',
             },
             boxShadow: {
                 'glow-primary': `0 0 8px ${hexToRgba(brandColors.primary, 0.18)}`,
@@ -256,15 +301,29 @@ export default {
                 },
                 '.bg-grid-pattern': {
                     'background-color': themeColors.dark.background,
-                    'background-image': `radial-gradient(circle at 50% 50%, ${hexToRgba(brandColors.primary, 0.06)} 0%, transparent 50%), linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)`,
+                    'background-image': `radial-gradient(circle at 50% 50%, ${hexToRgba(brandColors.primary, 0.06)} 0%, transparent 50%), linear-gradient(${themeColors.dark.gridLines} 1px, transparent 1px), linear-gradient(90deg, ${themeColors.dark.gridLines} 1px, transparent 1px)`,
                     'background-size': '100% 100%, 40px 40px, 40px 40px',
                     'background-position': 'center center',
                 },
                 '.bg-grid-pattern-light': {
                     'background-color': themeColors.light.background,
-                    'background-image': `radial-gradient(circle at 50% 50%, ${hexToRgba(brandColors.primary, 0.06)} 0%, transparent 50%), linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px)`,
+                    'background-image': `radial-gradient(circle at 50% 50%, ${hexToRgba(brandColors.primary, 0.06)} 0%, transparent 50%), linear-gradient(${themeColors.light.gridLines} 1px, transparent 1px), linear-gradient(90deg, ${themeColors.light.gridLines} 1px, transparent 1px)`,
                     'background-size': '100% 100%, 40px 40px, 40px 40px',
                     'background-position': 'center center',
+                },
+                '.glass-bento': {
+                    'background-color': themeColors.light.surfaceGlass,
+                    'border-color': themeColors.light.borderGlass,
+                    'backdrop-filter': `blur(${themeColors.light.glassBlur || '8px'})`,
+                    '-webkit-backdrop-filter': `blur(${themeColors.light.glassBlur || '8px'})`,
+                    'box-shadow': '0 8px 30px rgba(0, 0, 0, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.85)',
+                },
+                '.dark .glass-bento': {
+                    'background-color': themeColors.dark.surfaceGlass,
+                    'border-color': themeColors.dark.borderGlass,
+                    'backdrop-filter': `blur(${themeColors.dark.glassBlur || '8px'})`,
+                    '-webkit-backdrop-filter': `blur(${themeColors.dark.glassBlur || '8px'})`,
+                    'box-shadow': '0 8px 32px 0 rgba(0, 0, 0, 0.36), inset 0 1px 0 0 rgba(255, 255, 255, 0.12)',
                 },
             });
         },

@@ -154,22 +154,22 @@ const UploadCard: React.FC<UploadCardProps> = ({
             <div className={`p-3 rounded-xl shrink-0 ${isSuccess
               ? 'bg-emerald-500/10 text-emerald-400'
               : isUploading
-                ? 'bg-accent-teal/10 text-accent-teal'
+                ? 'bg-primary/10 text-primary'
                 : isError
                   ? 'bg-rose-500/10 text-rose-400'
-                  : 'bg-slate-100 dark:bg-surface-elevated text-light-text-muted dark:text-text-muted group-hover:text-accent-teal group-hover:bg-accent-teal/10'
+                  : 'bg-light-surface-elevated dark:bg-surface-elevated text-light-text-muted dark:text-text-muted group-hover:text-primary group-hover:bg-primary/10'
               }`}>
               <FileSpreadsheet size={24} />
             </div>
             <div>
               <h3 className="text-base font-bold text-light-text-main dark:text-text-main leading-tight">{title}</h3>
-              <p className="text-xs text-accent-teal font-semibold mt-0.5 leading-snug">{subtitle}</p>
+              <p className="text-xs text-primary font-semibold mt-0.5 leading-snug">{subtitle}</p>
             </div>
           </div>
 
           {isSuccess && <CheckCircle className="text-emerald-400 shrink-0 mt-0.5" size={20} />}
           {isError && <AlertCircle className="text-rose-400 shrink-0 mt-0.5" size={20} />}
-          {isUploading && <Loader2 className="text-accent-teal animate-spin shrink-0 mt-0.5" size={20} />}
+          {isUploading && <Loader2 className="text-primary animate-spin shrink-0 mt-0.5" size={20} />}
         </div>
 
         {/* Descrição Completa e Legível */}
@@ -182,18 +182,18 @@ const UploadCard: React.FC<UploadCardProps> = ({
           <button
             type="button"
             onClick={() => setShowColumns(!showColumns)}
-            className="text-xs text-light-text-muted dark:text-text-muted hover:text-accent-teal flex items-center gap-1.5 font-medium transition-colors cursor-pointer"
+            className="text-xs text-light-text-muted dark:text-text-muted hover:text-primary flex items-center gap-1.5 font-medium transition-colors cursor-pointer"
           >
             <HelpCircle size={14} />
             {showColumns ? 'Ocultar colunas esperadas' : `Ver ${columnsExpected.length} colunas esperadas`}
           </button>
 
           {showColumns && (
-            <div className="mt-3 p-3.5 bg-slate-100 dark:bg-input-bg rounded-xl border border-light-borderStrong dark:border-border/60 text-xs space-y-1.5 animate-in fade-in duration-200">
-              <span className="font-bold text-accent-teal block text-xs">Colunas esperadas no Excel/CSV:</span>
+            <div className="mt-3 p-3.5 bg-light-surface-elevated/40 dark:bg-surface-elevated/40 rounded-xl border border-light-border dark:border-border text-xs space-y-1.5 animate-in fade-in duration-200">
+              <span className="font-bold text-primary block text-xs">Colunas esperadas no Excel/CSV:</span>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {columnsExpected.map((col, idx) => (
-                  <span key={idx} className="bg-slate-200 dark:bg-surface-elevated px-2 py-0.5 rounded-md font-mono text-[11px] text-light-text-main dark:text-text-main">
+                  <span key={idx} className="bg-light-surface dark:bg-surface px-2 py-0.5 rounded-md font-mono text-[11px] text-light-text-main dark:text-text-main border border-light-border dark:border-border">
                     {col}
                   </span>
                 ))}
@@ -209,15 +209,15 @@ const UploadCard: React.FC<UploadCardProps> = ({
         {isUploading && (
           <div className="space-y-2 animate-in fade-in duration-200">
             <div className="flex items-center justify-between text-xs font-semibold">
-              <span className="text-accent-teal flex items-center gap-1.5 truncate max-w-[240px]" title={state.message}>
+              <span className="text-primary flex items-center gap-1.5 truncate max-w-[240px]" title={state.message}>
                 <Loader2 size={13} className="animate-spin shrink-0" />
                 {state.message || 'Processando planilha...'}
               </span>
-              <span className="text-accent-teal font-mono shrink-0">{state.progress}%</span>
+              <span className="text-primary font-mono shrink-0">{state.progress}%</span>
             </div>
-            <div className="w-full bg-slate-200 dark:bg-input-bg rounded-full h-2 overflow-hidden border border-accent-teal/20">
+            <div className="w-full bg-light-surface dark:bg-surface rounded-full h-2 overflow-hidden border border-primary/20">
               <div
-                className="h-full bg-gradient-to-r from-accent-teal to-emerald-400 rounded-full transition-all duration-300"
+                className="h-full bg-gradient-to-r from-primary to-emerald-400 rounded-full transition-all duration-300"
                 style={{ width: `${state.progress}%` }}
               />
             </div>
@@ -255,7 +255,7 @@ const UploadCard: React.FC<UploadCardProps> = ({
             className={cn(
               "flex items-center justify-center gap-2.5 w-full py-3 px-5 rounded-xl text-xs sm:text-sm font-bold transition-all border cursor-pointer select-none",
               isUploading
-                ? 'bg-slate-100 dark:bg-surface text-light-text-muted dark:text-text-muted border-light-borderStrong dark:border-border cursor-not-allowed'
+                ? 'bg-light-surface-elevated/40 dark:bg-surface-elevated/40 text-light-text-muted dark:text-text-muted border-light-border dark:border-border cursor-not-allowed'
                 : isSuccess
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
                   : 'bg-primary/20 text-primary-light border-2 border-primary/80 font-bold shadow-md shadow-primary/25 hover:bg-primary/30 hover:border-primary hover:shadow-lg hover:shadow-primary/30'
@@ -536,12 +536,12 @@ export default function SettingsScreen() {
         </div>
 
         {/* Abas Principais */}
-        <div className="flex items-center gap-2 p-1.5 bg-light-surface/65 dark:bg-surface/35 backdrop-blur-bento border border-light-borderStrong/70 dark:border-border/80 rounded-2xl w-fit flex-wrap">
+        <div className="flex items-center gap-2 p-1.5 glass-bento border rounded-2xl w-fit flex-wrap">
           <button
             onClick={() => handleTabChange('UPLOADS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${activeTab === 'UPLOADS'
-              ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-              : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-surface-elevated'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'UPLOADS'
+              ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
+              : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}
           >
             <DatabaseZap size={16} />
@@ -549,9 +549,9 @@ export default function SettingsScreen() {
           </button>
           <button
             onClick={() => handleTabChange('TECNICOS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${activeTab === 'TECNICOS'
-              ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-              : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-surface-elevated'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'TECNICOS'
+              ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
+              : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}
           >
             <Users size={16} />
@@ -559,9 +559,9 @@ export default function SettingsScreen() {
           </button>
           <button
             onClick={() => handleTabChange('CAMPANHA')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${activeTab === 'CAMPANHA'
-              ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-              : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-surface-elevated'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'CAMPANHA'
+              ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
+              : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}
           >
             <ShieldCheck size={16} />
@@ -569,9 +569,9 @@ export default function SettingsScreen() {
           </button>
           <button
             onClick={() => handleTabChange('PREFERENCIAS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${activeTab === 'PREFERENCIAS'
-              ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-              : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-surface-elevated'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'PREFERENCIAS'
+              ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
+              : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}
           >
             <Sparkles size={16} />
@@ -588,7 +588,7 @@ export default function SettingsScreen() {
             {/* Seletor Enxuto de Modo de Ingestão: Planilhas vs. Databricks */}
             <BentoCard className="flex items-center justify-between flex-wrap gap-4 p-4 shadow-sm">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-accent-teal/10 text-accent-teal">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
                   <Layers size={18} />
                 </div>
                 <div>
@@ -598,12 +598,12 @@ export default function SettingsScreen() {
               </div>
 
               {/* Botões Switcher */}
-              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-input-bg p-1 rounded-xl border border-light-borderStrong dark:border-border">
+              <div className="flex items-center gap-1.5 bg-light-surface-elevated/40 dark:bg-surface-elevated/40 p-1 rounded-xl border border-light-border dark:border-border">
                 <button
                   onClick={() => handleModeChange('planilhas')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${ingestMode === 'planilhas'
-                    ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-                    : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white'
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${ingestMode === 'planilhas'
+                    ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
+                    : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
                     }`}
                 >
                   <FileSpreadsheet size={15} />
@@ -611,9 +611,9 @@ export default function SettingsScreen() {
                 </button>
                 <button
                   onClick={() => handleModeChange('databricks')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${ingestMode === 'databricks'
-                    ? 'bg-accent-teal text-positivo-primary shadow-md shadow-accent-teal/20'
-                    : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white'
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${ingestMode === 'databricks'
+                    ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
+                    : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
                     }`}
                 >
                   <Server size={15} />
@@ -627,10 +627,10 @@ export default function SettingsScreen() {
               <div className="space-y-6 animate-in fade-in duration-200">
 
                 {/* Banner Orientativo */}
-                <div className="p-4 bg-accent-teal/10 backdrop-blur-bento border border-accent-teal/30 rounded-2xl flex items-start gap-3 text-xs text-light-text-muted dark:text-slate-300">
-                  <Sparkles size={18} className="text-accent-teal shrink-0 mt-0.5" />
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-2xl flex items-start gap-3 text-xs text-light-text-muted dark:text-text-muted">
+                  <Sparkles size={18} className="text-primary shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
-                    <strong className="text-accent-teal font-semibold">Processamento Inteligente com Auto-Recálculo:</strong>
+                    <strong className="text-primary font-semibold">Processamento Inteligente com Auto-Recálculo:</strong>
                     <p className="opacity-90">
                       Faça o upload das planilhas abaixo. Os dados serão validados, vinculados automaticamente aos técnicos e bases ATP e o motor de cálculo atualizará as pontuações dos técnicos e os indicadores da campanha.
                     </p>
@@ -705,17 +705,17 @@ export default function SettingsScreen() {
 
             {/* MODO 2: SINCRONIA DATABRICKS (DATALAKE) */}
             {ingestMode === 'databricks' && (
-              <BentoCard className="p-6 sm:p-8 shadow-xl space-y-6 animate-in fade-in duration-200">
+              <BentoCard className="p-6 sm:p-8 space-y-6 animate-in fade-in duration-200">
 
                 {/* Header Databricks */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                   <div className="space-y-1.5 max-w-3xl">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-teal/10 border border-accent-teal/30 text-accent-teal text-xs font-semibold">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
                       <Server size={14} />
                       Databricks SQL Warehouse
                     </div>
                     <h2 className="text-xl sm:text-2xl font-black text-light-text-main dark:text-text-main tracking-tight flex items-center gap-2.5">
-                      <Cpu className="text-accent-teal shrink-0" size={26} />
+                      <Cpu className="text-primary shrink-0" size={26} />
                       Sincronização por Período
                     </h2>
                     <p className="text-light-text-muted dark:text-text-muted text-xs sm:text-sm">
@@ -724,40 +724,42 @@ export default function SettingsScreen() {
                   </div>
 
                   <div className="flex items-center shrink-0">
-                    <button
+                    <Button
+                      variant="neon"
+                      size="md"
                       onClick={handleDatabricksSync}
                       disabled={tracker.status === 'processing'}
-                      className="px-6 py-3 rounded-xl bg-accent-teal hover:bg-accent-teal/90 text-positivo-primary font-bold text-xs sm:text-sm shadow-lg shadow-accent-teal/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      icon={<RefreshCw size={16} className={tracker.status === 'processing' ? 'animate-spin' : ''} />}
+                      className="text-xs sm:text-sm px-6 py-2.5"
                     >
-                      <RefreshCw size={16} className={tracker.status === 'processing' ? 'animate-spin' : ''} />
                       {tracker.status === 'processing' ? 'Sincronizando...' : 'Sincronizar Agora'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
                 {/* Filtro de Período */}
-                <div className="p-5 bg-slate-100 dark:bg-slate-900/60 rounded-2xl border border-light-borderStrong dark:border-border/60 space-y-4">
+                <div className="p-5 bg-light-surface-elevated/40 dark:bg-surface-elevated/40 rounded-2xl border border-light-border dark:border-border space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex items-center gap-2 font-bold text-light-text-main dark:text-text-main text-xs">
-                      <Filter className="text-accent-teal" size={16} />
+                      <Filter className="text-primary" size={16} />
                       Filtro Temporal
                     </div>
 
-                    <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-950/80 border border-light-borderStrong dark:border-border p-1 rounded-xl">
+                    <div className="flex items-center gap-1 bg-light-surface dark:bg-surface border border-light-border dark:border-border p-1 rounded-xl">
                       <button
                         onClick={() => setPeriodMode('BIMESTRE')}
-                        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${periodMode === 'BIMESTRE'
-                          ? 'bg-accent-teal text-positivo-primary font-bold shadow-sm'
-                          : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white'
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${periodMode === 'BIMESTRE'
+                          ? 'bg-primary text-slate-950 border-primary shadow-sm'
+                          : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
                           }`}
                       >
                         Seleção Bimestral
                       </button>
                       <button
                         onClick={() => setPeriodMode('CUSTOM')}
-                        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${periodMode === 'CUSTOM'
-                          ? 'bg-accent-teal text-positivo-primary font-bold shadow-sm'
-                          : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-white'
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${periodMode === 'CUSTOM'
+                          ? 'bg-primary text-slate-950 border-primary shadow-sm'
+                          : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
                           }`}
                       >
                         Data Personalizada
@@ -780,13 +782,13 @@ export default function SettingsScreen() {
                           <button
                             key={bim.id}
                             onClick={() => setSelectedBimestre(bim.id)}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${isSelected
-                              ? 'bg-accent-teal/10 border-accent-teal text-accent-teal ring-1 ring-accent-teal/40'
-                              : 'bg-light-surface dark:bg-slate-950/40 border-light-borderStrong dark:border-border/60 text-light-text-muted dark:text-text-muted hover:border-accent-teal/40'
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer group/btn ${isSelected
+                              ? 'bg-primary/10 border-primary text-primary ring-1 ring-primary/40 shadow-sm'
+                              : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
                               }`}
                           >
-                            <div className={`text-xs font-bold ${isSelected ? 'text-accent-teal' : 'text-light-text-main dark:text-slate-200'}`}>{bim.label}</div>
-                            <div className="text-[10px] opacity-75 mt-0.5">{bim.period}</div>
+                            <div className={`text-xs font-bold transition-colors ${isSelected ? 'text-primary' : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>{bim.label}</div>
+                            <div className={`text-[10px] opacity-75 mt-0.5 transition-colors ${isSelected ? 'text-primary' : 'group-hover/btn:opacity-100 group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>{bim.period}</div>
                           </button>
                         );
                       })}
@@ -795,32 +797,32 @@ export default function SettingsScreen() {
                     <div className="flex flex-wrap items-center gap-4">
                       <div className="flex items-center gap-2">
                         <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1">
-                          <Calendar size={14} className="text-accent-teal" /> Início:
+                          <Calendar size={14} className="text-primary" /> Início:
                         </label>
                         <input
                           type="date"
                           value={customDataInicio}
                           onChange={(e) => setCustomDataInicio(e.target.value)}
-                          className="px-3 py-1.5 bg-light-surface dark:bg-slate-950 border border-light-borderStrong dark:border-border rounded-xl text-xs font-semibold text-light-text-main dark:text-text-main outline-none focus:border-accent-teal"
+                          className="px-3 py-1.5 bg-light-surface dark:bg-input-bg border border-light-border dark:border-border rounded-xl text-xs font-semibold text-light-text-main dark:text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
                         />
                       </div>
                       <div className="flex items-center gap-2">
                         <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1">
-                          <Calendar size={14} className="text-accent-teal" /> Fim:
+                          <Calendar size={14} className="text-primary" /> Fim:
                         </label>
                         <input
                           type="date"
                           value={customDataFim}
                           onChange={(e) => setCustomDataFim(e.target.value)}
-                          className="px-3 py-1.5 bg-light-surface dark:bg-slate-950 border border-light-borderStrong dark:border-border rounded-xl text-xs font-semibold text-light-text-main dark:text-text-main outline-none focus:border-accent-teal"
+                          className="px-3 py-1.5 bg-light-surface dark:bg-input-bg border border-light-border dark:border-border rounded-xl text-xs font-semibold text-light-text-main dark:text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
                         />
                       </div>
                     </div>
                   )}
 
-                  <div className="text-xs text-accent-teal font-medium flex items-center gap-2 pt-2 border-t border-light-borderStrong dark:border-border/60">
+                  <div className="text-xs text-primary font-medium flex items-center gap-2 pt-2 border-t border-light-border dark:border-border">
                     <span className="text-light-text-muted dark:text-text-muted">Intervalo:</span>
-                    <span className="bg-accent-teal/10 border border-accent-teal/30 text-accent-teal px-2 py-0.5 rounded-md font-mono font-bold text-xs">
+                    <span className="bg-primary/10 border border-primary/30 text-primary px-2.5 py-0.5 rounded-md font-mono font-bold text-xs">
                       {formatDateBR(activeDates.data_inicio)} até {formatDateBR(activeDates.data_fim)}
                     </span>
                   </div>
@@ -828,26 +830,26 @@ export default function SettingsScreen() {
 
                 {/* Status Global em Processamento */}
                 {tracker.status === 'processing' && (
-                  <div className="p-4 bg-accent-teal/10 border border-accent-teal/30 rounded-2xl space-y-2.5 animate-in fade-in duration-200">
+                  <div className="p-4 bg-primary/10 border border-primary/30 rounded-2xl space-y-2.5 animate-in fade-in duration-200">
                     <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
-                      <span className="text-accent-teal flex items-center gap-2">
-                        <Loader2 className="animate-spin text-accent-teal shrink-0" size={16} />
+                      <span className="text-primary flex items-center gap-2">
+                        <Loader2 className="animate-spin text-primary shrink-0" size={16} />
                         {tracker.step}
                       </span>
-                      <span className="text-accent-teal font-mono">{tracker.progress}%</span>
+                      <span className="text-primary font-mono">{tracker.progress}%</span>
                     </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-900 rounded-full h-2 overflow-hidden border border-accent-teal/20">
+                    <div className="w-full bg-light-surface dark:bg-surface rounded-full h-2 overflow-hidden border border-primary/20">
                       <div
-                        className="h-full bg-gradient-to-r from-accent-teal to-emerald-400 rounded-full transition-all duration-300"
+                        className="h-full bg-gradient-to-r from-primary to-emerald-400 rounded-full transition-all duration-300"
                         style={{ width: `${tracker.progress}%` }}
                       />
                     </div>
                     <div className="flex items-center justify-between text-xs text-light-text-muted dark:text-text-muted">
-                      <span className="flex items-center gap-1 text-accent-teal">
+                      <span className="flex items-center gap-1 text-primary">
                         <Clock size={12} />
-                        Restante: <strong className="font-mono text-light-text-main dark:text-white">{formatDuration(tracker.estimated_seconds_remaining)}</strong>
+                        Restante: <strong className="font-mono text-light-text-main dark:text-text-main">{formatDuration(tracker.estimated_seconds_remaining)}</strong>
                       </span>
-                      <span>Tabela atual: <strong className="text-light-text-main dark:text-white font-mono">{formatTableName(tracker.current_table)}</strong></span>
+                      <span>Tabela atual: <strong className="text-light-text-main dark:text-text-main font-mono">{formatTableName(tracker.current_table)}</strong></span>
                     </div>
                   </div>
                 )}
@@ -860,9 +862,9 @@ export default function SettingsScreen() {
                     const isProc = tracker.tables?.chamados?.status === 'processing';
                     const rowCount = tracker.tables?.chamados?.rows || 0;
                     return (
-                      <div className="p-4 bg-slate-100/60 dark:bg-slate-900/60 rounded-2xl border border-light-borderStrong dark:border-border flex items-center justify-between">
+                      <div className="p-4 bg-light-surface-elevated/40 dark:bg-surface-elevated/40 rounded-2xl border border-light-border dark:border-border flex items-center justify-between transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl ${isDone ? 'bg-emerald-500/10 text-emerald-400' : isProc ? 'bg-accent-teal/10 text-accent-teal' : 'bg-slate-200/60 dark:bg-slate-800 text-light-text-muted'}`}>
+                          <div className={`p-2 rounded-xl ${isDone ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : isProc ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-light-surface dark:bg-surface text-light-text-muted dark:text-text-muted border border-light-border dark:border-border'}`}>
                             <Table size={18} />
                           </div>
                           <div>
@@ -871,7 +873,7 @@ export default function SettingsScreen() {
                           </div>
                         </div>
                         {isDone && <CheckCircle className="text-emerald-400 shrink-0" size={16} />}
-                        {isProc && <Loader2 className="text-accent-teal animate-spin shrink-0" size={16} />}
+                        {isProc && <Loader2 className="text-primary animate-spin shrink-0" size={16} />}
                       </div>
                     );
                   })()}
@@ -882,9 +884,9 @@ export default function SettingsScreen() {
                     const isProc = tracker.tables?.reincidentes?.status === 'processing';
                     const rowCount = tracker.tables?.reincidentes?.rows || 0;
                     return (
-                      <div className="p-4 bg-slate-100/60 dark:bg-slate-900/60 rounded-2xl border border-light-borderStrong dark:border-border flex items-center justify-between">
+                      <div className="p-4 bg-light-surface-elevated/40 dark:bg-surface-elevated/40 rounded-2xl border border-light-border dark:border-border flex items-center justify-between transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl ${isDone ? 'bg-emerald-500/10 text-emerald-400' : isProc ? 'bg-accent-teal/10 text-accent-teal' : 'bg-slate-200/60 dark:bg-slate-800 text-light-text-muted'}`}>
+                          <div className={`p-2 rounded-xl ${isDone ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : isProc ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-light-surface dark:bg-surface text-light-text-muted dark:text-text-muted border border-light-border dark:border-border'}`}>
                             <RefreshCw size={18} />
                           </div>
                           <div>
@@ -893,7 +895,7 @@ export default function SettingsScreen() {
                           </div>
                         </div>
                         {isDone && <CheckCircle className="text-emerald-400 shrink-0" size={16} />}
-                        {isProc && <Loader2 className="text-accent-teal animate-spin shrink-0" size={16} />}
+                        {isProc && <Loader2 className="text-primary animate-spin shrink-0" size={16} />}
                       </div>
                     );
                   })()}
@@ -904,9 +906,9 @@ export default function SettingsScreen() {
                     const isProc = tracker.tables?.pecas?.status === 'processing';
                     const rowCount = tracker.tables?.pecas?.rows || 0;
                     return (
-                      <div className="p-4 bg-slate-100/60 dark:bg-slate-900/60 rounded-2xl border border-light-borderStrong dark:border-border flex items-center justify-between">
+                      <div className="p-4 bg-light-surface-elevated/40 dark:bg-surface-elevated/40 rounded-2xl border border-light-border dark:border-border flex items-center justify-between transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl ${isDone ? 'bg-emerald-500/10 text-emerald-400' : isProc ? 'bg-accent-teal/10 text-accent-teal' : 'bg-slate-200/60 dark:bg-slate-800 text-light-text-muted'}`}>
+                          <div className={`p-2 rounded-xl ${isDone ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : isProc ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-light-surface dark:bg-surface text-light-text-muted dark:text-text-muted border border-light-border dark:border-border'}`}>
                             <DatabaseZap size={18} />
                           </div>
                           <div>
@@ -915,7 +917,7 @@ export default function SettingsScreen() {
                           </div>
                         </div>
                         {isDone && <CheckCircle className="text-emerald-400 shrink-0" size={16} />}
-                        {isProc && <Loader2 className="text-accent-teal animate-spin shrink-0" size={16} />}
+                        {isProc && <Loader2 className="text-primary animate-spin shrink-0" size={16} />}
                       </div>
                     );
                   })()}
@@ -944,7 +946,7 @@ export default function SettingsScreen() {
               <div className="flex items-start justify-between gap-6">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-accent-teal/10 text-accent-teal">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
                       <Sparkles size={18} />
                     </div>
                     <h2 className="text-base font-bold text-light-text-main dark:text-text-main">
@@ -959,7 +961,7 @@ export default function SettingsScreen() {
                 <button
                   type="button"
                   onClick={toggleBackgroundDistortion}
-                  className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer shrink-0 mt-2 ${backgroundDistortion ? 'bg-primary' : 'bg-slate-300 dark:bg-surface-hover'
+                  className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer shrink-0 mt-2 ${backgroundDistortion ? 'bg-primary' : 'bg-light-borderStrong dark:bg-surface-hover'
                     }`}
                   title={backgroundDistortion ? 'Desativar distorção' : 'Ativar distorção'}
                 >
@@ -970,7 +972,7 @@ export default function SettingsScreen() {
                 </button>
               </div>
 
-              <div className="mt-5 pt-3.5 border-t border-light-borderStrong dark:border-border/60 flex items-center justify-between text-xs">
+              <div className="mt-5 pt-3.5 border-t border-light-border dark:border-border flex items-center justify-between text-xs">
                 <span className="text-light-text-muted dark:text-text-muted">Estado da animação:</span>
                 <span className={`font-bold ${backgroundDistortion ? 'text-emerald-500 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'}`}>
                   {backgroundDistortion ? 'Ativado (Dinâmico)' : 'Desativado (Estático)'}

@@ -317,7 +317,7 @@ export default function ProfileScreen() {
         {/* Botão de Central de Ajuda */}
         <button
           onClick={() => setIsAjudaOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-bold hover:border-primary/40 hover:text-primary transition-all shadow-sm self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-bold hover:border-light-borderHover dark:hover:border-borderHover hover:text-primary transition-all shadow-sm self-start sm:self-auto cursor-pointer"
         >
           <HelpCircle size={16} className="text-primary" />
           Central de Ajuda

@@ -328,7 +328,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
             placeholder="Buscar chamado, métrica, indicador..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-light-surface/65 dark:bg-surface/35 backdrop-blur-bento border border-light-borderStrong/70 dark:border-border/80 rounded-full pl-10 pr-4 py-2 text-xs text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+            className="w-full glass-bento border rounded-full pl-10 pr-4 py-2 text-xs text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
           />
         </div>
 
@@ -353,7 +353,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           )}
 
           <button 
-            className="relative p-2.5 rounded-full bg-light-surface/65 dark:bg-surface/35 backdrop-blur-bento border border-light-borderStrong/70 dark:border-border/80 text-light-text-muted dark:text-text-muted hover:text-primary hover:border-primary/50 transition-colors cursor-pointer"
+            className="relative p-2.5 rounded-full glass-bento border text-light-text-muted dark:text-text-muted hover:text-primary hover:border-primary/50 transition-colors cursor-pointer"
             title="Notificações"
           >
             <Bell size={18} />
@@ -364,7 +364,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
 
       {/* ========================================================================= */}
       {/* 2. GRID BENTO 3 COLUNAS x 2 LINHAS                                        */}
-      {/* Transparência dos cards estritamente em 35% no Dark Mode (bg-surface/35)   */}
+      {/* Transparência e blur dos cards centralizados no tailwind.config.js (.glass-bento) */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
@@ -478,14 +478,14 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           <div className="grid grid-cols-3 gap-2 my-2">
             <button
               onClick={() => setSelectedMonth('Campanha Inteira')}
-              className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer border ${
+              className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer border group/btn ${
                 isCampanhaInteira
                   ? 'bg-primary/15 border-primary/40 text-primary shadow-sm'
-                  : 'bg-light-surface-elevated dark:bg-surface border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main hover:bg-light-surface-hover dark:hover:bg-surface-hover'
+                  : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
               }`}
             >
-              <p className="text-[10px] uppercase font-semibold">Total</p>
-              <p className="text-xs font-black">Geral</p>
+              <p className={`text-[10px] uppercase font-semibold transition-colors ${isCampanhaInteira ? 'text-primary' : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>Total</p>
+              <p className={`text-xs font-black transition-colors ${isCampanhaInteira ? 'text-primary' : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>Geral</p>
             </button>
 
             {metricas?.historico && metricas.historico.filter((h: any) => h.mes !== 'Média Final').slice(0, 2).map((h: any, idx: number) => {
@@ -498,14 +498,14 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                 <button
                   key={idx}
                   onClick={() => setSelectedMonth(labelMes)}
-                  className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer border ${
+                  className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer border group/btn ${
                     isSelected
                       ? 'bg-primary/15 border-primary/40 text-primary shadow-sm'
-                      : 'bg-light-surface-elevated dark:bg-surface border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main hover:bg-light-surface-hover dark:hover:bg-surface-hover'
+                      : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
                   }`}
                 >
-                  <p className="text-[10px] uppercase font-semibold">Mês {idx + 1}</p>
-                  <p className="text-xs font-black truncate">{labelMes}</p>
+                  <p className={`text-[10px] uppercase font-semibold transition-colors ${isSelected ? 'text-primary' : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>Mês {idx + 1}</p>
+                  <p className={`text-xs font-black truncate transition-colors ${isSelected ? 'text-primary' : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>{labelMes}</p>
                 </button>
               );
             })}
@@ -583,16 +583,20 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                       key={pill.dStr}
                       type="button"
                       onClick={() => setSelectedDate(pill.dStr)}
-                      className={`flex-1 flex flex-col items-center justify-center py-2 px-1.5 rounded-2xl transition-all cursor-pointer select-none ${
+                      className={`flex-1 flex flex-col items-center justify-center py-2 px-1.5 rounded-2xl border transition-all cursor-pointer select-none group/btn ${
                         pill.isSelected
-                          ? 'bg-primary text-slate-950 font-black shadow-lg shadow-primary/25 scale-[1.03]'
-                          : 'bg-light-surface-elevated dark:bg-surface/80 border border-light-border dark:border-border text-light-text-secondary dark:text-text-muted hover:border-primary/50'
+                          ? 'bg-primary text-slate-950 font-black shadow-lg shadow-primary/25 scale-[1.03] border-primary'
+                          : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
                       }`}
                     >
-                      <span className="text-[10px] uppercase font-bold tracking-wider opacity-85">
+                      <span className={`text-[10px] uppercase font-bold tracking-wider opacity-85 transition-colors ${
+                        pill.isSelected ? 'text-slate-950' : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
+                      }`}>
                         {pill.diaSemana}
                       </span>
-                      <span className="text-base font-black leading-tight mt-0.5">
+                      <span className={`text-base font-black leading-tight mt-0.5 transition-colors ${
+                        pill.isSelected ? 'text-slate-950' : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
+                      }`}>
                         {pill.diaNum}
                       </span>
                       {pill.count > 0 ? (
@@ -794,10 +798,10 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                   <button
                     type="button"
                     onClick={() => setReincidenciaMode('individual')}
-                    className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
                       reincidenciaMode === 'individual'
-                        ? 'bg-primary text-background shadow-xs'
-                        : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
+                        ? 'bg-primary text-background border-primary shadow-xs'
+                        : 'bg-transparent border-transparent text-light-text-muted dark:text-text-muted hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:border-light-borderHover dark:hover:border-borderHover hover:text-light-textHover dark:hover:text-textHover'
                     }`}
                   >
                     Individual
@@ -805,10 +809,10 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                   <button
                     type="button"
                     onClick={() => setReincidenciaMode('equipe')}
-                    className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    className={`px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
                       reincidenciaMode === 'equipe'
-                        ? 'bg-primary text-background shadow-xs'
-                        : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
+                        ? 'bg-primary text-background border-primary shadow-xs'
+                        : 'bg-transparent border-transparent text-light-text-muted dark:text-text-muted hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:border-light-borderHover dark:hover:border-borderHover hover:text-light-textHover dark:hover:text-textHover'
                     }`}
                   >
                     Equipe

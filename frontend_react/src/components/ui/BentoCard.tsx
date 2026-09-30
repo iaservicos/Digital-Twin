@@ -10,14 +10,13 @@ export interface BentoCardProps extends React.HTMLAttributes<HTMLDivElement> {
 /**
  * Componente Primitivo de Card Bento (Padrão Oficial Brilha+).
  *
- * Consome tokens diretamente do tailwind.config.js:
+ * Consome o efeito glass centralizado diretamente do tailwind.config.js:
+ *   - glass-bento → utilitário oficial (surfaceGlass, borderGlass, blur 16px)
  *   - rounded-bento → borderRadius.bento
- *   - backdrop-blur-bento → backdropBlur.bento
- *   - bg-surface/40 → cores do tema
  *   - p-6 → espaçamento interno padrão de cartões Bento
  *
- * Para alterar qualquer propriedade visual dos cards,
- * edite APENAS o tailwind.config.js.
+ * Para calibrar a transparência, cor do vidro ou intensidade do blur,
+ * edite APENAS as variáveis surfaceGlass e borderGlass no tailwind.config.js.
  */
 export const BentoCard: React.FC<BentoCardProps> = ({
   children,
@@ -28,17 +27,14 @@ export const BentoCard: React.FC<BentoCardProps> = ({
   return (
     <div
       className={cn(
-        // Fundo com translucidez + blur calibrado (tokens do tailwind.config.js)
-        "bg-light-surface/80 dark:bg-surface/40",
-        "backdrop-blur-bento",
-        // Borda elegante com reflexo de luz sutil
-        "border border-light-borderStrong/70 dark:border-white/10",
+        // Efeito Glassmorphism oficial centralizado no tailwind.config.js
+        "glass-bento border",
         // Raio de curvatura oficial dos bentos (token do tailwind.config.js)
         "rounded-bento",
         // Padding interno oficial (restaura o espaçamento perfeito)
         "p-6",
-        // Layout, sombra e contexto group para micro-interações internas
-        "shadow-lg relative overflow-hidden group",
+        // Layout e contexto group para micro-interações internas
+        "relative overflow-hidden group",
         // Transição suave
         "transition-all duration-300 ease-in-out",
         // Hover interativo com brilho na cor primária oficial

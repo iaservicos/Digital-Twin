@@ -138,7 +138,7 @@ export default function CampaignManager() {
       )}
 
       {/* Card Principal com Glassmorphism Translúcido */}
-      <div className="backdrop-blur-bento bg-light-surface/65 dark:bg-surface/35 border border-light-borderStrong/70 dark:border-border/80 rounded-2xl p-6 shadow-sm transition-all duration-300">
+      <div className="glass-bento border rounded-2xl p-6 shadow-sm transition-all duration-300">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
