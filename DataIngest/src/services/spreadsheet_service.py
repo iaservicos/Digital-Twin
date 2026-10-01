@@ -74,38 +74,43 @@ class SpreadsheetIngestService:
 
             # Mapeamento flexível de colunas (case-insensitive)
             col_map = {normalize_column_name(c): c for c in df.columns}
+
+            # Equivalências automáticas comuns
+            if 'ct' in col_map and 'assistencia_centro_trabalho' not in col_map:
+                col_map['assistencia_centro_trabalho'] = col_map['ct']
+            if 'atp' in col_map and 'assistencia_nome' not in col_map:
+                col_map['assistencia_nome'] = col_map['atp']
+            if 'subgrupo' in col_map and 'material_descricao' not in col_map:
+                col_map['material_descricao'] = col_map['subgrupo']
+            if 'tipo_equipamento' in col_map and 'equipamento' not in col_map:
+                col_map['equipamento'] = col_map['tipo_equipamento']
+            if 'descricao_material' in col_map and 'material_descricao' not in col_map:
+                col_map['material_descricao'] = col_map['descricao_material']
+            if 'assistencia_razao_social' in col_map and 'assistencia_nome' not in col_map:
+                col_map['assistencia_nome'] = col_map['assistencia_razao_social']
             
-            required_cols = {
+            strictly_required = {
                 'chamado': 'Chamado',
-                'projeto': 'Projeto',
                 'ft': 'FT',
                 'sla_status': 'SLA_status',
+                'assistencia_centro_trabalho': 'Assistencia_centro_trabalho (ou CT)',
+                'tecnico_nome': 'Tecnico_nome'
+            }
+
+            optional_cols = {
+                'projeto': 'Projeto',
                 'equipamento': 'Equipamento',
-                'material_descricao': 'Material_descricao',
+                'material_descricao': 'Material_descricao (ou SubGrupo)',
                 'comercial': 'Comercial',
-                'assistencia_centro_trabalho': 'Assistencia_centro_trabalho',
-                'assistencia_nome': 'Assistencia_nome',
-                'tecnico_nome': 'Tecnico_nome',
+                'assistencia_nome': 'Assistencia_nome (ou ATP)',
                 'texto_encerrado': 'Texto_encerrado',
                 'reincidente': 'Reincidente',
                 'classifica_chamado': 'Classifica_chamado'
             }
 
-            missing = [req_key for req_key in required_cols if req_key not in col_map]
+            missing = [req_key for req_key in strictly_required if req_key not in col_map]
             if missing:
-                # Tenta variações aceitas
-                if 'assistencia_razao_social' in col_map and 'assistencia_nome' in missing:
-                    col_map['assistencia_nome'] = col_map['assistencia_razao_social']
-                    missing.remove('assistencia_nome')
-                if 'tipo_equipamento' in col_map and 'equipamento' in missing:
-                    col_map['equipamento'] = col_map['tipo_equipamento']
-                    missing.remove('equipamento')
-                if 'descricao_material' in col_map and 'material_descricao' in missing:
-                    col_map['material_descricao'] = col_map['descricao_material']
-                    missing.remove('material_descricao')
-
-            if missing:
-                missing_labels = [required_cols[k] for k in missing]
+                missing_labels = [strictly_required[k] for k in missing]
                 raise KeyError(
                     f"Colunas obrigatórias não encontradas na Base DL: {missing_labels}. "
                     f"Colunas lidas: {list(df.columns)}"
@@ -113,9 +118,15 @@ class SpreadsheetIngestService:
 
             # Extração padronizada
             clean_df = pd.DataFrame()
-            for key in required_cols:
+            for key in strictly_required:
                 original_col = col_map[key]
                 clean_df[key] = df[original_col]
+
+            for key in optional_cols:
+                if key in col_map:
+                    clean_df[key] = df[col_map[key]]
+                else:
+                    clean_df[key] = None
 
             # Colunas adicionais opcionais para compatibilidade total com Databricks / chamados
             if 'segmento' in col_map:
@@ -135,7 +146,21 @@ class SpreadsheetIngestService:
             else:
                 clean_df['ocorrencia_chamado'] = None
 
-            clean_df = clean_df.dropna(subset=['chamado', 'tecnico_nome'])
+            # Normalização e Deduplicação Estrita em Memória (Opção B - Incremental Idempotente)
+            def safe_int_str(val):
+                try:
+                    return str(int(float(val)))
+                except Exception:
+                    return None
+
+            clean_df['chamado_norm'] = clean_df['chamado'].apply(safe_int_str)
+            clean_df = clean_df.dropna(subset=['chamado_norm', 'tecnico_nome'])
+
+            # Ordenar pela data mais recente (ft) e manter apenas uma linha por chamado
+            # Isso garante que nenhum lote de 1.000 chamados possua chave repetida, eliminando CardinalityViolation no ON CONFLICT
+            if 'ft' in clean_df.columns:
+                clean_df = clean_df.sort_values(by=['ft'], ascending=False, na_position='last')
+            clean_df = clean_df.drop_duplicates(subset=['chamado_norm'], keep='first')
             total_rows = len(clean_df)
 
             if total_rows == 0:
@@ -256,7 +281,7 @@ class SpreadsheetIngestService:
                         ON CONFLICT (chamado) DO UPDATE SET
                             projeto = EXCLUDED.projeto,
                             ft = EXCLUDED.ft,
-                            sla_status = EXCLUDED.sla_status,
+                            sla_status = COALESCE(EXCLUDED.sla_status, tb_chamado.sla_status),
                             equipamento = EXCLUDED.equipamento,
                             material_descricao = EXCLUDED.material_descricao,
                             comercial = EXCLUDED.comercial,
@@ -287,7 +312,7 @@ class SpreadsheetIngestService:
                             assistencia_razao_social = EXCLUDED.assistencia_razao_social,
                             tecnico_nome = EXCLUDED.tecnico_nome,
                             descricao_material = EXCLUDED.descricao_material,
-                            sla_status = EXCLUDED.sla_status;
+                            sla_status = COALESCE(EXCLUDED.sla_status, chamados.sla_status);
                     """
 
                     for i in range(0, len(chamados_insert), 1000):
@@ -376,6 +401,12 @@ class SpreadsheetIngestService:
             df['clean_chamado'] = df['chamado'].apply(clean_chamado_val)
             df = df.dropna(subset=['clean_chamado'])
             df['clean_chamado'] = df['clean_chamado'].astype('int64')
+
+            # Deduplicação determinística em memória para evitar inserções duplicadas idênticas
+            dedup_parts_cols = [c for c in ['clean_chamado', 'subgrupo', 'codigo_aplicado', 'codigo_solicitado', 'serial_nov'] if c in df.columns]
+            if dedup_parts_cols:
+                df = df.drop_duplicates(subset=dedup_parts_cols, keep='first')
+
             total_rows = len(df)
 
             with self.pg_client._get_connection() as conn:
@@ -619,20 +650,67 @@ class SpreadsheetIngestService:
                 "timestamp": datetime.utcnow().isoformat()
             }
 
-            try:
-                df = pd.read_excel(io.BytesIO(file_contents))
-            except Exception:
-                df = pd.read_csv(io.BytesIO(file_contents), sep=None, engine='python')
-
-            df.columns = df.columns.str.strip().str.lower()
-
             possiveis_rrc = ['chamado_rrc', 'chamado_novo', 'chamado novo', 'chamado']
+            df = None
+            try:
+                excel_file = pd.ExcelFile(io.BytesIO(file_contents))
+                # 1. Procurar aba com nome contendo 'reincid' (ex: 'Reincidências' em planilhas multi-aba)
+                target_sheet = None
+                for s in excel_file.sheet_names:
+                    s_norm = unicodedata.normalize('NFKD', str(s)).encode('ASCII', 'ignore').decode('utf-8').lower()
+                    if 'reincid' in s_norm:
+                        target_sheet = s
+                        break
+
+                if target_sheet is not None:
+                    temp_df = pd.read_excel(excel_file, sheet_name=target_sheet)
+                    temp_df.columns = temp_df.columns.astype(str).str.strip().str.lower()
+                    if any(col in temp_df.columns for col in possiveis_rrc):
+                        df = temp_df
+
+                # 2. Se não encontrou ou a aba não possuía a coluna, varre todas as abas
+                if df is None:
+                    for s in excel_file.sheet_names:
+                        temp_df = pd.read_excel(excel_file, sheet_name=s)
+                        temp_df.columns = temp_df.columns.astype(str).str.strip().str.lower()
+                        if any(col in temp_df.columns for col in possiveis_rrc):
+                            df = temp_df
+                            break
+
+                # 3. Fallback para primeira aba padrão
+                if df is None:
+                    df = pd.read_excel(excel_file, sheet_name=0)
+                    df.columns = df.columns.astype(str).str.strip().str.lower()
+
+            except Exception:
+                try:
+                    df = pd.read_excel(io.BytesIO(file_contents))
+                    df.columns = df.columns.astype(str).str.strip().str.lower()
+                except Exception:
+                    df = pd.read_csv(io.BytesIO(file_contents), sep=None, engine='python')
+                    df.columns = df.columns.astype(str).str.strip().str.lower()
+
             col_rrc = next((col for col in possiveis_rrc if col in df.columns), None)
 
             if not col_rrc:
-                raise KeyError("A planilha não contém a coluna 'chamado_rrc' ou equivalente.")
+                raise KeyError(f"A planilha não contém a coluna 'chamado_rrc' ou equivalente. Colunas lidas: {list(df.columns)}")
 
-            df = df.dropna(subset=[col_rrc])
+            # Normalização e Deduplicação Estrita em Memória
+            def safe_ch_str(val):
+                try:
+                    return str(int(float(val)))
+                except Exception:
+                    return str(val).strip() if pd.notna(val) else None
+
+            df['rrc_norm'] = df[col_rrc].apply(safe_ch_str)
+            df = df.dropna(subset=['rrc_norm'])
+
+            dedup_reinc_cols = ['rrc_norm']
+            if 'chamado_anterior' in df.columns:
+                df['ant_norm'] = df['chamado_anterior'].apply(safe_ch_str)
+                dedup_reinc_cols.append('ant_norm')
+
+            df = df.drop_duplicates(subset=dedup_reinc_cols, keep='first')
             total_rows = len(df)
 
             with self.pg_client._get_connection() as conn:
@@ -818,7 +896,22 @@ class SpreadsheetIngestService:
             if faltantes:
                 raise KeyError(f"Colunas obrigatórias não encontradas na planilha de Encerrados: {faltantes}. Colunas lidas: {list(df.columns)}")
 
-            df = df.dropna(subset=['chamado'])
+            # Normalização e Deduplicação Estrita em Memória
+            def safe_ch_str(val):
+                try:
+                    return str(int(float(val)))
+                except Exception:
+                    return str(val).strip() if pd.notna(val) else None
+
+            df['chamado_norm'] = df['chamado'].apply(safe_ch_str)
+            df = df.dropna(subset=['chamado_norm'])
+
+            if 'encerramento' in df.columns:
+                df = df.sort_values(by=['encerramento'], ascending=False, na_position='last')
+            elif 'ft' in df.columns:
+                df = df.sort_values(by=['ft'], ascending=False, na_position='last')
+
+            df = df.drop_duplicates(subset=['chamado_norm'], keep='first')
             total_rows = len(df)
 
             with self.pg_client._get_connection() as conn:
@@ -913,7 +1006,35 @@ class SpreadsheetIngestService:
                             %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s
                         )
-                        ON CONFLICT (chamado) DO NOTHING
+                        ON CONFLICT (chamado) DO UPDATE SET
+                            abertura = COALESCE(EXCLUDED.abertura, tb_encerrados_rrc.abertura),
+                            serie = COALESCE(EXCLUDED.serie, tb_encerrados_rrc.serie),
+                            sku = COALESCE(EXCLUDED.sku, tb_encerrados_rrc.sku),
+                            descricao_material = COALESCE(EXCLUDED.descricao_material, tb_encerrados_rrc.descricao_material),
+                            equipamento = COALESCE(EXCLUDED.equipamento, tb_encerrados_rrc.equipamento),
+                            barebone = COALESCE(EXCLUDED.barebone, tb_encerrados_rrc.barebone),
+                            marca = COALESCE(EXCLUDED.marca, tb_encerrados_rrc.marca),
+                            segmento = COALESCE(EXCLUDED.segmento, tb_encerrados_rrc.segmento),
+                            tipo = COALESCE(EXCLUDED.tipo, tb_encerrados_rrc.tipo),
+                            projeto = COALESCE(EXCLUDED.projeto, tb_encerrados_rrc.projeto),
+                            assistencia_codigo = COALESCE(EXCLUDED.assistencia_codigo, tb_encerrados_rrc.assistencia_codigo),
+                            assistencia_nome = COALESCE(EXCLUDED.assistencia_nome, tb_encerrados_rrc.assistencia_nome),
+                            assistencia_tipo = COALESCE(EXCLUDED.assistencia_tipo, tb_encerrados_rrc.assistencia_tipo),
+                            assistencia_uf = COALESCE(EXCLUDED.assistencia_uf, tb_encerrados_rrc.assistencia_uf),
+                            assistencia_cidade = COALESCE(EXCLUDED.assistencia_cidade, tb_encerrados_rrc.assistencia_cidade),
+                            ft = COALESCE(EXCLUDED.ft, tb_encerrados_rrc.ft),
+                            encerramento = COALESCE(EXCLUDED.encerramento, tb_encerrados_rrc.encerramento),
+                            encerramento_desc = COALESCE(EXCLUDED.encerramento_desc, tb_encerrados_rrc.encerramento_desc),
+                            cliente_codigo = COALESCE(EXCLUDED.cliente_codigo, tb_encerrados_rrc.cliente_codigo),
+                            cliente_nome = COALESCE(EXCLUDED.cliente_nome, tb_encerrados_rrc.cliente_nome),
+                            cliente_uf = COALESCE(EXCLUDED.cliente_uf, tb_encerrados_rrc.cliente_uf),
+                            cliente_cidade = COALESCE(EXCLUDED.cliente_cidade, tb_encerrados_rrc.cliente_cidade),
+                            tecnico_nome = COALESCE(EXCLUDED.tecnico_nome, tb_encerrados_rrc.tecnico_nome),
+                            texto_abertura = COALESCE(EXCLUDED.texto_abertura, tb_encerrados_rrc.texto_abertura),
+                            texto_encerrado = COALESCE(EXCLUDED.texto_encerrado, tb_encerrados_rrc.texto_encerrado),
+                            ocorrencia_chamado = COALESCE(EXCLUDED.ocorrencia_chamado, tb_encerrados_rrc.ocorrencia_chamado),
+                            reincidente = COALESCE(EXCLUDED.reincidente, tb_encerrados_rrc.reincidente),
+                            prioritario = COALESCE(EXCLUDED.prioritario, tb_encerrados_rrc.prioritario)
                     """
                     for i in range(0, len(enc_insert), 1000):
                         chunk = enc_insert[i:i + 1000]

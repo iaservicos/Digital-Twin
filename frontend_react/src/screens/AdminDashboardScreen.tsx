@@ -81,9 +81,14 @@ export default function AdminDashboardScreen() {
       try {
         setLoading(true);
         // Primeiro busca supervisores para identificar o logado
-        const supResp = await api.get('/supervisores');
-        const supList = supResp.data || [];
-        if (mounted) setTodosSupervisores(supList);
+        let supList: any[] = [];
+        try {
+          const supResp = await api.get('/supervisores');
+          supList = supResp.data || [];
+          if (mounted) setTodosSupervisores(supList);
+        } catch (errSup) {
+          console.warn('Aviso: Falha ao carregar lista de supervisores:', errSup);
+        }
         
         // Se for supervisor, passamos o id dele na requisição para não baixar a base inteira
         let queryIdSupervisor = undefined;
@@ -414,7 +419,7 @@ export default function AdminDashboardScreen() {
                 <select
                   value={selectedSupervisor}
                   onChange={(e) => setSelectedSupervisor(e.target.value)}
-                  className="w-full sm:w-48 appearance-none bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl p-2.5 pr-8 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all shadow-inner"
+                  className="w-full sm:w-48 appearance-none glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full py-2.5 pl-4 pr-9 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner cursor-pointer [&>option]:bg-light-surface [&>option]:dark:bg-surface [&>option]:text-light-text-main [&>option]:dark:text-text-main"
                 >
                   <option value="all">Todos os Supervisores</option>
                   {listaSupervisores.map(s => (
@@ -423,7 +428,7 @@ export default function AdminDashboardScreen() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
               </div>
             </div>
           )}
@@ -437,7 +442,7 @@ export default function AdminDashboardScreen() {
               <select
                 value={selectedEquipe}
                 onChange={(e) => setSelectedEquipe(e.target.value)}
-                className="w-full sm:w-60 appearance-none bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl p-2.5 pr-8 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all shadow-inner"
+                className="w-full sm:w-60 appearance-none glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full py-2.5 pl-4 pr-9 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner cursor-pointer [&>option]:bg-light-surface [&>option]:dark:bg-surface [&>option]:text-light-text-main [&>option]:dark:text-text-main"
               >
                 <option value="all">Todas as Bases ({equipesDisponiveis.length})</option>
                 {equipesDisponiveis.map(base => {
@@ -446,7 +451,7 @@ export default function AdminDashboardScreen() {
                   return <option key={eq} value={eq}>{label}</option>;
                 })}
               </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
             </div>
           </div>
 
@@ -465,7 +470,7 @@ export default function AdminDashboardScreen() {
               )}
             </label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
+              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
               <input
                 type="text"
                 placeholder="Nome ou matrícula..."
@@ -482,19 +487,19 @@ export default function AdminDashboardScreen() {
                   e.target.select();
                 }}
                 onClick={() => setIsSearchOpen(true)}
-                className="w-full sm:w-64 bg-light-background dark:bg-input-bg border border-light-borderStrong dark:border-border text-light-text-main dark:text-text-main text-xs font-semibold rounded-xl pl-9 pr-8 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all shadow-inner cursor-pointer"
+                className="w-full sm:w-64 glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-10 pr-9 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner cursor-pointer placeholder:text-light-text-muted dark:placeholder:text-text-muted/60"
               />
               {searchTecnicoQuery ? (
                 <button
                   type="button"
                   onClick={handleResetToAll}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main p-0.5 rounded-full hover:bg-light-surface-elevated dark:hover:bg-surface-elevated transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main p-0.5 rounded-full hover:bg-light-surface-elevated dark:hover:bg-surface-elevated transition-colors cursor-pointer"
                   title="Limpar seleção e voltar para a Operação"
                 >
                   <X size={14} />
                 </button>
               ) : (
-                <ChevronDown size={14} className={`absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none transition-transform duration-200 ${isSearchOpen ? 'rotate-180' : ''}`} />
               )}
             </div>
 

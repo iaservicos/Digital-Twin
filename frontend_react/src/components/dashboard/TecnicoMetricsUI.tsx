@@ -277,24 +277,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
           <p className="text-[9px] text-light-text-muted dark:text-text-muted">Meta: ≤ 1%</p>
         </BentoCard>
 
-        {/* 5. Card Avaliação NPS */}
-        <BentoCard className="p-4 flex flex-col items-center text-center justify-center">
-          <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-primary/10 text-primary border border-primary/30 px-2 py-0.5 rounded-full mb-1">
-              INDIVIDUAL
-            </span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider">
-              NPS
-            </h3>
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center py-2">
-            <p className="text-4xl font-bold text-primary">{displayMetricas.npsScore?.toFixed(1) || '0.0'}</p>
-            <p className="text-xs text-status-success font-medium mt-1">+{displayMetricas.pontosNps || 0} pts</p>
-          </div>
-          <p className="text-[10px] text-light-text-muted dark:text-text-muted mt-1">Meta: ≥ 85</p>
-        </BentoCard>
-
-        {/* 6. Card Peças - INTERATIVO */}
+        {/* 5. Card Peças - INTERATIVO */}
         <BentoCard 
           hoverable
           onClick={() => setIsPecasModalOpen(true)}

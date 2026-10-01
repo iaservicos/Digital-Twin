@@ -66,6 +66,10 @@ class PostgreSQLClient:
             elif dtype == pl.Date:
                 formatted_df = formatted_df.with_columns(pl.col(col).dt.to_string("%Y-%m-%d").alias(col))
 
+        if conflict_column and conflict_column in formatted_df.columns:
+            formatted_df = formatted_df.unique(subset=[conflict_column], keep="first")
+            rows_count = len(formatted_df)
+
         columns_list = [f'"{c}"' for c in formatted_df.columns]
         columns_formatted = ", ".join(columns_list)
 
@@ -127,13 +131,15 @@ class PostgreSQLClient:
                         while data := buffer.read(65536):
                             copy.write(data)
 
-                    # Transferência com ON CONFLICT
+                    # Transferência com ON CONFLICT e DISTINCT ON para eliminar CardinalityViolation
                     non_conflict_cols = [c for c in formatted_df.columns if c != conflict_column]
                     update_assignments = ", ".join([f'"{c}" = EXCLUDED."{c}"' for c in non_conflict_cols])
                     
                     merge_sql = f"""
                         INSERT INTO {target_table} ({columns_formatted})
-                        SELECT {columns_formatted} FROM {temp_table}
+                        SELECT DISTINCT ON ("{conflict_column}") {columns_formatted} 
+                        FROM {temp_table}
+                        ORDER BY "{conflict_column}"
                         ON CONFLICT ("{conflict_column}") DO UPDATE SET {update_assignments};
                     """
                     cur.execute(merge_sql)

@@ -191,15 +191,16 @@ def get_ranking(
                     "pontosReincidencia": val_to_double(h.get("pontos_reincidencia")),
                     "percentualReincidenciaEquipe": val_to_pct(h.get("atingimento_reincidencia_equipe")),
                     "pontosReincidenciaEquipe": val_to_double(h.get("pontos_reincidencia_equipe")),
-                    "npsScore": val_to_pct(h.get("atingimento_nps")),
-                    "pontosNps": val_to_double(h.get("pontos_nps")),
                     "percentualEficienciaPecas": val_to_pct(h.get("atingimento_pecas")),
                     "pontosPecas": val_to_double(h.get("pontos_pecas")),
                     "percentualPerdidos": val_to_pct(h.get("atingimento_perdidos")),
                     "pontosPerdidos": val_to_double(h.get("pontos_perdidos")),
                     "pontosTotal": val_to_double(h.get("pontuacao_total")),
                     "elegivel": bool(h.get("status_elegibilidade")),
-                    "motivoInelegibilidade": h.get("motivo_inelegibilidade")
+                    "motivoInelegibilidade": h.get("motivo_inelegibilidade"),
+                    "fonteRrcDenominador": h.get("fonte_rrc_denominador"),
+                    "fonteReincidencia": h.get("fonte_reincidencia"),
+                    "fontePecas": h.get("fonte_pecas")
                 })
 
             ct_bases = a.get("ct_bases") or []
@@ -230,10 +231,9 @@ def get_ranking(
                 "pontosProdutividade": 0.0 if sem_chamados else val_to_double(a.get("pontos_pecas")),
                 "percentualEficienciaPecas": 0.0 if sem_chamados else val_to_pct(a.get("atingimento_pecas")),
                 "pontosPecas": 0.0 if sem_chamados else val_to_double(a.get("pontos_pecas")),
-                "npsScore": 0.0 if sem_chamados else val_to_pct(a.get("atingimento_nps")),
-                "pontosNps": 0.0 if sem_chamados else val_to_double(a.get("pontos_nps")),
-                "npsPromotores": 0,
-                "npsDetratores": 0,
+                "fonteRrcDenominador": a.get("fonte_rrc_denominador"),
+                "fonteReincidencia": a.get("fonte_reincidencia"),
+                "fontePecas": a.get("fonte_pecas"),
                 "elegivel": False if sem_chamados else bool(a.get("status_elegibilidade")),
                 "motivoInelegibilidade": "Sem chamados atendidos no período" if sem_chamados else a.get("motivo_inelegibilidade"),
                 "mesReferencia": a["mes_ano"].isoformat() if a.get("mes_ano") else None,

@@ -45,12 +45,11 @@ export const ModalDetalhesPontuacao: React.FC<ModalDetalhesPontuacaoProps> = ({
             <thead>
               <tr className="bg-light-surface/60 dark:bg-surface-elevated/60 text-light-text-secondary dark:text-text-muted text-xs font-bold uppercase tracking-wider">
                 <th className="p-4 border-b border-light-border dark:border-border rounded-tl-xl">Mês</th>
-                <th className="p-4 border-b border-light-border dark:border-border text-center" title="SLA Equipe (Máx 32,5 pts)">SLA Equipe</th>
-                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Perdas SLA Performance da Base (Máx 20,0 pts)">Perdas Equipe</th>
-                <th className="p-4 border-b border-light-border dark:border-border text-center" title="NPS da Equipe (Máx 5,0 pts)">NPS Equipe</th>
-                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Reincidência da Base (Máx 15,0 pts)">Reinc. Equipe</th>
-                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Reincidência Individual do Técnico (Máx 15,0 pts)">Reinc. Indiv.</th>
-                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Consumo de Peças Individual (Máx 12,5 pts)">Peças</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="SLA Equipe (Máx 33,5 pts)">SLA Equipe</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Perdas SLA Performance da Base (Máx 21,0 pts)">Perdas Equipe</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Reincidência da Base (Máx 16,0 pts)">Reinc. Equipe</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Reincidência Individual do Técnico (Máx 16,0 pts)">Reinc. Indiv.</th>
+                <th className="p-4 border-b border-light-border dark:border-border text-center" title="Consumo de Peças Individual (Máx 13,5 pts)">Peças</th>
                 <th className="p-4 border-b border-light-border dark:border-border text-center">Total</th>
                 <th className="p-4 border-b border-light-border dark:border-border text-center rounded-tr-xl">Elegibilidade</th>
               </tr>
@@ -66,37 +65,31 @@ export const ModalDetalhesPontuacao: React.FC<ModalDetalhesPontuacaoProps> = ({
                       {h.mes}
                     </td>
 
-                    {/* 2. SLA Equipe (Máx 32.5 pts) */}
+                    {/* 2. SLA Equipe (Máx 33.5 pts) */}
                     <td className="p-4 text-center">
                       <div className="font-bold text-light-text-secondary dark:text-text-main">{h.percentualSla?.toFixed(2)}%</div>
                       <div className="text-xs font-medium text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosSla} pts</div>
                     </td>
 
-                    {/* 3. Perdas Performance Equipe (Máx 20.0 pts) */}
+                    {/* 3. Perdas Performance Equipe (Máx 21.0 pts) */}
                     <td className="p-4 text-center">
                       <div className="font-bold text-light-text-secondary dark:text-text-main">{h.percentualPerdidos?.toFixed(2)}%</div>
                       <div className="text-xs font-medium text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosPerdidos} pts</div>
                     </td>
 
-                    {/* 4. NPS Equipe (Máx 5.0 pts) */}
-                    <td className="p-4 text-center">
-                      <div className="font-bold text-light-text-secondary dark:text-text-main">{h.npsScore?.toFixed(2)}%</div>
-                      <div className="text-xs font-medium text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosNps} pts</div>
-                    </td>
-
-                    {/* 5. Reincidência Equipe (Máx 15.0 pts) */}
+                    {/* 4. Reincidência Equipe (Máx 16.0 pts) */}
                     <td className="p-4 text-center">
                       <div className="font-bold text-light-text-secondary dark:text-text-main">{h.percentualReincidenciaEquipe?.toFixed(2)}%</div>
                       <div className="text-xs font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosReincidenciaEquipe} pts</div>
                     </td>
 
-                    {/* 6. Reincidência Individual (Máx 15.0 pts) */}
+                    {/* 5. Reincidência Individual (Máx 16.0 pts) */}
                     <td className="p-4 text-center">
                       <div className="font-bold text-light-text-secondary dark:text-text-main">{h.percentualReincidencia?.toFixed(2)}%</div>
                       <div className="text-xs font-medium text-pink-400 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosReincidencia} pts</div>
                     </td>
 
-                    {/* 7. Consumo de Peças Individual (Máx 12.5 pts) */}
+                    {/* 6. Consumo de Peças Individual (Máx 13.5 pts) */}
                     <td className="p-4 text-center">
                       <div className="font-bold text-light-text-secondary dark:text-text-main">{h.percentualEficienciaPecas?.toFixed(2)}%</div>
                       <div className="text-xs font-medium text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full inline-block mt-1 whitespace-nowrap">{h.pontosPecas} pts</div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
-import { Pencil, Trash2, KeyRound, Plus, X, Search, Loader2, Users, UserPlus } from 'lucide-react';
+import { Pencil, Trash2, KeyRound, Plus, X, Search, Loader2, Users, UserPlus, ChevronDown, Check } from 'lucide-react';
 import { toTitleCase } from '../../utils/stringFormatters';
 import { BentoCard } from '../ui/BentoCard';
 import { Button } from '../ui/Button';
@@ -37,6 +37,7 @@ export default function TecnicosManager() {
   const [matricula, setMatricula] = useState('');
   const [ctBasesList, setCtBasesList] = useState<string[]>(['']);
   const [role, setRole] = useState('PADRAO');
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [ativo, setAtivo] = useState(true);
   
   const [newPassword, setNewPassword] = useState('');
@@ -63,6 +64,7 @@ export default function TecnicosManager() {
 
   const openEditModal = (tecnico?: Tecnico) => {
     setError('');
+    setIsRoleDropdownOpen(false);
     if (tecnico) {
       setSelectedTecnico(tecnico);
       setMatricula(tecnico.matricula || '');
@@ -384,7 +386,7 @@ export default function TecnicosManager() {
               </div>
             </div>
             <button 
-              onClick={() => setIsEditModalOpen(false)} 
+              onClick={() => { setIsEditModalOpen(false); setIsRoleDropdownOpen(false); }} 
               className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main transition-all cursor-pointer"
               title="Fechar"
             >
@@ -500,7 +502,7 @@ export default function TecnicosManager() {
                   </div>
                 )}
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 relative">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Perfil (Role)</label>
                     {!isModerador && (
@@ -509,16 +511,67 @@ export default function TecnicosManager() {
                       </span>
                     )}
                   </div>
-                  <select 
-                    disabled={!isModerador}
-                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed shadow-inner"
-                    value={role}
-                    onChange={e => setRole(e.target.value)}
-                  >
-                    <option value="PADRAO">Técnico Padrão</option>
-                    {isModerador && <option value="ADMINISTRADOR">Administrador / Supervisor</option>}
-                    {isModerador && <option value="MODERADOR">Moderador (Acesso Total)</option>}
-                  </select>
+
+                  {/* Backdrop para fechar dropdown ao clicar fora */}
+                  {isRoleDropdownOpen && (
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsRoleDropdownOpen(false)} 
+                    />
+                  )}
+
+                  {/* Botão Pílula Customizado */}
+                  <div className="relative z-40">
+                    <button 
+                      type="button"
+                      disabled={!isModerador}
+                      onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                      className="w-full flex items-center justify-between glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed shadow-inner"
+                    >
+                      <span className="font-medium">
+                        {role === 'PADRAO' && 'Técnico Padrão'}
+                        {role === 'ADMINISTRADOR' && 'Administrador / Supervisor'}
+                        {role === 'MODERADOR' && 'Moderador (Acesso Total)'}
+                      </span>
+                      <ChevronDown 
+                        size={16} 
+                        className={`text-light-text-muted dark:text-text-muted transition-transform duration-200 ${
+                          isRoleDropdownOpen ? 'rotate-180 text-primary' : ''
+                        }`} 
+                      />
+                    </button>
+
+                    {/* Menu Flutuante Customizado (Abre para cima com fundo sólido de superfície para legibilidade total) */}
+                    {isRoleDropdownOpen && isModerador && (
+                      <div className="absolute left-0 right-0 bottom-full mb-2 z-50 bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-white/15 rounded-2xl p-1.5 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-150 space-y-1">
+                        {[
+                          { value: 'PADRAO', label: 'Técnico Padrão', desc: 'Acesso padrão às metas e métricas' },
+                          { value: 'ADMINISTRADOR', label: 'Administrador / Supervisor', desc: 'Gestão de usuários e supervisão' },
+                          { value: 'MODERADOR', label: 'Moderador (Acesso Total)', desc: 'Acesso irrestrito a configurações e campanhas' }
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              setRole(opt.value);
+                              setIsRoleDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                              role === opt.value
+                                ? 'bg-primary/20 text-primary font-bold shadow-xs'
+                                : 'text-light-text-main dark:text-text-main hover:bg-light-surface-elevated dark:hover:bg-white/5 hover:text-primary'
+                            }`}
+                          >
+                            <div>
+                              <p className="text-xs font-bold leading-snug">{opt.label}</p>
+                              <p className="text-[10px] text-light-text-muted dark:text-text-muted font-normal mt-0.5">{opt.desc}</p>
+                            </div>
+                            {role === opt.value && <Check size={16} className="text-primary shrink-0 ml-2" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 flex items-center mt-6">
@@ -541,7 +594,7 @@ export default function TecnicosManager() {
                 variant="secondary"
                 size="md"
                 type="button"
-                onClick={() => setIsEditModalOpen(false)}
+                onClick={() => { setIsEditModalOpen(false); setIsRoleDropdownOpen(false); }}
               >
                 Cancelar
               </Button>

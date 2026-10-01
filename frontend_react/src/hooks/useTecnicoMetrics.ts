@@ -36,8 +36,6 @@ export function useTecnicoMetrics(
          pontosProdutividade: 0,
          percentualEficienciaPecas: 0,
          pontosPecas: 0,
-         npsScore: 0,
-         pontosNps: 0,
          elegivel: false,
          motivoInelegibilidade: 'Nenhum resultado processado para o mês',
          historico: []
@@ -87,7 +85,6 @@ export function useTecnicoMetrics(
       percentualReincidencia: monthData.percentualReincidencia !== undefined ? monthData.percentualReincidencia : metricas.percentualReincidencia,
       percentualEficienciaPecas: monthData.percentualEficienciaPecas !== undefined ? monthData.percentualEficienciaPecas : metricas.percentualEficienciaPecas,
       percentualPerdidos: monthData.percentualPerdidos !== undefined ? monthData.percentualPerdidos : metricas.percentualPerdidos,
-      npsScore: monthData.npsScore !== undefined ? monthData.npsScore : metricas.npsScore,
       elegivel: monthData.elegivel !== undefined ? monthData.elegivel : metricas.elegivel,
       motivoInelegibilidade: monthData.motivoInelegibilidade || metricas.motivoInelegibilidade
     };

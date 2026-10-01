@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import time
 from datetime import datetime, date
 from typing import Dict, Any, List, Optional, Tuple
@@ -45,8 +46,19 @@ class CalculoPontuacaoService:
     def _calcular_sla_equipe(self, cur: psycopg.Cursor, ano_mes_str: str) -> Dict[str, Dict[str, float]]:
         """
         Calcula o SLA por Base ATP: Chamados com sla_status = 'DENTRO' / Total de Chamados da Base.
-        Meta: >= 100% -> 32.5 pts | >= 90% -> 28.0 pts | < 90% -> 0.0 pts (Gatilho).
+        Meta: >= 100% -> 33.5 pts | >= 90% -> 29.0 pts | < 90% -> 0.0 pts (Gatilho).
+        Fallback inteligente: se tb_chamado não tiver registros com sla_status para o mês, utiliza chamados.
         """
+        cur.execute(f"""
+            SELECT COUNT(*) AS total
+            FROM tb_chamado
+            WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}'
+              AND sla_status IS NOT NULL;
+        """)
+        row_sla = cur.fetchone()
+        has_tb_chamado_sla = bool(row_sla and (row_sla["total"] or 0) > 0)
+        table_sla = "tb_chamado" if has_tb_chamado_sla else "chamados"
+
         query = f"""
             SELECT 
                 CASE 
@@ -57,7 +69,7 @@ class CalculoPontuacaoService:
                 COUNT(*) AS total_chamados_base,
                 COUNT(*) FILTER (WHERE UPPER(c.sla_status) = 'DENTRO') AS chamados_dentro,
                 ROUND((COUNT(*) FILTER (WHERE UPPER(c.sla_status) = 'DENTRO')::numeric / NULLIF(COUNT(*), 0)::numeric) * 100, 2) AS perc_sla
-            FROM tb_chamado c
+            FROM {table_sla} c
             JOIN (
                 SELECT DISTINCT ON (ct_codigo) ct_codigo, atp_resumidas, uf 
                 FROM tb_base_atp
@@ -76,9 +88,9 @@ class CalculoPontuacaoService:
             base = row["base_atp"]
             perc = float(row["perc_sla"] or 0.0)
             if perc >= 100.0:
-                pontos = 32.5
+                pontos = 33.5
             elif perc >= 90.0:
-                pontos = 28.0
+                pontos = 29.0
             else:
                 pontos = 0.0
             resultado[base] = {
@@ -89,14 +101,25 @@ class CalculoPontuacaoService:
         return resultado
 
     # =========================================================================
-    # 2. KPI 2: PERDAS / PERFORMANCE DA EQUIPE (Peso: 20.0 pts)
+    # 2. KPI 2: PERDAS / PERFORMANCE DA EQUIPE (Peso: 21.0 pts)
     # =========================================================================
     def _calcular_perdas_equipe(self, cur: psycopg.Cursor, ano_mes_str: str) -> Dict[str, Dict[str, float]]:
         """
         Calcula as Perdas por Base ATP: 
         Chamados com 'PERFORMANCE FALHA GESTAO' ou 'TRANSFERENCIA ENTRE BASES' / Total de Chamados da Base.
-        Meta: <= 1.0% -> 20.0 pts | <= 2.0% -> 15.0 pts | > 2.0% -> 0.0 pts.
+        Meta: <= 1.0% -> 21.0 pts | <= 2.0% -> 16.0 pts | > 2.0% -> 0.0 pts.
+        Fallback inteligente: se tb_chamado não tiver registros para o mês, utiliza chamados.
         """
+        cur.execute(f"""
+            SELECT COUNT(*) AS total
+            FROM tb_chamado
+            WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}';
+        """)
+        row_p = cur.fetchone()
+        has_tb_chamado_p = bool(row_p and (row_p["total"] or 0) > 0)
+        table_p = "tb_chamado" if has_tb_chamado_p else "chamados"
+        col_perda = "c.classifica_chamado" if has_tb_chamado_p else "c.ocorrencia_chamado"
+
         query = f"""
             SELECT 
                 CASE 
@@ -105,9 +128,9 @@ class CalculoPontuacaoService:
                     ELSE COALESCE(b.atp_resumidas, b.uf)
                 END AS base_atp,
                 COUNT(*) AS total_chamados_base,
-                COUNT(*) FILTER (WHERE UPPER(c.classifica_chamado) IN ('PERFORMANCE FALHA GESTAO', 'TRANSFERENCIA ENTRE BASES')) AS chamados_perda,
-                ROUND((COUNT(*) FILTER (WHERE UPPER(c.classifica_chamado) IN ('PERFORMANCE FALHA GESTAO', 'TRANSFERENCIA ENTRE BASES'))::numeric / NULLIF(COUNT(*), 0)::numeric) * 100, 2) AS perc_perdas
-            FROM tb_chamado c
+                COUNT(*) FILTER (WHERE UPPER({col_perda}) IN ('PERFORMANCE FALHA GESTAO', 'TRANSFERENCIA ENTRE BASES')) AS chamados_perda,
+                ROUND((COUNT(*) FILTER (WHERE UPPER({col_perda}) IN ('PERFORMANCE FALHA GESTAO', 'TRANSFERENCIA ENTRE BASES'))::numeric / NULLIF(COUNT(*), 0)::numeric) * 100, 2) AS perc_perdas
+            FROM {table_p} c
             JOIN (
                 SELECT DISTINCT ON (ct_codigo) ct_codigo, atp_resumidas, uf 
                 FROM tb_base_atp
@@ -126,9 +149,9 @@ class CalculoPontuacaoService:
             base = row["base_atp"]
             perc = float(row["perc_perdas"] or 0.0)
             if perc <= 1.0:
-                pontos = 20.0
+                pontos = 21.0
             elif perc <= 2.0:
-                pontos = 15.0
+                pontos = 16.0
             else:
                 pontos = 0.0
             resultado[base] = {
@@ -139,16 +162,7 @@ class CalculoPontuacaoService:
         return resultado
 
     # =========================================================================
-    # 3. KPI 3: NPS DA EQUIPE (Peso: 5.0 pts)
-    # =========================================================================
-    def _calcular_nps_equipe(self, cur: psycopg.Cursor, ano_mes_str: str) -> Dict[str, Dict[str, float]]:
-        """
-        Atribui o índice padrão de NPS/Qualidade para todas as equipes (100% -> 5.0 pts).
-        """
-        return {"DEFAULT": {"perc_nps": 100.0, "pontos_nps": 5.0}}
-
-    # =========================================================================
-    # 4. KPI 4: REINCIDÊNCIA DA EQUIPE (Peso: 15.0 pts)
+    # 3. KPI 3: REINCIDÊNCIA DA EQUIPE (Peso: 16.0 pts)
     # =========================================================================
     def _calcular_reincidencia_equipe(self, cur: psycopg.Cursor, ano_mes_str: str, sla_dict: Dict[str, Dict[str, float]]) -> Tuple[Dict[str, Dict[str, float]], Dict[str, int]]:
         """
@@ -156,7 +170,7 @@ class CalculoPontuacaoService:
         Onde:
           - TCBCT (Reincidencia): Total de chamados por Base CT na coluna ct_anterior (validado por encerramento_rrc)
           - TCAC (EncerradosRRC): Total de chamados por Base CT na coluna assistencia_codigo (validado por COALESCE(encerramento, ft))
-        Meta: <= 7.0% -> 15.0 pts | <= 10.0% -> 10.0 pts | > 10.0% -> 0.0 pts.
+        Meta: <= 7.0% -> 16.0 pts | <= 10.0% -> 11.0 pts | > 10.0% -> 0.0 pts.
         """
         # 1. Obter TCAC (Denominador oficial de chamados por Base CT a partir de tb_encerrados_rrc)
         cur.execute(f"""
@@ -168,6 +182,8 @@ class CalculoPontuacaoService:
         has_encerrados = bool(row_enc and row_enc["total"] > 0)
 
         tcac_dict: Dict[str, int] = {}
+        fonte_rrc_denominador = "FALLBACK"
+
         if has_encerrados:
             cur.execute(f"""
                 SELECT 
@@ -186,9 +202,37 @@ class CalculoPontuacaoService:
                 GROUP BY 1;
             """)
             tcac_dict = {r["base_atp"]: int(r["tcac"] or 0) for r in cur.fetchall()}
+            fonte_rrc_denominador = "PLANILHA_BI"
         else:
-            # Fallback de resiliência: caso o mês não possua planilha de encerrados, utiliza tb_chamado (sla_dict)
-            tcac_dict = {b: int(data.get("total_chamados_base", 0)) for b, data in sla_dict.items()}
+            # Fallback inteligente: utiliza a base chamados do Databricks com o filtro homologado
+            cur.execute(f"""
+                SELECT 
+                    CASE 
+                        WHEN b.uf IN ('PE', 'AL') THEN 'PE'
+                        WHEN b.uf IN ('RO', 'AC') THEN 'RO'
+                        ELSE COALESCE(b.atp_resumidas, b.uf)
+                    END AS base_atp,
+                    COUNT(*) AS tcac
+                FROM chamados c
+                LEFT JOIN (
+                    SELECT DISTINCT ON (ct_codigo) ct_codigo, atp_resumidas, uf 
+                    FROM tb_base_atp
+                ) b ON c.assistencia_centro_trabalho = b.ct_codigo
+                WHERE UPPER(COALESCE(c.encdesc, '')) = 'ENCERRAMENTO'
+                  AND UPPER(COALESCE(c.tipo, '')) = 'ATENDIMENTO ON SITE'
+                  AND UPPER(COALESCE(c.gp_segmento, '')) IN ('PI-GOVERNO', 'PI-CORPORA')
+                  AND TO_CHAR(COALESCE(c.encerramento, c.ft), 'YYYY-MM') = '{ano_mes_str}'
+                  AND UPPER(COALESCE(c.ocorrencia_chamado, '')) <> 'NÃO DEFINIDO'
+                GROUP BY 1;
+            """)
+            tcac_db = {r["base_atp"]: int(r["tcac"] or 0) for r in cur.fetchall()}
+            if tcac_db:
+                tcac_dict = tcac_db
+                fonte_rrc_denominador = "DATABRICKS_CHAMADOS"
+            else:
+                # Fallback de resiliência: caso o mês não possua planilha nem chamados on-site, utiliza tb_chamado (sla_dict)
+                tcac_dict = {b: int(data.get("total_chamados_base", 0)) for b, data in sla_dict.items()}
+                fonte_rrc_denominador = "FALLBACK"
 
         # 2. Obter TCBCT (Numerador oficial de reincidências por Base CT a partir de reincidentes.ct_anterior)
         query_reinc = f"""
@@ -234,9 +278,9 @@ class CalculoPontuacaoService:
             if tcac == 0:
                 pontos = 0.0
             elif perc <= 7.0:
-                pontos = 15.0
+                pontos = 16.0
             elif perc <= 10.0:
-                pontos = 10.0
+                pontos = 11.0
             else:
                 pontos = 0.0
 
@@ -247,10 +291,10 @@ class CalculoPontuacaoService:
                 "total_chamados_base": tcac
             }
 
-        return resultado, tcac_dict
+        return resultado, tcac_dict, fonte_rrc_denominador
 
     # =========================================================================
-    # 5. KPI 5: REINCIDÊNCIA INDIVIDUAL (Peso: 15.0 pts)
+    # 4. KPI 4: REINCIDÊNCIA INDIVIDUAL (Peso: 16.0 pts)
     # =========================================================================
     def _calcular_reincidencia_individual(
         self, 
@@ -264,7 +308,7 @@ class CalculoPontuacaoService:
         Onde:
           - TCTNA (Reincidencia): Total de chamados por técnico em tecnico_nome_anterior (validado por encerramento_rrc)
           - TCAC (EncerradosRRC): Total de chamados por Base CT na coluna assistencia_codigo
-        Meta: <= 7.0% -> 15.0 pts | <= 10.0% -> 10.0 pts | > 10.0% -> 0.0 pts.
+        Meta: <= 7.0% -> 16.0 pts | <= 10.0% -> 11.0 pts | > 10.0% -> 0.0 pts.
         Exclui reincidências sem peça com defeito não localizado/cancelamento/sem defeito.
         """
         query = f"""
@@ -312,9 +356,9 @@ class CalculoPontuacaoService:
             if tcac == 0:
                 pontos = 0.0
             elif perc <= 7.0:
-                pontos = 15.0
+                pontos = 16.0
             elif perc <= 10.0:
-                pontos = 10.0
+                pontos = 11.0
             else:
                 pontos = 0.0
 
@@ -328,19 +372,20 @@ class CalculoPontuacaoService:
         return resultado
 
     # =========================================================================
-    # 6. KPI 6: CONSUMO DE PEÇAS INDIVIDUAL (Peso: 12.5 pts)
+    # 5. KPI 5: CONSUMO DE PEÇAS INDIVIDUAL (Peso: 13.5 pts)
     # =========================================================================
-    def _calcular_consumo_pecas_individual(self, cur: psycopg.Cursor, ano_mes_str: str, tec_chamados_dict: Dict[str, int]) -> Dict[str, Dict[str, float]]:
+    def _calcular_consumo_pecas_individual(self, cur: psycopg.Cursor, ano_mes_str: str, tec_chamados_dict: Dict[str, int]) -> Tuple[Dict[str, Dict[str, float]], str]:
         """
         Calcula o Consumo de Peças por Técnico:
         Quantidade de Peças Elegíveis (Placa Mãe, SSD, HD, HDD, Tela LCD) / Total de Chamados Atendidos (BaseDL).
         Exclui: A009 (sem necessidade de peça) e peças fora do grupo das 5 elegíveis.
-        Meta: <= 25.0% -> 12.5 pts | > 25.0% -> 0.0 pts.
+        Meta: <= 25.0% -> 13.5 pts | > 25.0% -> 0.0 pts.
         """
         # 1. Verifica se tb_consumo_peca possui dados para o período
         cur.execute(f"SELECT COUNT(*) AS total FROM tb_consumo_peca WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}';")
         row_pecas = cur.fetchone()
         has_tb_consumo = bool(row_pecas and row_pecas["total"] > 0)
+        fonte_pecas = "PLANILHA_BI" if has_tb_consumo else "DATABRICKS_PECAS"
 
         if has_tb_consumo:
             query = f"""
@@ -407,7 +452,7 @@ class CalculoPontuacaoService:
             if total_ch == 0:
                 pontos = 0.0
             elif perc <= 25.0:
-                pontos = 12.5
+                pontos = 13.5
             else:
                 pontos = 0.0
 
@@ -416,7 +461,7 @@ class CalculoPontuacaoService:
                 "pontos_pecas_indiv": pontos,
                 "total_chamados_com_peca": total_pecas
             }
-        return resultado
+        return resultado, fonte_pecas
 
     # =========================================================================
     # 7. ORQUESTRADOR GERAL DE APURAÇÃO MENSAL
@@ -452,6 +497,23 @@ class CalculoPontuacaoService:
                 tec_chamados[tec_name] = int(r["total_chamados"] or 0)
                 tec_chamados_comp[tec_name] = int(r["chamados_computacionais"] or r["total_chamados"] or 0)
 
+            # Fallback para chamados (Databricks) caso tb_chamado não possua registros no mês
+            if not tec_chamados:
+                cur.execute(f"""
+                    SELECT 
+                        UPPER(TRIM(tecnico_nome)) AS tecnico_nome,
+                        COUNT(*) AS total_chamados,
+                        COUNT(*) FILTER (WHERE UPPER(COALESCE(tipo_equipamento, '')) IN ('DESKTOP', 'NOTEBOOK', 'ALL IN ONE', 'DESKTOP AIO', 'MINIPRO', '')) AS chamados_computacionais
+                    FROM chamados
+                    WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}'
+                      AND tecnico_nome IS NOT NULL AND TRIM(tecnico_nome) != ''
+                    GROUP BY UPPER(TRIM(tecnico_nome));
+                """)
+                for r in cur.fetchall():
+                    tec_name = r["tecnico_nome"]
+                    tec_chamados[tec_name] = int(r["total_chamados"] or 0)
+                    tec_chamados_comp[tec_name] = int(r["chamados_computacionais"] or r["total_chamados"] or 0)
+
             # Complementa chamados com tb_encerrados_rrc se houver registros
             cur.execute(f"""
                 SELECT 
@@ -471,10 +533,14 @@ class CalculoPontuacaoService:
             # 2. Execução Independente de Cada Módulo de KPI
             sla_data = self._calcular_sla_equipe(cur, ano_mes_str)
             perdas_data = self._calcular_perdas_equipe(cur, ano_mes_str)
-            nps_data = self._calcular_nps_equipe(cur, ano_mes_str)
-            reinc_eq_data, tcac_dict = self._calcular_reincidencia_equipe(cur, ano_mes_str, sla_data)
+            reinc_eq_data, tcac_dict, fonte_rrc_denominador = self._calcular_reincidencia_equipe(cur, ano_mes_str, sla_data)
             reinc_ind_data = self._calcular_reincidencia_individual(cur, ano_mes_str, tec_chamados, tcac_dict)
-            pecas_data = self._calcular_consumo_pecas_individual(cur, ano_mes_str, tec_chamados)
+            pecas_data, fonte_pecas = self._calcular_consumo_pecas_individual(cur, ano_mes_str, tec_chamados)
+
+            # Identifica fonte de reincidência
+            cur.execute(f"SELECT COUNT(*) AS total FROM reincidentes WHERE TO_CHAR(encerramento_rrc, 'YYYY-MM') = '{ano_mes_str}';")
+            row_reinc = cur.fetchone()
+            fonte_reincidencia = "DATABRICKS_REINCIDENTES" if (row_reinc and row_reinc["total"] > 0) else "PLANILHA_BI"
 
             # 3. Lista de Técnicos Ativos e suas Bases Oficiais
             cur.execute("""
@@ -508,9 +574,8 @@ class CalculoPontuacaoService:
 
                 # Valores de Equipe
                 kpi_sla = sla_data.get(base_norm, {"perc_sla": 0.0, "pontos_sla": 0.0})
-                kpi_perd = perdas_data.get(base_norm, {"perc_perdas": 0.0, "pontos_perdas": 20.0})
-                kpi_nps = nps_data.get("DEFAULT", {"perc_nps": 100.0, "pontos_nps": 5.0})
-                kpi_rrc_eq = reinc_eq_data.get(base_norm, {"perc_reinc_equipe": 0.0, "pontos_reinc_equipe": 15.0})
+                kpi_perd = perdas_data.get(base_norm, {"perc_perdas": 0.0, "pontos_perdas": 21.0})
+                kpi_rrc_eq = reinc_eq_data.get(base_norm, {"perc_reinc_equipe": 0.0, "pontos_reinc_equipe": 16.0})
 
                 # Valores Individuais
                 kpi_rrc_ind = reinc_ind_data.get(nome_norm, {"perc_reinc_indiv": 0.0, "pontos_reinc_indiv": 0.0})
@@ -520,18 +585,17 @@ class CalculoPontuacaoService:
                 # Se o técnico teve atendimentos e não teve reincidência / peças, pontua meta máxima
                 if total_ch > 0:
                     if nome_norm not in reinc_ind_data:
-                        kpi_rrc_ind = {"perc_reinc_indiv": 0.0, "pontos_reinc_indiv": 15.0}
+                        kpi_rrc_ind = {"perc_reinc_indiv": 0.0, "pontos_reinc_indiv": 16.0}
                     if nome_norm not in pecas_data:
-                        kpi_pecas = {"perc_pecas_indiv": 0.0, "pontos_pecas_indiv": 12.5}
+                        kpi_pecas = {"perc_pecas_indiv": 0.0, "pontos_pecas_indiv": 13.5}
 
                 pts_sla = float(kpi_sla["pontos_sla"])
                 pts_perd = float(kpi_perd["pontos_perdas"])
-                pts_nps = float(kpi_nps["pontos_nps"])
                 pts_rrc_eq = float(kpi_rrc_eq["pontos_reinc_equipe"])
                 pts_rrc_ind = float(kpi_rrc_ind["pontos_reinc_indiv"])
                 pts_pecas = float(kpi_pecas["pontos_pecas_indiv"])
 
-                pts_total = round(pts_sla + pts_perd + pts_nps + pts_rrc_eq + pts_rrc_ind + pts_pecas, 2)
+                pts_total = round(pts_sla + pts_perd + pts_rrc_eq + pts_rrc_ind + pts_pecas, 2)
                 elegivel = bool(pts_total >= 70.0 and total_ch > 0)
                 motivo = None
                 if total_ch == 0:
@@ -548,8 +612,6 @@ class CalculoPontuacaoService:
                     pts_rrc_ind,
                     self._safe_ratio(kpi_pecas["perc_pecas_indiv"]),
                     pts_pecas,
-                    1.0000,
-                    pts_nps,
                     pts_total,
                     elegivel,
                     motivo,
@@ -558,7 +620,10 @@ class CalculoPontuacaoService:
                     self._safe_ratio(kpi_perd["perc_perdas"]),
                     pts_perd,
                     self._safe_ratio(kpi_rrc_eq["perc_reinc_equipe"]),
-                    pts_rrc_eq
+                    pts_rrc_eq,
+                    fonte_rrc_denominador,
+                    fonte_reincidencia,
+                    fonte_pecas
                 ))
 
             # 5. Persistência em Lote
@@ -569,13 +634,13 @@ class CalculoPontuacaoService:
                         atingimento_sla, pontos_sla,
                         atingimento_reincidencia, pontos_reincidencia,
                         atingimento_pecas, pontos_pecas,
-                        atingimento_nps, pontos_nps,
                         pontuacao_total, status_elegibilidade, motivo_inelegibilidade,
                         data_calculo, total_chamados,
                         atingimento_perdidos, pontos_perdidos,
-                        atingimento_reincidencia_equipe, pontos_reincidencia_equipe
+                        atingimento_reincidencia_equipe, pontos_reincidencia_equipe,
+                        fonte_rrc_denominador, fonte_reincidencia, fonte_pecas
                     ) VALUES (
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                     )
                     ON CONFLICT (id_tecnico, mes_ano) DO UPDATE SET
                         atingimento_sla = EXCLUDED.atingimento_sla,
@@ -584,8 +649,6 @@ class CalculoPontuacaoService:
                         pontos_reincidencia = EXCLUDED.pontos_reincidencia,
                         atingimento_pecas = EXCLUDED.atingimento_pecas,
                         pontos_pecas = EXCLUDED.pontos_pecas,
-                        atingimento_nps = EXCLUDED.atingimento_nps,
-                        pontos_nps = EXCLUDED.pontos_nps,
                         pontuacao_total = EXCLUDED.pontuacao_total,
                         status_elegibilidade = EXCLUDED.status_elegibilidade,
                         motivo_inelegibilidade = EXCLUDED.motivo_inelegibilidade,
@@ -594,7 +657,10 @@ class CalculoPontuacaoService:
                         atingimento_perdidos = EXCLUDED.atingimento_perdidos,
                         pontos_perdidos = EXCLUDED.pontos_perdidos,
                         atingimento_reincidencia_equipe = EXCLUDED.atingimento_reincidencia_equipe,
-                        pontos_reincidencia_equipe = EXCLUDED.pontos_reincidencia_equipe;
+                        pontos_reincidencia_equipe = EXCLUDED.pontos_reincidencia_equipe,
+                        fonte_rrc_denominador = EXCLUDED.fonte_rrc_denominador,
+                        fonte_reincidencia = EXCLUDED.fonte_reincidencia,
+                        fonte_pecas = EXCLUDED.fonte_pecas;
                 """, records_to_insert)
                 conn.commit()
 
@@ -662,8 +728,6 @@ class CalculoPontuacaoService:
                     AVG(pontos_sla) AS media_pontos_sla,
                     AVG(atingimento_perdidos) AS media_perdidos,
                     AVG(pontos_perdidos) AS media_pontos_perdidos,
-                    AVG(atingimento_nps) AS media_nps,
-                    AVG(pontos_nps) AS media_pontos_nps,
                     AVG(atingimento_reincidencia_equipe) AS media_rrc_eq,
                     AVG(pontos_reincidencia_equipe) AS media_pontos_rrc_eq,
                     AVG(atingimento_reincidencia) AS media_rrc_ind,
@@ -698,8 +762,6 @@ class CalculoPontuacaoService:
                     round(float(m["media_pontos_rrc_ind"] or 0.0), 2),
                     round(min(1.0, max(0.0, float(m["media_pecas"] or 0.0))), 4),
                     round(float(m["media_pontos_pecas"] or 0.0), 2),
-                    round(min(1.0, max(0.0, float(m["media_nps"] or 0.0))), 4),
-                    round(float(m["media_pontos_nps"] or 0.0), 2),
                     pts_tot,
                     status_elegibilidade,
                     motivo,
@@ -717,13 +779,12 @@ class CalculoPontuacaoService:
                     atingimento_sla, pontos_sla,
                     atingimento_reincidencia, pontos_reincidencia,
                     atingimento_pecas, pontos_pecas,
-                    atingimento_nps, pontos_nps,
                     pontuacao_total, status_elegibilidade, motivo_inelegibilidade,
                     data_calculo, total_chamados,
                     atingimento_perdidos, pontos_perdidos,
                     atingimento_reincidencia_equipe, pontos_reincidencia_equipe
                 ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
                 ON CONFLICT (id_tecnico, mes_ano) DO UPDATE SET
                     atingimento_sla = EXCLUDED.atingimento_sla,
@@ -732,8 +793,6 @@ class CalculoPontuacaoService:
                     pontos_reincidencia = EXCLUDED.pontos_reincidencia,
                     atingimento_pecas = EXCLUDED.atingimento_pecas,
                     pontos_pecas = EXCLUDED.pontos_pecas,
-                    atingimento_nps = EXCLUDED.atingimento_nps,
-                    pontos_nps = EXCLUDED.pontos_nps,
                     pontuacao_total = EXCLUDED.pontuacao_total,
                     status_elegibilidade = EXCLUDED.status_elegibilidade,
                     motivo_inelegibilidade = EXCLUDED.motivo_inelegibilidade,

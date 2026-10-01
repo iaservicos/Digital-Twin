@@ -131,7 +131,7 @@ class ETLService:
                 assistencia_nome,
                 tecnico_nome
             )
-            SELECT
+            SELECT DISTINCT ON (c.chamado::bigint)
                 c.chamado::bigint,
                 t.id_tecnico,
                 c.assistencia_centro_trabalho,
@@ -146,6 +146,7 @@ class ETLService:
             FROM chamados c
             JOIN tb_tecnico t ON UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(t.nome_completo))
             WHERE c.chamado ~ '^[0-9]+$'
+            ORDER BY c.chamado::bigint, c.ft DESC NULLS LAST
             ON CONFLICT (chamado) DO UPDATE SET
                 id_tecnico = EXCLUDED.id_tecnico,
                 assistencia_centro_trabalho = EXCLUDED.assistencia_centro_trabalho,
@@ -167,24 +168,84 @@ class ETLService:
         logger.info(f"Sincronização de tb_chamado concluída: {affected} registros atualizados.")
         return affected
 
+    def sincronizar_tb_encerrados_rrc(self, data_inicio: str = None, data_fim: str = None) -> int:
+        """
+        Transfere os chamados de encerramento da tabela bruta 'chamados' (Databricks)
+        para a tabela 'tb_encerrados_rrc', alimentando o denominador oficial do RRC.
+        """
+        where_periodo = ""
+        if data_inicio and data_fim:
+            clean_inicio = data_inicio.replace("'", "''")
+            clean_fim = data_fim.replace("'", "''")
+            where_periodo = f"AND c.encerramento >= '{clean_inicio} 00:00:00' AND c.encerramento <= '{clean_fim} 23:59:59'"
+
+        query_sync = f"""
+            INSERT INTO tb_encerrados_rrc (
+                chamado, serie, descricao_material, equipamento,
+                segmento, tipo, projeto, assistencia_codigo,
+                assistencia_nome, ft, encerramento,
+                encerramento_desc, tecnico_nome, texto_encerrado,
+                ocorrencia_chamado
+            )
+            SELECT DISTINCT ON (c.chamado)
+                c.chamado,
+                c.serie,
+                c.descricao_material,
+                c.tipo_equipamento,
+                c.gp_segmento,
+                c.tipo,
+                c.projeto,
+                c.assistencia_centro_trabalho,
+                c.assistencia_razao_social,
+                c.ft,
+                c.encerramento,
+                c.encdesc,
+                c.tecnico_nome,
+                c.texto_encerrado,
+                c.ocorrencia_chamado
+            FROM chamados c
+            WHERE UPPER(COALESCE(c.encdesc, '')) = 'ENCERRAMENTO'
+              AND UPPER(COALESCE(c.tipo, '')) = 'ATENDIMENTO ON SITE'
+              AND UPPER(COALESCE(c.gp_segmento, '')) IN ('PI-GOVERNO', 'PI-CORPORA')
+              AND c.encerramento IS NOT NULL
+              AND UPPER(COALESCE(c.ocorrencia_chamado, '')) <> 'NÃO DEFINIDO'
+              {where_periodo}
+            ORDER BY c.chamado, c.encerramento DESC NULLS LAST
+            ON CONFLICT (chamado) DO UPDATE SET
+                serie = COALESCE(EXCLUDED.serie, tb_encerrados_rrc.serie),
+                descricao_material = COALESCE(EXCLUDED.descricao_material, tb_encerrados_rrc.descricao_material),
+                equipamento = COALESCE(EXCLUDED.equipamento, tb_encerrados_rrc.equipamento),
+                segmento = COALESCE(EXCLUDED.segmento, tb_encerrados_rrc.segmento),
+                tipo = COALESCE(EXCLUDED.tipo, tb_encerrados_rrc.tipo),
+                projeto = COALESCE(EXCLUDED.projeto, tb_encerrados_rrc.projeto),
+                assistencia_codigo = COALESCE(EXCLUDED.assistencia_codigo, tb_encerrados_rrc.assistencia_codigo),
+                assistencia_nome = COALESCE(EXCLUDED.assistencia_nome, tb_encerrados_rrc.assistencia_nome),
+                ft = COALESCE(EXCLUDED.ft, tb_encerrados_rrc.ft),
+                encerramento = COALESCE(EXCLUDED.encerramento, tb_encerrados_rrc.encerramento),
+                encerramento_desc = COALESCE(EXCLUDED.encerramento_desc, tb_encerrados_rrc.encerramento_desc),
+                tecnico_nome = COALESCE(EXCLUDED.tecnico_nome, tb_encerrados_rrc.tecnico_nome),
+                texto_encerrado = COALESCE(EXCLUDED.texto_encerrado, tb_encerrados_rrc.texto_encerrado),
+                ocorrencia_chamado = COALESCE(EXCLUDED.ocorrencia_chamado, tb_encerrados_rrc.ocorrencia_chamado);
+        """
+        logger.info("Executando sincronização de chamados para tb_encerrados_rrc...")
+        with self.postgres._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query_sync)
+                affected = cur.rowcount
+            conn.commit()
+        logger.info(f"Sincronização de tb_encerrados_rrc concluída: {affected} registros atualizados.")
+        return affected
+
     def recalcular_indicadores_campanha(self) -> dict:
         """
-        Aciona o motor de cálculo Polars de alta performance para apurar Julho e Agosto
-        e consolidar a média do bimestre na tabela tb_apuracao_mensal.
+        Aciona o motor de cálculo modular para apurar os meses da campanha ativa
+        e consolidar a média de elegibilidade na tabela tb_apuracao_mensal.
         """
         from src.services.calculo_pontuacao import CalculoPontuacaoService
         calc = CalculoPontuacaoService(postgres_client=self.postgres)
         
-        logger.info("Recalculando apuração da campanha: Julho e Agosto de 2026...")
-        res_jul = calc.calcular_pontuacao_geral(mes=7, ano=2026)
-        res_ago = calc.calcular_pontuacao_geral(mes=8, ano=2026)
-        res_cons = calc.calcular_media_campanha_fase6(ano=2026)
-        
-        return {
-            "julho": res_jul,
-            "agosto": res_ago,
-            "consolidado": res_cons
-        }
+        logger.info("Recalculando apuração analítica da campanha ativa...")
+        return calc.calcular_campanha_ativa()
 
     def sync_all_tables(
         self, 
@@ -222,12 +283,14 @@ class ETLService:
         limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
         
         date_clause_ft = ""
+        date_clause_chamados = ""
         date_clause_rrc = ""
         if data_inicio and data_fim:
             clean_inicio = data_inicio.replace("'", "''")
             clean_fim = data_fim.replace("'", "''")
             date_clause_ft = f" AND ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59'"
-            date_clause_rrc = f" AND ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'"
+            date_clause_chamados = f" AND ((ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59') OR (encerramento >= '{clean_inicio} 00:00:00' AND encerramento <= '{clean_fim} 23:59:59'))"
+            date_clause_rrc = f" AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59')) AND (DATEDIFF(abertura_rrc, encerramento_anterior) <= 90 OR encerramento_anterior IS NULL)"
 
         results = {}
 
@@ -239,15 +302,16 @@ class ETLService:
 
             if data_inicio and data_fim:
                 logger.info(f"Removendo dados antigos de chamados do período {clean_inicio} a {clean_fim}...")
-                self.postgres.execute_query(f"DELETE FROM public.chamados WHERE 1=1{date_clause_ft};")
+                self.postgres.execute_query(f"DELETE FROM public.chamados WHERE 1=1{date_clause_chamados};")
 
             cols_chamados = """
                 chamado, assistencia_centro_trabalho, assistencia_razao_social, tecnico_nome,
                 ft, tipo_equipamento, projeto, sla_status, descricao_material, texto_encerrado,
-                gp_desc, gp_segmento, ocorrencia_chamado, tipo
+                gp_desc, gp_segmento, ocorrencia_chamado, tipo,
+                encerramento, encdesc, serie, material
             """
-            q_chamados = f"SELECT {cols_chamados} FROM chamados WHERE chamado IS NOT NULL{date_clause_ft}{limit_clause};"
-            res_chamados = self.run_pipeline(query=q_chamados, target_table="chamados")
+            q_chamados = f"SELECT {cols_chamados} FROM chamados WHERE chamado IS NOT NULL{date_clause_chamados}{limit_clause};"
+            res_chamados = self.run_pipeline(query=q_chamados, target_table="chamados", conflict_column="chamado")
             results["chamados"] = res_chamados
 
             if res_chamados["status"] == "FAILED":
@@ -267,7 +331,7 @@ class ETLService:
 
             if data_inicio and data_fim:
                 logger.info(f"Removendo dados antigos de reincidentes do período {clean_inicio} a {clean_fim}...")
-                self.postgres.execute_query(f"DELETE FROM public.reincidentes WHERE 1=1{date_clause_rrc};")
+                self.postgres.execute_query(f"DELETE FROM public.reincidentes WHERE 1=1 AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'));")
 
             cols_reinc = """
                 chamado_rrc, chamado_anterior, ft_rrc, ft_anterior, ct_anterior, ct_rrc,
@@ -317,17 +381,19 @@ class ETLService:
                 "seconds": res_pecas["elapsed_seconds"]
             }
 
-
             # -----------------------------------------------------------------
-            # Etapa 4: Carga Incremental Automática em tb_chamado (Prevenção)
+            # Etapa 4: Carga Incremental Automática em tb_chamado e tb_encerrados_rrc
             # -----------------------------------------------------------------
             self.update_progress(88, "Atualizando base operacional de chamados...", "Processamento")
             novos_tb = self.sincronizar_tb_chamados()
 
+            self.update_progress(92, "Atualizando base de Encerrados RRC...", "Processamento")
+            novos_enc = self.sincronizar_tb_encerrados_rrc(data_inicio, data_fim)
+
             # -----------------------------------------------------------------
-            # Etapa 5: Recálculo Analítico Automático da Campanha (Prevenção)
+            # Etapa 5: Recálculo Analítico Automático da Campanha
             # -----------------------------------------------------------------
-            self.update_progress(95, "Recalculando apuração oficial da campanha...", "Cálculo Polars")
+            self.update_progress(96, "Recalculando apuração analítica da campanha...", "Cálculo Analítico")
             self.recalcular_indicadores_campanha()
 
             # -----------------------------------------------------------------
