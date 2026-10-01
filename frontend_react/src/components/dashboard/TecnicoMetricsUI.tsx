@@ -14,19 +14,24 @@ import { ModalHistoricoChamados } from './ModalHistoricoChamados';
 import { DashboardBentoDesktop } from './DashboardBentoDesktop';
 import { BentoCard } from '../ui/BentoCard';
 import { themeColors } from '../../../tailwind.config.js';
+import { SegmentoType } from '../common/SegmentoFilterPill';
 
 interface TecnicoMetricsUIProps {
   metricas: any;
   displayMetricas: any;
   selectedMonth: string;
   setSelectedMonth: (month: string) => void;
+  selectedSegmento?: SegmentoType;
+  setSelectedSegmento?: (seg: SegmentoType) => void;
 }
 
 export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   metricas,
   displayMetricas,
   selectedMonth,
-  setSelectedMonth
+  setSelectedMonth,
+  selectedSegmento = 'Total',
+  setSelectedSegmento
 }) => {
   const user = useAuthStore(state => state.user);
   const isSupervisorOrAdmin = ['SUPERVISOR', 'MODERADOR', 'ADMIN', 'ROLE_SUPERVISOR', 'ROLE_MODERADOR', 'ROLE_ADMIN'].includes((user?.role || '').toUpperCase());
@@ -315,6 +320,8 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
           displayMetricas={displayMetricas}
           selectedMonth={selectedMonth}
           setSelectedMonth={setSelectedMonth}
+          selectedSegmento={selectedSegmento}
+          setSelectedSegmento={setSelectedSegmento}
           onOpenDetailsModal={() => setDetailsModalOpen(true)}
           onOpenSlaModal={() => setIsSlaModalOpen(true)}
           onOpenReincidentesModal={() => setIsReincidentesModalOpen(true)}

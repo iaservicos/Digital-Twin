@@ -43,13 +43,63 @@ def get_campanha_ativa():
         camp = cur.fetchone()
         if not camp:
             return None
+
+        d_ini = camp.get("data_inicio")
+        d_fim = camp.get("data_fim")
+        hoje = date.today()
+
+        total_part = 0
+        total_ativos = 0
+        if d_ini and d_fim:
+            cur.execute("""
+                SELECT count(DISTINCT id_tecnico) as total 
+                FROM tb_apuracao_mensal 
+                WHERE mes_ano BETWEEN %s AND %s;
+            """, (d_ini, d_fim))
+            r_total = cur.fetchone()
+            total_part = r_total["total"] if r_total and r_total["total"] else 0
+
+            cur.execute("""
+                SELECT count(DISTINCT id_tecnico) as ativos 
+                FROM tb_apuracao_mensal 
+                WHERE mes_ano BETWEEN %s AND %s AND total_chamados > 0;
+            """, (d_ini, d_fim))
+            r_ativos = cur.fetchone()
+            total_ativos = r_ativos["ativos"] if r_ativos and r_ativos["ativos"] else 0
+
+        if total_part == 0:
+            cur.execute("SELECT count(DISTINCT id_tecnico) as total FROM tb_tecnico;")
+            r_tec = cur.fetchone()
+            total_part = r_tec["total"] if r_tec and r_tec["total"] else 0
+
+        duracao_dias = (d_fim - d_ini).days if d_ini and d_fim else 30
+        dias_restantes = max(0, (d_fim - hoje).days) if d_fim else 0
+        dias_decorridos = max(0, duracao_dias - dias_restantes)
+        progresso_tempo = round((dias_decorridos / duracao_dias * 100), 1) if duracao_dias > 0 else 100.0
+
+        meses_pt = {
+            1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+            5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+            9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+        }
+        mes_nome = meses_pt.get(d_ini.month, "") if d_ini else "Vigente"
+        ano_str = str(d_ini.year) if d_ini else "2026"
+        nome_campanha = f"Campanha {mes_nome} {ano_str}".strip()
+
         return {
             "idCampanha": camp["id_campanha"],
             "dataInicio": camp["data_inicio"].isoformat() if camp.get("data_inicio") else None,
             "dataFim": camp["data_fim"].isoformat() if camp.get("data_fim") else None,
             "ativa": camp["ativa"],
-            "duracaoMeses": camp.get("duracao_meses") or 2,
-            "atualizadoEm": camp["atualizado_em"].isoformat() if camp.get("atualizado_em") else None
+            "duracaoMeses": camp.get("duracao_meses") or 1,
+            "atualizadoEm": camp["atualizado_em"].isoformat() if camp.get("atualizado_em") else None,
+            "nomeCampanha": nome_campanha,
+            "tema": "Conexão Total & Excelência Operacional",
+            "totalParticipantes": total_part,
+            "participantesAtivos": total_ativos,
+            "duracaoDias": duracao_dias,
+            "diasRestantes": dias_restantes,
+            "progressoTempo": progresso_tempo
         }
 
 @router.get("/campanha/todas")
