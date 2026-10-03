@@ -11,6 +11,9 @@ export interface CampanhaAtivaCardProps {
     duracaoDias?: number;
     diasRestantes?: number;
     progressoTempo?: number;
+    dataInicio?: string;
+    dataFim?: string;
+    duracaoMeses?: number;
   } | null;
   campanhaPeriodoFormatado?: string;
   selectedMonth: string;
@@ -20,6 +23,11 @@ export interface CampanhaAtivaCardProps {
   onOpenSlaModal: () => void;
   className?: string;
 }
+
+const MESES_NOMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
 
 export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
   campanhaInfo,
@@ -32,7 +40,64 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
   className = ''
 }) => {
   const isCampanhaInteira = selectedMonth === 'Campanha Inteira' || selectedMonth === 'Média Final';
-  const selLower = selectedMonth.toLowerCase();
+  const selLower = (selectedMonth || '').toLowerCase();
+
+  // Lista dinâmica e sanitizada dos meses pertencentes à campanha ativa
+  const mesesCampanha = React.useMemo(() => {
+    if (historicoMeses && historicoMeses.length > 0) {
+      const limpos = historicoMeses.filter((h) => h.mes && h.mes !== 'Média Final');
+      if (campanhaInfo?.dataInicio && campanhaInfo?.dataFim) {
+        const dIni = campanhaInfo.dataInicio.substring(0, 7);
+        const dFim = campanhaInfo.dataFim.substring(0, 7);
+        const filtrados = limpos.filter((h) => {
+          if (!h.mesReferencia) return true;
+          const ref = h.mesReferencia.substring(0, 7);
+          return ref >= dIni && ref <= dFim;
+        });
+        if (filtrados.length > 0) return filtrados;
+      } else {
+        return limpos;
+      }
+    }
+
+    // Se historicoMeses não foi fornecido, deriva a partir dos dados da campanha ativa
+    if (campanhaInfo?.dataInicio) {
+      try {
+        const [anoStr, mesStr] = campanhaInfo.dataInicio.split('-');
+        let ano = parseInt(anoStr, 10);
+        let mes = parseInt(mesStr, 10);
+        const duracao = Math.max(1, campanhaInfo.duracaoMeses || 1);
+        const gerados: { mes: string; mesReferencia: string }[] = [];
+        for (let i = 0; i < duracao; i++) {
+          const nomeMes = MESES_NOMES[mes - 1] || `Mês ${mes}`;
+          const mesRefStr = `${ano}-${String(mes).padStart(2, '0')}-01`;
+          gerados.push({ mes: nomeMes, mesReferencia: mesRefStr });
+          mes++;
+          if (mes > 12) {
+            mes = 1;
+            ano++;
+          }
+        }
+        return gerados;
+      } catch {
+        // fallback silencioso
+      }
+    }
+
+    return [{ mes: 'Setembro', mesReferencia: '2026-09-01' }];
+  }, [historicoMeses, campanhaInfo]);
+
+  // Se a campanha tiver apenas 1 mês, sincroniza automaticamente a seleção para esse único mês
+  React.useEffect(() => {
+    if (mesesCampanha.length === 1) {
+      const unicoMes = mesesCampanha[0].mes;
+      if (selectedMonth === 'Campanha Inteira' || selectedMonth === 'Média Final') {
+        onSelectMonth(unicoMes);
+      }
+    }
+  }, [mesesCampanha, selectedMonth, onSelectMonth]);
+
+  const apenasUmMes = mesesCampanha.length <= 1;
 
   return (
     <BentoCard
@@ -47,42 +112,53 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
         {/* Seletor alinhado no cabeçalho ao lado do título */}
         <div className="flex items-center gap-[0.375rem]">
           <div className="flex items-center p-[0.125rem] rounded-[0.75rem] bg-light-surface-elevated dark:bg-surface border border-light-border dark:border-white/10 text-[0.625rem] font-bold">
-            <button
-              type="button"
-              onClick={() => onSelectMonth('Campanha Inteira')}
-              className={`px-[0.625rem] py-[0.25rem] rounded-[0.5rem] transition-all cursor-pointer ${
-                isCampanhaInteira
-                  ? 'bg-primary text-slate-950 font-black shadow-xs'
-                  : 'bg-transparent text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
-              }`}
-            >
-              Total
-            </button>
+            {apenasUmMes ? (
+              // Quando for apenas um mês: exibe apenas o nome do mês sem o botão Total
+              <button
+                type="button"
+                onClick={() => onSelectMonth(mesesCampanha[0]?.mes || 'Setembro')}
+                className="px-[0.625rem] py-[0.25rem] rounded-[0.5rem] bg-primary text-slate-950 font-black shadow-xs cursor-pointer"
+              >
+                {mesesCampanha[0]?.mes || 'Setembro'}
+              </button>
+            ) : (
+              // Quando forem vários meses: exibe o botão Total e os meses da campanha
+              <>
+                <button
+                  type="button"
+                  onClick={() => onSelectMonth('Campanha Inteira')}
+                  className={`px-[0.625rem] py-[0.25rem] rounded-[0.5rem] transition-all cursor-pointer ${
+                    isCampanhaInteira
+                      ? 'bg-primary text-slate-950 font-black shadow-xs'
+                      : 'bg-transparent text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
+                  }`}
+                >
+                  Total
+                </button>
 
-            {historicoMeses
-              .filter((h) => h.mes !== 'Média Final')
-              .slice(0, 2)
-              .map((h, idx) => {
-                const labelMes = h.mes;
-                const isSelected =
-                  !isCampanhaInteira &&
-                  (selLower === labelMes.toLowerCase() ||
-                    selLower === (h.mesReferencia || '').toLowerCase());
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => onSelectMonth(labelMes)}
-                    className={`px-[0.625rem] py-[0.25rem] rounded-[0.5rem] transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-primary text-slate-950 font-black shadow-xs'
-                        : 'bg-transparent text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
-                    }`}
-                  >
-                    {labelMes}
-                  </button>
-                );
-              })}
+                {mesesCampanha.map((h, idx) => {
+                  const labelMes = h.mes;
+                  const isSelected =
+                    !isCampanhaInteira &&
+                    (selLower === labelMes.toLowerCase() ||
+                      selLower === (h.mesReferencia || '').toLowerCase());
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => onSelectMonth(labelMes)}
+                      className={`px-[0.625rem] py-[0.25rem] rounded-[0.5rem] transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-primary text-slate-950 font-black shadow-xs'
+                          : 'bg-transparent text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
+                      }`}
+                    >
+                      {labelMes}
+                    </button>
+                  );
+                })}
+              </>
+            )}
           </div>
 
           <button

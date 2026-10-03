@@ -27,7 +27,7 @@ export const ModalDetalhesPontuacao: React.FC<ModalDetalhesPontuacaoProps> = ({
                 Detalhamento da Pontuação Oficial
               </h2>
               <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5">
-                Valores oficiais calculados com base na matriz de 6 KPIs do programa Brilha+
+                Valores oficiais calculados com base na matriz de 5 KPIs oficiais do programa Brilha+ (Total: 100 pts)
               </p>
             </div>
           </div>

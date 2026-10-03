@@ -59,6 +59,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
 
   const isSupervisorOrAdmin = ['SUPERVISOR', 'MODERADOR', 'ADMIN', 'ROLE_SUPERVISOR', 'ROLE_MODERADOR', 'ROLE_ADMIN'].includes((user?.role || '').toUpperCase());
 
+  const [slaMode, setSlaMode] = useState<'individual' | 'equipe'>('equipe');
   const [reincidenciaMode, setReincidenciaMode] = useState<'individual' | 'equipe'>('individual');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -128,9 +129,20 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
     selectedMonth,
     segmento: selectedSegmento,
     defaultSla: percentualSla,
+    slaMode,
     reincidenciaMode,
     userLocalEquipe: user?.localEquipe
   });
+
+  const operacaoNome = useMemo(() => {
+    const op = slaSegmentosData.operacao || slaSegmentosData.equipe?.operacao;
+    if (!op) return '';
+    const partes = [];
+    if (op.nomeBase) partes.push(op.nomeBase);
+    if (op.cidade && op.uf) partes.push(`${op.cidade} (${op.uf})`);
+    else if (op.uf) partes.push(op.uf);
+    return partes.join(' • ');
+  }, [slaSegmentosData]);
 
   // Atualiza data selecionada padrão quando dados de chamados chegam
   useEffect(() => {
@@ -216,13 +228,21 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
 
       {/* 2. GRID BENTO 3 COLUNAS x 2 LINHAS REUTILIZÁVEL */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1.5rem]">
-        {/* CARD 1: SLA total */}
+        {/* CARD 1: SLA total / Operação */}
         <SlaTotalCard
-          slaTotal={slaSegmentosData.total?.sla ?? percentualSla}
-          slaGov={slaSegmentosData.gov?.sla}
-          slaCorp={slaSegmentosData.corp?.sla}
+          slaTotal={slaSegmentosData.equipe?.total?.sla ?? slaSegmentosData.total?.sla ?? percentualSla}
+          slaGov={slaSegmentosData.equipe?.gov?.sla ?? slaSegmentosData.gov?.sla}
+          slaCorp={slaSegmentosData.equipe?.corp?.sla ?? slaSegmentosData.corp?.sla}
+          pontosSla={displayMetricas?.pontosSla}
+          slaIndividualTotal={slaSegmentosData.individual?.total?.sla}
+          slaIndividualGov={slaSegmentosData.individual?.gov?.sla}
+          slaIndividualCorp={slaSegmentosData.individual?.corp?.sla}
           selectedSegmento={selectedSegmento}
           onSelectSegmento={setSelectedSegmento}
+          canToggleMode={true}
+          slaMode={slaMode}
+          onToggleMode={setSlaMode}
+          operacaoNome={operacaoNome}
           onOpenDetailsModal={onOpenDetailsModal}
         />
 
@@ -250,6 +270,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
         <PerdasFalhaTecnicaCard
           percentualPerdidos={percentualPerdidos}
           perdasQtd={selectedSegmento !== 'Total' ? perdasChartData.reduce((acc, c) => acc + (c.value || 0), 0) : displayMetricas.perdasQtd}
+          pontosPerdidos={displayMetricas?.pontosPerdidos}
           chartData={perdasChartData}
           onOpenPerdasModal={onOpenPerdasModal}
         />
@@ -264,6 +285,8 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
                 ? displayMetricas.reincidenciaQtd
                 : displayMetricas.reincidenciaEquipeQtd)
           }
+          pontosReincidencia={displayMetricas?.pontosReincidencia}
+          pontosReincidenciaEquipe={displayMetricas?.pontosReincidenciaEquipe}
           chartData={reincidenciasChartData}
           canToggleEquipe={canToggleTeamReincidencias}
           reincidenciaMode={reincidenciaMode}
@@ -274,6 +297,8 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
         {/* CARD 6: Consumo de peças */}
         <ConsumoPecasCard
           totalPecasElegiveis={pecasDistribuicao.totalPecasElegiveis}
+          percentualConsumo={pecasDistribuicao.percentualConsumo}
+          pontosPecas={displayMetricas?.pontosPecas}
           pecasChart={pecasDistribuicao.categorias}
           onOpenPecasModal={onOpenPecasModal}
         />

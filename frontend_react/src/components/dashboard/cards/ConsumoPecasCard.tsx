@@ -4,6 +4,8 @@ import { ArrowUpRight } from 'lucide-react';
 
 export interface ConsumoPecasCardProps {
   totalPecasElegiveis: number;
+  percentualConsumo?: number;
+  pontosPecas?: number;
   pecasChart: { key?: string; label?: string; nome?: string; qtd: number; pct: number }[];
   onOpenPecasModal: () => void;
   className?: string;
@@ -11,6 +13,8 @@ export interface ConsumoPecasCardProps {
 
 export const ConsumoPecasCard: React.FC<ConsumoPecasCardProps> = ({
   totalPecasElegiveis,
+  percentualConsumo,
+  pontosPecas,
   pecasChart,
   onOpenPecasModal,
   className = ''
@@ -19,20 +23,40 @@ export const ConsumoPecasCard: React.FC<ConsumoPecasCardProps> = ({
     return Math.max(...pecasChart.map((p) => p.qtd), 1);
   }, [pecasChart]);
 
+  // Pontuação oficial conforme regra de negócio:
+  // Meta: <= 25.0% de consumo -> 13.5 pts | > 25.0% -> 0.0 pts
+  const pontosCalculados = useMemo(() => {
+    if (pontosPecas !== undefined && pontosPecas !== null) {
+      return Number(pontosPecas);
+    }
+    if (percentualConsumo !== undefined) {
+      return percentualConsumo <= 25.0 ? 13.5 : 0.0;
+    }
+    return 13.5;
+  }, [pontosPecas, percentualConsumo]);
+
   return (
     <BentoCard
       hoverable
       onClick={onOpenPecasModal}
       className={`min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
-      title="Clique para ver o detalhamento de peças da campanha (Tela LCD, SSD, HD e PLM)"
+      title="Clique para ver o detalhamento de peças da campanha (Tela LCD, SSD, HD e PLM — Máx: 13,5 pts)"
     >
-      <div className="flex items-center justify-between">
-        <div className="inline-flex items-center px-[0.75rem] py-[0.25rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
-          Consumo de peças
+      <div className="flex items-center justify-between gap-[0.5rem]">
+        <div className="flex items-center gap-[0.5rem]">
+          <div className="inline-flex items-center px-[0.75rem] py-[0.25rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
+            Consumo de peças
+          </div>
+          {/* Badge de Pontuação Oficial */}
+          <div className="inline-flex items-center gap-[0.25rem] px-[0.625rem] py-[0.25rem] rounded-full bg-primary/10 border border-primary/25 text-primary text-[0.75rem] font-black shadow-xs">
+            <span>{pontosCalculados.toFixed(1)}</span>
+            <span className="text-[0.625rem] text-light-text-muted dark:text-text-muted font-normal">/ 13,5 pts</span>
+          </div>
         </div>
+
         <div className="flex items-center gap-[0.5rem]">
           <span className="text-[0.6875rem] text-primary font-bold">
-            {totalPecasElegiveis} {totalPecasElegiveis === 1 ? 'peça aplicada' : 'peças aplicadas'}
+            {totalPecasElegiveis} {totalPecasElegiveis === 1 ? 'peça' : 'peças'}
           </span>
           <button
             type="button"
@@ -93,10 +117,33 @@ export const ConsumoPecasCard: React.FC<ConsumoPecasCardProps> = ({
       </div>
 
       <div className="pt-[0.5rem] border-t border-light-border dark:border-border/60 flex items-center justify-between text-[0.75rem]">
-        <span className="text-light-text-muted dark:text-text-muted text-[0.6875rem]">
-          4 grupos de peças elegíveis na campanha
+        <div className="flex items-center gap-[0.375rem]">
+          <span
+            className={`w-[0.5rem] h-[0.5rem] rounded-full ${
+              pontosCalculados > 0
+                ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]'
+                : 'bg-amber-400 shadow-[0_0_6px_#fbbf24]'
+            }`}
+          ></span>
+          <span
+            className={`font-semibold text-[0.6875rem] ${
+              pontosCalculados > 0
+                ? 'text-emerald-500 dark:text-emerald-400'
+                : 'text-amber-500 dark:text-amber-400'
+            }`}
+          >
+            {pontosCalculados > 0
+              ? (percentualConsumo !== undefined ? `Meta Atingida (${percentualConsumo.toFixed(1)}% ≤ 25,0%)` : 'Meta Atingida (≤ 25,0%)')
+              : (percentualConsumo !== undefined ? `Acima da Meta (${percentualConsumo.toFixed(1)}% > 25,0%)` : 'Acima da Meta (> 25,0%)')}
+          </span>
+        </div>
+        <span
+          className={`font-black text-[0.75rem] ${
+            pontosCalculados > 0 ? 'text-primary' : 'text-amber-500 dark:text-amber-400'
+          }`}
+        >
+          {pontosCalculados.toFixed(1)} / 13,5 pts
         </span>
-        <span className="font-bold text-primary text-[0.6875rem]">Tela • SSD • HD • PLM</span>
       </div>
     </BentoCard>
   );

@@ -1,10 +1,35 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 
+export interface SlaSegmentoItem {
+  totalChamados: number;
+  noPrazo: number;
+  sla: number;
+}
+
+export interface SlaOperacaoInfo {
+  nomeBase?: string;
+  cidade?: string;
+  uf?: string;
+  ctCodigo?: string;
+}
+
 export interface SlaSegmentosPayload {
-  total: { totalChamados: number; noPrazo: number; sla: number };
-  gov: { totalChamados: number; noPrazo: number; sla: number };
-  corp: { totalChamados: number; noPrazo: number; sla: number };
+  total: SlaSegmentoItem;
+  gov: SlaSegmentoItem;
+  corp: SlaSegmentoItem;
+  equipe?: {
+    total: SlaSegmentoItem;
+    gov: SlaSegmentoItem;
+    corp: SlaSegmentoItem;
+    operacao?: SlaOperacaoInfo;
+  };
+  individual?: {
+    total: SlaSegmentoItem;
+    gov: SlaSegmentoItem;
+    corp: SlaSegmentoItem;
+  };
+  operacao?: SlaOperacaoInfo;
 }
 
 export interface ChartDataPoint {
@@ -32,6 +57,7 @@ interface UseDashboardCardsDataProps {
   equipe?: string;
   segmento?: 'Total' | 'Gov' | 'Corp';
   defaultSla?: number;
+  slaMode?: 'individual' | 'equipe';
   reincidenciaMode?: 'individual' | 'equipe';
   userLocalEquipe?: string;
 }
@@ -43,6 +69,7 @@ export function useDashboardCardsData({
   equipe,
   segmento = 'Total',
   defaultSla = 0,
+  slaMode = 'equipe',
   reincidenciaMode = 'individual',
   userLocalEquipe
 }: UseDashboardCardsDataProps) {
@@ -106,8 +133,11 @@ export function useDashboardCardsData({
     if (segmento && segmento !== 'Total') {
       params.segmento = segmento;
     }
+    if (slaMode) {
+      params.mode = slaMode;
+    }
     return params;
-  }, [selectedMonth, idSupervisor, equipe, segmento]);
+  }, [selectedMonth, idSupervisor, equipe, segmento, slaMode]);
 
   // Determina o endpoint base: /dashboard/tecnico/{id} ou /dashboard/tecnico/0 para supervisor
   const getTecnicoEndpointId = useCallback(() => {

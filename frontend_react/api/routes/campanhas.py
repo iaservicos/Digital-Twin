@@ -72,8 +72,8 @@ def get_campanha_ativa():
             r_tec = cur.fetchone()
             total_part = r_tec["total"] if r_tec and r_tec["total"] else 0
 
-        duracao_dias = (d_fim - d_ini).days if d_ini and d_fim else 30
-        dias_restantes = max(0, (d_fim - hoje).days) if d_fim else 0
+        duracao_dias = ((d_fim - d_ini).days + 1) if d_ini and d_fim else 30
+        dias_restantes = max(0, ((d_fim - hoje).days + 1)) if d_fim else 0
         dias_decorridos = max(0, duracao_dias - dias_restantes)
         progresso_tempo = round((dias_decorridos / duracao_dias * 100), 1) if duracao_dias > 0 else 100.0
 
@@ -128,11 +128,22 @@ def criar_nova_campanha(request: NovaCampanhaRequest, current_user: Dict[str, An
     with get_db_cursor(commit=True) as cur:
         # Desativa campanhas anteriores
         cur.execute("UPDATE tb_campanha SET ativa = false;")
+        data_fim = request.dataFim
+        meses = request.duracaoMeses or 1
+        if not data_fim:
+            import calendar
+            dt_ini = date.fromisoformat(request.dataInicio)
+            total_meses = dt_ini.month - 1 + (meses - 1)
+            ano = dt_ini.year + total_meses // 12
+            mes = total_meses % 12 + 1
+            _, last_day = calendar.monthrange(ano, mes)
+            data_fim = date(ano, mes, last_day).isoformat()
+
         cur.execute("""
             INSERT INTO tb_campanha (data_inicio, data_fim, duracao_meses, ativa, atualizado_em)
             VALUES (%s, %s, %s, true, NOW())
             RETURNING id_campanha, data_inicio, data_fim, ativa, duracao_meses;
-        """, (request.dataInicio, request.dataFim, request.duracaoMeses))
+        """, (request.dataInicio, data_fim, meses))
         nova = cur.fetchone()
         return {
             "idCampanha": nova["id_campanha"],
@@ -145,7 +156,7 @@ def criar_nova_campanha(request: NovaCampanhaRequest, current_user: Dict[str, An
 @router.post("/campanha/ativa")
 def atualizar_campanha_ativa(request: AtualizarCampanhaRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
     with get_db_cursor(commit=True) as cur:
-        cur.execute("SELECT id_campanha FROM tb_campanha WHERE ativa = true ORDER BY id_campanha DESC LIMIT 1;")
+        cur.execute("SELECT id_campanha, data_inicio, data_fim FROM tb_campanha WHERE ativa = true ORDER BY id_campanha DESC LIMIT 1;")
         camp = cur.fetchone()
         if not camp:
             raise HTTPException(status_code=404, detail="Nenhuma campanha ativa encontrada.")
@@ -155,6 +166,20 @@ def atualizar_campanha_ativa(request: AtualizarCampanhaRequest, current_user: Di
         if request.dataInicio:
             updates.append("data_inicio = %s")
             params.append(request.dataInicio)
+        if request.duracaoMeses is not None:
+            updates.append("duracao_meses = %s")
+            params.append(request.duracaoMeses)
+            if not request.dataFim:
+                import calendar
+                d_ini = date.fromisoformat(request.dataInicio) if request.dataInicio else camp.get("data_inicio")
+                if d_ini:
+                    m = request.duracaoMeses
+                    total_m = d_ini.month - 1 + (m - 1)
+                    ano_fim = d_ini.year + total_m // 12
+                    mes_fim = total_m % 12 + 1
+                    _, last_d = calendar.monthrange(ano_fim, mes_fim)
+                    updates.append("data_fim = %s")
+                    params.append(date(ano_fim, mes_fim, last_d).isoformat())
         if request.dataFim:
             updates.append("data_fim = %s")
             params.append(request.dataFim)

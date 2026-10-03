@@ -351,24 +351,29 @@ export default function AdminDashboardScreen() {
     };
   }, [tecnicosVisiveis, tecnicosParticipantesAtivos, rankingOriginal]);
 
-  // Metricas simuladas da Operação para abrir o ModalDetalhesPontuacao
+  // Metricas agregadas da Operação para abrir o ModalDetalhesPontuacao
   const operationalMetricas = useMemo(() => {
     if (!teamSummary) return null;
+    const slaPontos = teamSummary.slaMedia >= 100 ? 33.5 : (teamSummary.slaMedia >= 90 ? 29.0 : 0.0);
+    const reincPontos = teamSummary.reincidenciaMedia <= 7.0 ? 16.0 : (teamSummary.reincidenciaMedia <= 10.0 ? 11.0 : 0.0);
+    const perdasPontos = teamSummary.perdasMedia <= 1.0 ? 21.0 : (teamSummary.perdasMedia <= 2.0 ? 16.0 : 0.0);
+    const pecasPontos = teamSummary.pecasMedia <= 25.0 ? 13.5 : 0.0;
+    const tot = Number((slaPontos + perdasPontos + reincPontos + reincPontos + pecasPontos).toFixed(1));
     return {
       tecnico: isModerador ? 'Operação Geral' : (supervisorLogado?.nomeCompleto || 'Equipe de Supervisão'),
       matricula: 'OPERACAO',
       localEquipe: selectedEquipe !== 'all' ? selectedEquipe : 'Todas as Bases',
-      pontosTotal: Math.round(teamSummary.pontosMedia),
+      pontosTotal: Math.round(teamSummary.pontosMedia) || tot,
       percentualSla: teamSummary.slaMedia,
-      pontosSla: teamSummary.slaMedia >= 90 ? 25 : Number(((teamSummary.slaMedia / 90) * 25).toFixed(1)),
+      pontosSla: slaPontos,
+      percentualReincidenciaEquipe: teamSummary.reincidenciaMedia,
+      pontosReincidenciaEquipe: reincPontos,
       percentualReincidencia: teamSummary.reincidenciaMedia,
-      pontosReincidencia: teamSummary.reincidenciaMedia <= 7 ? 20 : Math.max(0, Number((20 - (teamSummary.reincidenciaMedia - 7) * 2).toFixed(1))),
+      pontosReincidencia: reincPontos,
       percentualEficienciaPecas: teamSummary.pecasMedia,
-      pontosPecas: teamSummary.pecasMedia >= 85 ? 20 : Number(((teamSummary.pecasMedia / 85) * 20).toFixed(1)),
-      quantidadeProdutividade: teamSummary.volumeChamados,
-      pontosProdutividade: 15,
+      pontosPecas: pecasPontos,
       percentualPerdidos: teamSummary.perdasMedia,
-      pontosPerdidos: 10,
+      pontosPerdidos: perdasPontos,
       elegivel: true,
       motivoInelegibilidade: ''
     };
@@ -742,7 +747,8 @@ export default function AdminDashboardScreen() {
         tecnicoNome={escopoNomeOperacao}
         selectedMonth={selectedMonth}
         percentualSla={teamSummary?.slaMedia || 0}
-        pontosSla={25}
+        pontosSla={(teamSummary?.slaMedia || 0) >= 100 ? 33.5 : (teamSummary?.slaMedia || 0) >= 90 ? 29.0 : 0}
+        initialTipo="equipe"
       />
 
       <ModalHistoricoChamados

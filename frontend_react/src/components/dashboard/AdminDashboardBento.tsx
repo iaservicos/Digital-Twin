@@ -60,6 +60,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
   const percentualReincidencia = teamSummary.reincidenciaMedia;
   const percentualPerdidos = teamSummary.perdasMedia;
 
+  const [slaMode, setSlaMode] = useState<'individual' | 'equipe'>('equipe');
   const [selectedDate, setSelectedDate] = useState<string>('');
 
   // Metadados reais da campanha ativa do backend
@@ -114,8 +115,19 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
     equipe: selectedEquipe !== 'all' ? selectedEquipe : undefined,
     selectedMonth,
     segmento: selectedSegmento,
-    defaultSla: percentualSla
+    defaultSla: percentualSla,
+    slaMode
   });
+
+  const operacaoNome = useMemo(() => {
+    const op = slaSegmentosData.operacao || slaSegmentosData.equipe?.operacao;
+    if (!op) return '';
+    const partes = [];
+    if (op.nomeBase) partes.push(op.nomeBase);
+    if (op.cidade && op.uf) partes.push(`${op.cidade} (${op.uf})`);
+    else if (op.uf) partes.push(op.uf);
+    return partes.join(' • ');
+  }, [slaSegmentosData]);
 
   // Atualiza data selecionada padrão quando dados de chamados chegam
   useEffect(() => {
@@ -136,13 +148,21 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
     <div className="w-full space-y-[1rem]">
       {/* GRID BENTO 3 COLUNAS x 2 LINHAS REUTILIZÁVEL */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1.5rem]">
-        {/* CARD 1: SLA total */}
+        {/* CARD 1: SLA total / Operação */}
         <SlaTotalCard
-          slaTotal={slaSegmentosData.total?.sla ?? percentualSla}
-          slaGov={slaSegmentosData.gov?.sla}
-          slaCorp={slaSegmentosData.corp?.sla}
+          slaTotal={slaSegmentosData.equipe?.total?.sla ?? slaSegmentosData.total?.sla ?? percentualSla}
+          slaGov={slaSegmentosData.equipe?.gov?.sla ?? slaSegmentosData.gov?.sla}
+          slaCorp={slaSegmentosData.equipe?.corp?.sla ?? slaSegmentosData.corp?.sla}
+          pontosSla={teamSummary.slaMedia >= 100 ? 33.5 : teamSummary.slaMedia >= 90 ? 29.0 : 0.0}
+          slaIndividualTotal={slaSegmentosData.individual?.total?.sla}
+          slaIndividualGov={slaSegmentosData.individual?.gov?.sla}
+          slaIndividualCorp={slaSegmentosData.individual?.corp?.sla}
           selectedSegmento={selectedSegmento}
           onSelectSegmento={setSelectedSegmento}
+          canToggleMode={true}
+          slaMode={slaMode}
+          onToggleMode={setSlaMode}
+          operacaoNome={operacaoNome}
           onOpenDetailsModal={onOpenDetailsModal}
         />
 
@@ -169,6 +189,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         <PerdasFalhaTecnicaCard
           percentualPerdidos={percentualPerdidos}
           perdasQtd={selectedSegmento !== 'Total' ? perdasChartData.reduce((acc, c) => acc + (c.value || 0), 0) : teamSummary.perdasQtd}
+          pontosPerdidos={percentualPerdidos <= 1.0 ? 21.0 : percentualPerdidos <= 2.0 ? 16.0 : 0.0}
           chartData={perdasChartData}
           onOpenPerdasModal={onOpenPerdasModal}
         />
@@ -177,6 +198,8 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         <ReincidenciasCard
           percentualReincidencia={percentualReincidencia}
           reincidenciaQtd={selectedSegmento !== 'Total' ? reincidenciasChartData.reduce((acc, c) => acc + (c.value || 0), 0) : teamSummary.reincidenciaQtd}
+          pontosReincidencia={percentualReincidencia <= 7.0 ? 16.0 : percentualReincidencia <= 10.0 ? 11.0 : 0.0}
+          pontosReincidenciaEquipe={percentualReincidencia <= 7.0 ? 16.0 : percentualReincidencia <= 10.0 ? 11.0 : 0.0}
           chartData={reincidenciasChartData}
           onOpenReincidentesModal={onOpenReincidentesModal}
         />
@@ -184,6 +207,8 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         {/* CARD 6: Consumo de peças */}
         <ConsumoPecasCard
           totalPecasElegiveis={pecasDistribuicao.totalPecasElegiveis}
+          percentualConsumo={pecasDistribuicao.percentualConsumo}
+          pontosPecas={pecasDistribuicao.percentualConsumo <= 25.0 ? 13.5 : 0.0}
           pecasChart={pecasDistribuicao.categorias}
           onOpenPecasModal={onOpenPecasModal}
         />

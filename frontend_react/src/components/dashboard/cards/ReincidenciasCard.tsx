@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BentoCard } from '../../ui/BentoCard';
 import CartesianWaveChart from '../CartesianWaveChart';
 import { ArrowUpRight } from 'lucide-react';
@@ -6,6 +6,8 @@ import { ArrowUpRight } from 'lucide-react';
 export interface ReincidenciasCardProps {
   percentualReincidencia: number;
   reincidenciaQtd?: number;
+  pontosReincidencia?: number;
+  pontosReincidenciaEquipe?: number;
   chartData: { label: string; value: number }[];
   canToggleEquipe?: boolean;
   reincidenciaMode?: 'individual' | 'equipe';
@@ -17,6 +19,8 @@ export interface ReincidenciasCardProps {
 export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
   percentualReincidencia,
   reincidenciaQtd,
+  pontosReincidencia,
+  pontosReincidenciaEquipe,
   chartData,
   canToggleEquipe = false,
   reincidenciaMode = 'individual',
@@ -24,17 +28,42 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
   onOpenReincidentesModal,
   className = ''
 }) => {
+  // Pontuação oficial conforme a regra:
+  // Meta: <= 7.0% -> 16.0 pts | 7.1% a 10.0% -> 11.0 pts | > 10.0% -> 0.0 pts
+  const pontosAtivos = useMemo(() => {
+    if (reincidenciaMode === 'equipe') {
+      if (pontosReincidenciaEquipe !== undefined && pontosReincidenciaEquipe !== null) {
+        return Number(pontosReincidenciaEquipe);
+      }
+    } else {
+      if (pontosReincidencia !== undefined && pontosReincidencia !== null) {
+        return Number(pontosReincidencia);
+      }
+    }
+    if (percentualReincidencia <= 7.0) return 16.0;
+    if (percentualReincidencia <= 10.0) return 11.0;
+    return 0.0;
+  }, [reincidenciaMode, pontosReincidencia, pontosReincidenciaEquipe, percentualReincidencia]);
+
   return (
     <BentoCard
       hoverable
       onClick={onOpenReincidentesModal}
       className={`min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
-      title="Clique para ver a análise detalhada de reincidências"
+      title="Clique para ver a análise detalhada de reincidências (Máx: 16,0 pts)"
     >
-      <div className="flex items-center justify-between">
-        <div className="inline-flex items-center px-[0.75rem] py-[0.25rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
-          Reincidências
+      <div className="flex items-center justify-between gap-[0.5rem]">
+        <div className="flex items-center gap-[0.5rem]">
+          <div className="inline-flex items-center px-[0.75rem] py-[0.25rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
+            Reincidências
+          </div>
+          {/* Badge de Pontuação Oficial */}
+          <div className="inline-flex items-center gap-[0.25rem] px-[0.625rem] py-[0.25rem] rounded-full bg-primary/10 border border-primary/25 text-primary text-[0.75rem] font-black shadow-xs">
+            <span>{pontosAtivos.toFixed(1)}</span>
+            <span className="text-[0.625rem] text-light-text-muted dark:text-text-muted font-normal">/ 16,0 pts</span>
+          </div>
         </div>
+
         <div className="flex items-center gap-[0.5rem]">
           {canToggleEquipe && onToggleMode && (
             <div
@@ -92,8 +121,8 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
         </div>
         <p className="text-[0.6875rem] text-light-text-muted dark:text-text-muted font-medium mt-[0.25rem]">
           {reincidenciaMode === 'equipe'
-            ? 'Taxa de Retorno da Equipe em 30 Dias (Meta: < 7.0%)'
-            : 'Taxa de Retorno em 30 Dias (Meta: < 7.0%)'}
+            ? 'Retornos da Equipe em 30 Dias (Meta: ≤ 7.0% • Gatilho)'
+            : 'Taxa de Retorno Individual (Meta: ≤ 7.0%)'}
         </p>
       </div>
 
@@ -107,19 +136,36 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
       </div>
 
       <div className="pt-[0.5rem] border-t border-light-border dark:border-border/60 flex items-center justify-between text-[0.75rem]">
+        <div className="flex items-center gap-[0.375rem]">
+          <span
+            className={`w-[0.5rem] h-[0.5rem] rounded-full ${
+              pontosAtivos > 0
+                ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]'
+                : 'bg-amber-400 shadow-[0_0_6px_#fbbf24]'
+            }`}
+          ></span>
+          <span
+            className={`font-semibold text-[0.6875rem] ${
+              percentualReincidencia <= 7.0
+                ? 'text-emerald-500 dark:text-emerald-400'
+                : percentualReincidencia <= 10.0
+                ? 'text-amber-500 dark:text-amber-400'
+                : 'text-rose-500 dark:text-rose-400'
+            }`}
+          >
+            {percentualReincidencia <= 7.0
+              ? 'Meta Atingida (≤ 7,0%)'
+              : percentualReincidencia <= 10.0
+              ? 'Faixa Tolerada (≤ 10,0%)'
+              : 'Acima do Limite (> 10,0%)'}
+          </span>
+        </div>
         <span
-          className={`font-semibold text-[0.6875rem] ${
-            percentualReincidencia <= 7.0
-              ? 'text-emerald-500 dark:text-emerald-400'
-              : 'text-amber-500 dark:text-amber-400'
+          className={`font-black text-[0.75rem] ${
+            pontosAtivos > 0 ? 'text-primary' : 'text-amber-500 dark:text-amber-400'
           }`}
         >
-          {percentualReincidencia <= 7.0
-            ? 'Dentro da meta operacional'
-            : 'Acima do limite tolerado'}
-        </span>
-        <span className="text-light-text-muted dark:text-text-muted text-[0.625rem]">
-          Meta: &lt; 7.0%
+          {pontosAtivos.toFixed(1)} / 16,0 pts
         </span>
       </div>
     </BentoCard>

@@ -356,6 +356,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         selectedMonth={selectedMonth}
         percentualSla={percentualSla}
         pontosSla={displayMetricas.pontosSla || 0}
+        initialTipo="equipe"
       />
 
       {/* MODAL DE PERDAS (FALHAS DE GESTÃO & TRANSFERÊNCIA ENTRE BASES) */}

@@ -27,6 +27,7 @@ interface ModalChamadosSlaPerdidosProps {
   selectedMonth: string;
   percentualSla: number;
   pontosSla: number;
+  initialTipo?: 'individual' | 'equipe';
 }
 
 // Helper de formatação de data e hora no padrão 'DD/MM/AAAA HH:mm' (sem segundos)
@@ -116,8 +117,10 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
   tecnicoNome,
   selectedMonth,
   percentualSla,
-  pontosSla
+  pontosSla,
+  initialTipo = 'equipe'
 }) => {
+  const [tipo, setTipo] = useState<'individual' | 'equipe'>(initialTipo);
   const [chamados, setChamados] = useState<ChamadoSlaPerdido[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -126,15 +129,21 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
   const isSupervisorOrAdmin = user?.role === 'SUPERVISOR' || user?.role === 'MODERADOR' || user?.role === 'ADMINISTRADOR' || user?.cargo === 'Administrador' || user?.cargo === 'Super Administrador';
 
   useEffect(() => {
+    if (initialTipo) {
+      setTipo(initialTipo);
+    }
+  }, [initialTipo, isOpen]);
+
+  useEffect(() => {
     if (!isOpen || !tecnicoId) return;
 
     let isMounted = true;
     const fetchChamadosSla = async () => {
       try {
         setLoading(true);
-        let url = `/dashboard/tecnico/${tecnicoId}/sla-perdidos`;
+        let url = `/dashboard/tecnico/${tecnicoId}/sla-perdidos?tipo=${tipo}`;
         if (selectedMonth && selectedMonth !== 'Campanha Inteira' && selectedMonth !== 'Média Final') {
-          url += `?mesAno=${encodeURIComponent(selectedMonth)}`;
+          url += `&mesAno=${encodeURIComponent(selectedMonth)}`;
         }
         const res = await api.get(url);
         if (isMounted && res.data) {
@@ -153,7 +162,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
     return () => {
       isMounted = false;
     };
-  }, [isOpen, tecnicoId, selectedMonth]);
+  }, [isOpen, tecnicoId, selectedMonth, tipo]);
 
   // Lista de causas distintas para os filtros
   const causasDisponiveis = useMemo(() => {
@@ -233,16 +242,48 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                 • {periodoLabel}
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-light-text-main dark:text-text-main flex items-center gap-2">Chamados encerrados fora do SLA</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-light-text-main dark:text-text-main flex items-center gap-2">
+              Chamados fora do SLA {tipo === 'equipe' ? '(Operação)' : '(Individual)'}
+            </h2>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover transition-all cursor-pointer self-end sm:self-center"
-            title="Fechar Modal"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-3 self-end sm:self-center">
+            {/* Seletor Bimodal Individual | Equipe */}
+            <div className="flex items-center p-0.5 rounded-[0.5rem] bg-light-surface-elevated dark:bg-surface border border-light-border dark:border-border text-[0.625rem] font-bold shadow-xs">
+              <button
+                type="button"
+                onClick={() => setTipo('individual')}
+                className={`px-2.5 py-1 rounded-[0.375rem] transition-all cursor-pointer font-bold ${
+                  tipo === 'individual'
+                    ? 'bg-primary text-background border border-primary shadow-xs font-black'
+                    : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
+                }`}
+                title="Exibir chamados atendidos individualmente pelo técnico"
+              >
+                Individual
+              </button>
+              <button
+                type="button"
+                onClick={() => setTipo('equipe')}
+                className={`px-2.5 py-1 rounded-[0.375rem] transition-all cursor-pointer font-bold ${
+                  tipo === 'equipe'
+                    ? 'bg-primary text-background border border-primary shadow-xs font-black'
+                    : 'text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main'
+                }`}
+                title="Exibir chamados de toda a equipe/base operacional"
+              >
+                Equipe
+              </button>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover transition-all cursor-pointer"
+              title="Fechar Modal"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Mini-Dashboard de Estatísticas de SLA */}
@@ -273,7 +314,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
               <span className="text-2xl font-black text-light-text-main dark:text-text-main">
                 {pontosSla.toFixed(1)}
               </span>
-              <span className="text-xs text-light-text-muted dark:text-text-muted font-semibold">/ 32.5 pts</span>
+              <span className="text-xs text-light-text-muted dark:text-text-muted font-semibold">/ 33.5 pts</span>
             </div>
           </div>
 

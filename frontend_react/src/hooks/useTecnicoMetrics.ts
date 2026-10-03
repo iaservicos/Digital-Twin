@@ -82,9 +82,13 @@ export function useTecnicoMetrics(
       ...monthData,
       pontosTotal: monthData.pontosTotal !== undefined ? monthData.pontosTotal : metricas.pontosTotal,
       percentualSla: monthData.percentualSla !== undefined ? monthData.percentualSla : metricas.percentualSla,
+      pontosSla: monthData.pontosSla !== undefined ? monthData.pontosSla : metricas.pontosSla,
       percentualReincidencia: monthData.percentualReincidencia !== undefined ? monthData.percentualReincidencia : metricas.percentualReincidencia,
+      pontosReincidencia: monthData.pontosReincidencia !== undefined ? monthData.pontosReincidencia : metricas.pontosReincidencia,
       percentualEficienciaPecas: monthData.percentualEficienciaPecas !== undefined ? monthData.percentualEficienciaPecas : metricas.percentualEficienciaPecas,
+      pontosPecas: monthData.pontosPecas !== undefined ? monthData.pontosPecas : metricas.pontosPecas,
       percentualPerdidos: monthData.percentualPerdidos !== undefined ? monthData.percentualPerdidos : metricas.percentualPerdidos,
+      pontosPerdidos: monthData.pontosPerdidos !== undefined ? monthData.pontosPerdidos : metricas.pontosPerdidos,
       elegivel: monthData.elegivel !== undefined ? monthData.elegivel : metricas.elegivel,
       motivoInelegibilidade: monthData.motivoInelegibilidade || metricas.motivoInelegibilidade
     };
