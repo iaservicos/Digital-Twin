@@ -278,6 +278,8 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           onSelectMonth={setSelectedMonth}
           historicoMeses={metricas?.historico}
           percentualSla={percentualSla}
+          pontosTotal={displayMetricas?.pontosTotal}
+          elegivel={displayMetricas?.elegivel}
           onOpenDetailsModal={onOpenDetailsModal}
           onOpenSlaModal={onOpenDetailsModal}
         />
@@ -300,7 +302,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           onOpenPerdasModal={onOpenPerdasModal}
         />
 
-        {/* CARD 5: Reincidências */}
+        {/* CARD 4: Reincidências */}
         <ReincidenciasCard
           percentualReincidencia={percentualReincidenciaFinal}
           reincidenciaQtd={
@@ -313,7 +315,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           pontosReincidencia={displayMetricas?.pontosReincidencia}
           pontosReincidenciaEquipe={displayMetricas?.pontosReincidenciaEquipe}
           chartData={reincidenciasChartData}
-          canToggleEquipe={canToggleTeamReincidencias}
+          canToggleEquipe={true}
           reincidenciaMode={reincidenciaMode}
           onToggleMode={setReincidenciaMode}
           onOpenReincidentesModal={onOpenReincidentesModal}

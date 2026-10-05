@@ -93,7 +93,16 @@ export default function CampaignManager() {
       await fetchCampanhaAtual();
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao encerrar a campanha.');
+      const errorDetail = err.response?.data?.detail;
+      const errorMsg = 
+        errorDetail
+          ? (typeof errorDetail === 'string'
+              ? errorDetail
+              : Array.isArray(errorDetail)
+                ? errorDetail.map((d: any) => `${d.loc?.slice(1).join('.') || 'campo'}: ${d.msg}`).join(', ')
+                : JSON.stringify(errorDetail))
+          : (err.response?.data?.message || err.message || 'Erro ao encerrar a campanha.');
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -110,9 +119,25 @@ export default function CampaignManager() {
     setError('');
 
     try {
+      // Pré-calcula dataFim caso o backend necessite ou para garantir integridade
+      let dataFimCalculada: string | undefined = undefined;
+      try {
+        const [y, m] = dataInicio.split('-').map(Number);
+        if (y && m) {
+          const totalM = (m - 1) + (Number(duracaoMeses) - 1);
+          const endY = y + Math.floor(totalM / 12);
+          const endM = (totalM % 12) + 1;
+          const lastD = new Date(endY, endM, 0).getDate();
+          dataFimCalculada = `${endY}-${String(endM).padStart(2, '0')}-${String(lastD).padStart(2, '0')}`;
+        }
+      } catch (e) {
+        console.warn('Erro ao pré-calcular dataFim:', e);
+      }
+
       await api.post(`/campanha/nova-campanha`, {
         dataInicio,
-        duracaoMeses
+        dataFim: dataFimCalculada,
+        duracaoMeses: Number(duracaoMeses)
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -125,7 +150,16 @@ export default function CampaignManager() {
       // Engatilha o cálculo automaticamente com barra de progresso
       handleProcessarCalculos();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao iniciar nova campanha.');
+      const errorDetail = err.response?.data?.detail;
+      const errorMsg = 
+        errorDetail
+          ? (typeof errorDetail === 'string'
+              ? errorDetail
+              : Array.isArray(errorDetail)
+                ? errorDetail.map((d: any) => `${d.loc?.slice(1).join('.') || 'campo'}: ${d.msg}`).join(', ')
+                : JSON.stringify(errorDetail))
+          : (err.response?.data?.message || err.message || 'Erro ao iniciar nova campanha.');
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

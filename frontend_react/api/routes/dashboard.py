@@ -1045,7 +1045,9 @@ def get_tecnico_sla_segmentos(
                     res_indiv = res_indiv_base
                 else:
                     res_indiv = _calc_segmentos_from_chamados_sla(None, nome_tec)
-            else:
+            
+            # Se chamados_sla não tiver registros para este técnico, faz fallback para tb_chamado
+            if not res_indiv or res_indiv["total"]["totalChamados"] == 0:
                 res_indiv = _calc_segmentos(
                     "(c.id_tecnico = %s OR UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(%s)))",
                     [id_tecnico, nome_tec]
@@ -1057,6 +1059,10 @@ def get_tecnico_sla_segmentos(
                 res_equipe = _calc_segmentos_from_chamados_sla(ct_list, None)
             else:
                 res_equipe = _calc_segmentos("c.assistencia_centro_trabalho = ANY(%s)", [ct_list])
+            
+            # Se chamados_sla não tiver registros para este centro de trabalho, faz fallback para tb_chamado
+            if not res_equipe or res_equipe["total"]["totalChamados"] == 0:
+                res_equipe = _calc_segmentos("c.assistencia_centro_trabalho = ANY(%s)", [ct_list])
         elif id_tecnico > 0 and res_indiv:
             res_equipe = res_indiv
         else:
@@ -1064,9 +1070,11 @@ def get_tecnico_sla_segmentos(
                 res_equipe = _calc_segmentos_from_chamados_sla(None, None)
             else:
                 res_equipe = _calc_segmentos("", [])
+            if not res_equipe or res_equipe["total"]["totalChamados"] == 0:
+                res_equipe = _calc_segmentos("", [])
 
         # Se não há individual (ex: id_tecnico == 0), individual espelha equipe
-        if not res_indiv:
+        if not res_indiv or res_indiv["total"]["totalChamados"] == 0:
             res_indiv = res_equipe
 
         # Bloco raiz retornado: por padrão exibe equipe (ou individual se mode == 'individual')

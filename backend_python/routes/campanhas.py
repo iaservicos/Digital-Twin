@@ -134,20 +134,32 @@ def criar_nova_campanha(request: NovaCampanhaRequest, current_user: Dict[str, An
 
         data_fim = request.dataFim
         meses = request.duracaoMeses or 1
+
+        raw_inicio = request.dataInicio.strip()
+        if "/" in raw_inicio:
+            d, m, y = map(int, raw_inicio.split("/"))
+            dt_ini = date(y, m, d)
+        else:
+            dt_ini = date.fromisoformat(raw_inicio)
+
         if not data_fim:
             import calendar
-            dt_ini = date.fromisoformat(request.dataInicio)
             total_meses = dt_ini.month - 1 + (meses - 1)
             ano = dt_ini.year + total_meses // 12
             mes = total_meses % 12 + 1
             _, last_day = calendar.monthrange(ano, mes)
             data_fim = date(ano, mes, last_day).isoformat()
+        else:
+            raw_fim = data_fim.strip()
+            if "/" in raw_fim:
+                df, mf, yf = map(int, raw_fim.split("/"))
+                data_fim = date(yf, mf, df).isoformat()
 
         cur.execute("""
             INSERT INTO tb_campanha (data_inicio, data_fim, duracao_meses, ativa, atualizado_em)
             VALUES (%s, %s, %s, true, NOW())
             RETURNING id_campanha, data_inicio, data_fim, ativa, duracao_meses;
-        """, (request.dataInicio, data_fim, meses))
+        """, (dt_ini.isoformat(), data_fim, meses))
         nova = cur.fetchone()
         return {
             "idCampanha": nova["id_campanha"],

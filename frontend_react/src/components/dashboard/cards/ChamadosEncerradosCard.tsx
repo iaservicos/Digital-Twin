@@ -30,19 +30,23 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
 
   const DIAS_SEMANA_ABREV = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 
-  // Últimos 7 dias móveis baseados na data selecionada ou hoje
+  // Exibe exatamente 5 dias com o dia atual sempre no centro (offsets: -2, -1, 0, +1, +2)
   const dayPills = useMemo(() => {
-    const baseDate = selectedDate ? new Date(`${selectedDate}T12:00:00`) : new Date();
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
     const pills = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(baseDate);
-      d.setDate(baseDate.getDate() - i);
+    const offsets = [-2, -1, 0, 1, 2];
+
+    for (const offset of offsets) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + offset);
       const dStr = format(d, 'yyyy-MM-dd');
       const diaSemana = DIAS_SEMANA_ABREV[getDay(d)] || 'DIA';
       const diaNum = format(d, 'd');
       const count = chamadosData.atendimentosPorDia[dStr] || 0;
-      const isSelected = dStr === selectedDate;
-      pills.push({ dStr, diaSemana, diaNum, count, isSelected });
+      const isToday = dStr === todayStr;
+      const isSelected = selectedDate ? dStr === selectedDate : isToday;
+      pills.push({ dStr, diaSemana, diaNum, count, isSelected, isToday });
     }
     return pills;
   }, [selectedDate, chamadosData.atendimentosPorDia]);
@@ -57,16 +61,17 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
   }, [currentCalendarMonth]);
 
   const chamadosNoDia = useMemo(() => {
-    return chamadosData.atendimentosPorDia[selectedDate] || 0;
+    const activeDate = selectedDate || format(new Date(), 'yyyy-MM-dd');
+    return chamadosData.atendimentosPorDia[activeDate] || 0;
   }, [chamadosData.atendimentosPorDia, selectedDate]);
 
   const dataExtenso = useMemo(() => {
-    if (!selectedDate) return 'Selecione um dia';
+    const activeDate = selectedDate || format(new Date(), 'yyyy-MM-dd');
     try {
-      const d = new Date(`${selectedDate}T12:00:00`);
+      const d = new Date(`${activeDate}T12:00:00`);
       return format(d, "EEEE, dd 'de' MMMM", { locale: ptBR });
     } catch {
-      return selectedDate;
+      return activeDate;
     }
   }, [selectedDate]);
 
@@ -118,32 +123,39 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center justify-between gap-[0.25rem] sm:gap-[0.375rem] py-[0.25rem]">
+            <div className="flex items-center justify-between gap-[0.375rem] sm:gap-[0.5rem] py-[0.25rem]">
               {dayPills.map((pill) => (
                 <button
                   key={pill.dStr}
                   type="button"
                   onClick={() => onSelectDate(pill.dStr)}
-                  className={`flex-1 flex flex-col items-center justify-center py-[0.375rem] px-[0.125rem] sm:px-[0.25rem] rounded-[0.625rem] sm:rounded-[0.875rem] border transition-all cursor-pointer select-none group/btn ${
+                  className={`flex-1 flex flex-col items-center justify-center py-[0.4375rem] px-[0.25rem] sm:px-[0.375rem] rounded-[0.75rem] sm:rounded-[0.875rem] border transition-all cursor-pointer select-none group/btn ${
                     pill.isSelected
                       ? 'bg-primary text-slate-950 font-black shadow-lg shadow-primary/25 scale-[1.02] border-primary'
-                      : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
+                      : pill.isToday
+                        ? 'bg-primary/10 border-primary/40 text-primary hover:bg-primary/20 hover:border-primary'
+                        : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
                   }`}
+                  title={pill.isToday ? 'Hoje' : undefined}
                 >
                   <span
                     className={`text-[0.5625rem] sm:text-[0.625rem] uppercase font-bold tracking-tight opacity-85 transition-colors ${
                       pill.isSelected
                         ? 'text-slate-950'
-                        : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
+                        : pill.isToday
+                          ? 'text-primary font-black'
+                          : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
                     }`}
                   >
                     {pill.diaSemana}
                   </span>
                   <span
-                    className={`text-[0.875rem] sm:text-[1rem] font-black leading-tight mt-[0.125rem] transition-colors ${
+                    className={`text-[0.9375rem] sm:text-[1.0625rem] font-black leading-tight mt-[0.125rem] transition-colors ${
                       pill.isSelected
                         ? 'text-slate-950'
-                        : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
+                        : pill.isToday
+                          ? 'text-primary'
+                          : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
                     }`}
                   >
                     {pill.diaNum}

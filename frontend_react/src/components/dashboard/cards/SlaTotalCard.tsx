@@ -81,7 +81,7 @@ export const SlaTotalCard: React.FC<SlaTotalCardProps> = ({
 
   return (
     <BentoCard
-      hoverable={false}
+      hoverable
       className={`min-h-[19.5rem] sm:min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
       title="SLA da Operação & Individual"
     >

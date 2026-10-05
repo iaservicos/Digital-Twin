@@ -20,7 +20,7 @@ export interface BentoCardProps extends React.HTMLAttributes<HTMLDivElement> {
  */
 export const BentoCard: React.FC<BentoCardProps> = ({
   children,
-  hoverable = false,
+  hoverable = true,
   className,
   ...props
 }) => {
@@ -38,7 +38,7 @@ export const BentoCard: React.FC<BentoCardProps> = ({
         // Transição suave
         "transition-all duration-300 ease-in-out",
         // Hover interativo com brilho na cor primária oficial
-        hoverable && "cursor-pointer hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10",
+        hoverable && "cursor-pointer hover:border-primary/50 dark:hover:border-primary/60 hover:shadow-xl hover:shadow-primary/10",
         className
       )}
       {...props}

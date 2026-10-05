@@ -21,6 +21,8 @@ export interface CampanhaAtivaCardProps {
   onSelectMonth: (month: string) => void;
   historicoMeses?: { mes: string; mesReferencia?: string }[];
   percentualSla: number;
+  pontosTotal?: number;
+  elegivel?: boolean;
   onOpenDetailsModal?: () => void;
   onOpenSlaModal?: () => void;
   className?: string;
@@ -38,6 +40,8 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
   onSelectMonth,
   historicoMeses = [],
   percentualSla,
+  pontosTotal,
+  elegivel,
   onOpenDetailsModal,
   onOpenSlaModal,
   className = ''
@@ -132,7 +136,7 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
 
   return (
     <BentoCard
-      hoverable={false}
+      hoverable
       className={`min-h-[19.5rem] sm:min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
     >
       {/* Cabeçalho do Card 2 com Pílula 'Campanha ativa', Seletor Alinhado e Botão de Ação */}
@@ -206,8 +210,8 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
 
       {/* Corpo do Card 2 com as Informações da Campanha */}
       <div className="grid grid-cols-2 gap-[0.5rem] sm:gap-[0.625rem] my-auto py-[0.25rem]">
-        {/* 1. Campanha Atual (expandido para col-span-2 se for técnico de campo) */}
-        <div className={`bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.5rem] sm:p-[0.625rem] xl:p-[0.75rem] min-h-[4.75rem] flex flex-col justify-between ${!isSupervisorOrModerator ? 'col-span-2' : ''}`}>
+        {/* 1. Campanha Atual */}
+        <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.5rem] sm:p-[0.625rem] xl:p-[0.75rem] min-h-[4.75rem] flex flex-col justify-between">
           <div className="flex items-center gap-[0.375rem] text-primary mb-[0.125rem]">
             <Award size={13} />
             <span className="text-[0.625rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
@@ -228,13 +232,13 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
           </span>
         </div>
 
-        {/* 2. Participantes (Exclusivo para Supervisores e Moderadores) */}
-        {isSupervisorOrModerator && (
+        {/* 2. Sua Pontuação (Técnico) ou Técnicos na Campanha (Supervisor/Moderador) */}
+        {isSupervisorOrModerator ? (
           <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.5rem] sm:p-[0.625rem] xl:p-[0.75rem] min-h-[4.75rem] flex flex-col justify-between">
             <div className="flex items-center gap-[0.375rem] text-primary mb-[0.125rem]">
               <Users size={13} />
               <span className="text-[0.625rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
-                Participantes
+                Técnicos na Campanha
               </span>
             </div>
             <p className="text-[0.75rem] sm:text-[0.875rem] font-black text-light-text-main dark:text-text-main leading-tight">
@@ -245,6 +249,24 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
             </p>
             <span className="text-[0.625rem] sm:text-[0.6875rem] text-emerald-500 font-bold block leading-tight mt-[0.125rem]">
               {campanhaInfo?.participantesAtivos || 150} ativos em campo
+            </span>
+          </div>
+        ) : (
+          <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.5rem] sm:p-[0.625rem] xl:p-[0.75rem] min-h-[4.75rem] flex flex-col justify-between">
+            <div className="flex items-center gap-[0.375rem] text-primary mb-[0.125rem]">
+              <Award size={13} />
+              <span className="text-[0.625rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
+                Sua Pontuação
+              </span>
+            </div>
+            <p className="text-[0.8125rem] sm:text-[0.9375rem] font-black text-primary leading-tight">
+              {pontosTotal !== undefined && pontosTotal !== null ? Number(pontosTotal).toFixed(1) : '0.0'}{' '}
+              <span className="text-[0.625rem] sm:text-[0.6875rem] font-semibold text-light-text-muted dark:text-text-muted">
+                / 100 pts
+              </span>
+            </p>
+            <span className={`text-[0.625rem] sm:text-[0.6875rem] font-bold block leading-tight mt-[0.125rem] ${elegivel !== false ? 'text-emerald-500' : 'text-rose-400'}`}>
+              {elegivel !== false ? 'Elegível à Premiação' : 'Abaixo da Meta'}
             </span>
           </div>
         )}
