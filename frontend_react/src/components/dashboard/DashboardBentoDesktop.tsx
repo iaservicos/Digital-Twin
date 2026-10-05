@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { toTitleCase, formatLocalEquipe } from '../../utils/stringFormatters';
-import { Search, Bell, CheckCircle2, XCircle } from 'lucide-react';
+import { Bell, CheckCircle2, XCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useDashboardCardsData } from '../../hooks/useDashboardCardsData';
 import {
@@ -63,7 +63,6 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
 
   const [slaMode, setSlaMode] = useState<'individual' | 'equipe'>('equipe');
   const [reincidenciaMode, setReincidenciaMode] = useState<'individual' | 'equipe'>('individual');
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>('');
 
   const percentualSla = displayMetricas.percentualSla || 0;
@@ -185,21 +184,8 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           </p>
         </div>
 
-        {/* Barra de Pesquisa, Filtro de Segmento e Ações */}
-        <div className="flex flex-wrap items-center gap-[0.5rem] sm:gap-[0.75rem] flex-1 md:justify-end">
-          <div className="w-full sm:flex-1 sm:max-w-[20rem] xl:max-w-[28rem] relative min-w-[180px]">
-            <Search
-              size={16}
-              className="absolute left-[0.875rem] top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none"
-            />
-            <input
-              type="text"
-              placeholder="Buscar chamado, métrica, indicador..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full glass-bento border rounded-full pl-[2.5rem] pr-[1rem] py-[0.5rem] text-[0.75rem] text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
-            />
-          </div>
+        {/* Filtro de Segmento e Ações */}
+        <div className="flex flex-wrap items-center gap-[0.5rem] sm:gap-[0.75rem] md:justify-end">
 
           {/* Segmento Filter Pill no cabeçalho se não for modo gestor (para técnico direto) */}
           {!isSupervisorOrAdmin && setSelectedSegmento && (

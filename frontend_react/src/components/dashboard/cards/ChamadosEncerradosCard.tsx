@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { BentoCard } from '../../ui/BentoCard';
 import { Calendar, ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
-import { format, subMonths, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
+import { format, subMonths, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addDays, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export interface ChamadosEncerradosCardProps {
@@ -30,28 +30,130 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
 
   const DIAS_SEMANA_ABREV = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 
-  // Exibe exatamente 5 dias com o dia atual sempre no centro (offsets: -2, -1, 0, +1, +2)
+  // Sincroniza o mês de exibição caso selectedDate seja alterado externamente
+  useEffect(() => {
+    if (selectedDate) {
+      try {
+        const d = new Date(`${selectedDate}T12:00:00`);
+        if (!isNaN(d.getTime())) {
+          setCurrentCalendarMonth((prev) => {
+            if (prev.getMonth() !== d.getMonth() || prev.getFullYear() !== d.getFullYear()) {
+              return d;
+            }
+            return prev;
+          });
+        }
+      } catch {
+        // ignora data inválida
+      }
+    }
+  }, [selectedDate]);
+
+  // Estrutura de todos os dias do mês ativo para o Pickup Roller horizontal
   const dayPills = useMemo(() => {
     const today = new Date();
     const todayStr = format(today, 'yyyy-MM-dd');
-    const pills = [];
-    const offsets = [-2, -1, 0, 1, 2];
+    const activeDateStr = selectedDate || todayStr;
 
-    for (const offset of offsets) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + offset);
+    const start = startOfMonth(currentCalendarMonth);
+    const end = endOfMonth(currentCalendarMonth);
+    const days = eachDayOfInterval({ start, end });
+
+    return days.map((d) => {
       const dStr = format(d, 'yyyy-MM-dd');
       const diaSemana = DIAS_SEMANA_ABREV[getDay(d)] || 'DIA';
       const diaNum = format(d, 'd');
       const count = chamadosData.atendimentosPorDia[dStr] || 0;
       const isToday = dStr === todayStr;
-      const isSelected = selectedDate ? dStr === selectedDate : isToday;
-      pills.push({ dStr, diaSemana, diaNum, count, isSelected, isToday });
-    }
-    return pills;
-  }, [selectedDate, chamadosData.atendimentosPorDia]);
+      const isSelected = dStr === activeDateStr;
+      return { dStr, diaSemana, diaNum, count, isSelected, isToday };
+    });
+  }, [selectedDate, currentCalendarMonth, chamadosData.atendimentosPorDia]);
 
-  // Estrutura do calendário mensal
+  // Refs para controle de rolagem e centralização do Pickup Roller
+  const rollerRef = useRef<HTMLDivElement>(null);
+  const pillRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const isMouseDown = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const hasDragged = useRef(false);
+
+  // Auto-centraliza a pílula do dia selecionado
+  const scrollToSelectedDate = (smooth = true) => {
+    const activeStr = selectedDate || format(new Date(), 'yyyy-MM-dd');
+    const el = pillRefs.current.get(activeStr);
+    const container = rollerRef.current;
+    if (el && container) {
+      const containerWidth = container.clientWidth;
+      const elLeft = el.offsetLeft;
+      const elWidth = el.clientWidth;
+      const targetScrollLeft = elLeft - containerWidth / 2 + elWidth / 2;
+      container.scrollTo({
+        left: Math.max(0, targetScrollLeft),
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    }
+  };
+
+  // Centraliza na montagem inicial e ao trocar de mês
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToSelectedDate(false);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [currentCalendarMonth]);
+
+  // Centraliza suavemente ao selecionar uma nova data
+  useEffect(() => {
+    scrollToSelectedDate(true);
+  }, [selectedDate]);
+
+  // Handlers para rolagem por arraste (mouse drag)
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    isMouseDown.current = true;
+    hasDragged.current = false;
+    startX.current = e.pageX - (rollerRef.current?.offsetLeft || 0);
+    scrollLeftStart.current = rollerRef.current?.scrollLeft || 0;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isMouseDown.current || !rollerRef.current) return;
+    const x = e.pageX - (rollerRef.current.offsetLeft || 0);
+    const walk = x - startX.current;
+    if (Math.abs(walk) > 4) {
+      hasDragged.current = true;
+    }
+    rollerRef.current.scrollLeft = scrollLeftStart.current - walk;
+  };
+
+  const handleMouseUp = () => {
+    isMouseDown.current = false;
+  };
+
+  const handleMouseLeave = () => {
+    isMouseDown.current = false;
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (rollerRef.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      rollerRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
+  // Navegação rápida de 1 dia para frente ou para trás
+  const handleStepDay = (step: -1 | 1) => {
+    const activeStr = selectedDate || format(new Date(), 'yyyy-MM-dd');
+    try {
+      const current = new Date(`${activeStr}T12:00:00`);
+      const nextDate = step === 1 ? addDays(current, 1) : subDays(current, 1);
+      const nextDateStr = format(nextDate, 'yyyy-MM-dd');
+      onSelectDate(nextDateStr);
+    } catch {
+      // fallback
+    }
+  };
+
+  // Estrutura do calendário mensal completo (Modo Mês)
   const monthDays = useMemo(() => {
     const start = startOfMonth(currentCalendarMonth);
     const end = endOfMonth(currentCalendarMonth);
@@ -106,12 +208,32 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
       {/* Miolo do Card: Alterna entre Pílulas Horizontais e Calendário Mensal */}
       <div className="my-auto py-[0.5rem] relative z-10 w-full">
         {!showMonthCalendar ? (
-          /* Modo 1: Pílulas Horizontais dos Dias com data do último atendimento */
+          /* Modo 1: Pickup Roller Horizontal de Dias com Auto-Centralização */
           <div className="space-y-[0.625rem]">
             <div className="flex items-center justify-between">
-              <span className="text-[0.6875rem] font-semibold text-light-text-muted dark:text-text-muted">
-                Atendimentos por dia
-              </span>
+              <div className="flex items-center gap-[0.375rem]">
+                <span className="text-[0.6875rem] font-semibold text-light-text-muted dark:text-text-muted">
+                  Atendimentos por dia
+                </span>
+                <div className="flex items-center gap-[0.125rem]">
+                  <button
+                    type="button"
+                    onClick={() => handleStepDay(-1)}
+                    className="w-[1.25rem] h-[1.25rem] rounded-full flex items-center justify-center text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main hover:bg-light-surface-elevated dark:hover:bg-surface-elevated transition-colors cursor-pointer"
+                    title="Dia anterior"
+                  >
+                    <ChevronLeft size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStepDay(1)}
+                    className="w-[1.25rem] h-[1.25rem] rounded-full flex items-center justify-center text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main hover:bg-light-surface-elevated dark:hover:bg-surface-elevated transition-colors cursor-pointer"
+                    title="Próximo dia"
+                  >
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowMonthCalendar(true)}
@@ -123,54 +245,76 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center justify-between gap-[0.375rem] sm:gap-[0.5rem] py-[0.25rem]">
-              {dayPills.map((pill) => (
-                <button
-                  key={pill.dStr}
-                  type="button"
-                  onClick={() => onSelectDate(pill.dStr)}
-                  className={`flex-1 flex flex-col items-center justify-center py-[0.4375rem] px-[0.25rem] sm:px-[0.375rem] rounded-[0.75rem] sm:rounded-[0.875rem] border transition-all cursor-pointer select-none group/btn ${
-                    pill.isSelected
-                      ? 'bg-primary text-slate-950 font-black shadow-lg shadow-primary/25 scale-[1.02] border-primary'
-                      : pill.isToday
-                        ? 'bg-primary/10 border-primary/40 text-primary hover:bg-primary/20 hover:border-primary'
-                        : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
-                  }`}
-                  title={pill.isToday ? 'Hoje' : undefined}
-                >
-                  <span
-                    className={`text-[0.5625rem] sm:text-[0.625rem] uppercase font-bold tracking-tight opacity-85 transition-colors ${
+            <div className="relative w-full">
+              {/* Contêiner de rolagem horizontal (Pickup Roller) */}
+              <div
+                ref={rollerRef}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+                onWheel={handleWheel}
+                className="flex items-center gap-[0.375rem] sm:gap-[0.5rem] overflow-x-auto scrollbar-hide py-[0.375rem] px-[calc(50%-1.875rem)] scroll-smooth select-none cursor-grab active:cursor-grabbing snap-x snap-mandatory"
+              >
+                {dayPills.map((pill) => (
+                  <button
+                    key={pill.dStr}
+                    ref={(el) => {
+                      if (el) pillRefs.current.set(pill.dStr, el);
+                      else pillRefs.current.delete(pill.dStr);
+                    }}
+                    type="button"
+                    onClick={() => {
+                      if (hasDragged.current) return;
+                      onSelectDate(pill.dStr);
+                    }}
+                    className={`shrink-0 w-[3.5rem] sm:w-[3.75rem] snap-center flex flex-col items-center justify-center py-[0.4375rem] px-[0.25rem] sm:px-[0.375rem] rounded-[0.75rem] sm:rounded-[0.875rem] border transition-all cursor-pointer select-none group/btn ${
                       pill.isSelected
-                        ? 'text-slate-950'
+                        ? 'bg-primary text-slate-950 font-black shadow-lg shadow-primary/25 scale-[1.04] border-primary'
                         : pill.isToday
-                          ? 'text-primary font-black'
-                          : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
+                          ? 'bg-primary/10 border-primary/40 text-primary hover:bg-primary/20 hover:border-primary'
+                          : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
                     }`}
+                    title={pill.isToday ? 'Hoje' : undefined}
                   >
-                    {pill.diaSemana}
-                  </span>
-                  <span
-                    className={`text-[0.9375rem] sm:text-[1.0625rem] font-black leading-tight mt-[0.125rem] transition-colors ${
-                      pill.isSelected
-                        ? 'text-slate-950'
-                        : pill.isToday
-                          ? 'text-primary'
-                          : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
-                    }`}
-                  >
-                    {pill.diaNum}
-                  </span>
-                  {pill.count > 0 ? (
                     <span
-                      className={`w-[0.3125rem] h-[0.3125rem] rounded-full mt-[0.1875rem] ${
-                        pill.isSelected ? 'bg-slate-950' : 'bg-primary'
+                      className={`text-[0.5625rem] sm:text-[0.625rem] uppercase font-bold tracking-tight opacity-85 transition-colors ${
+                        pill.isSelected
+                          ? 'text-slate-950'
+                          : pill.isToday
+                            ? 'text-primary font-black'
+                            : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
                       }`}
-                    />
-                  ) : (
-                    <span className="w-[0.3125rem] h-[0.3125rem] mt-[0.1875rem]" />
-                  )}
-                </button>
-              ))}
+                    >
+                      {pill.diaSemana}
+                    </span>
+                    <span
+                      className={`text-[0.9375rem] sm:text-[1.0625rem] font-black leading-tight mt-[0.125rem] transition-colors ${
+                        pill.isSelected
+                          ? 'text-slate-950'
+                          : pill.isToday
+                            ? 'text-primary'
+                            : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
+                      }`}
+                    >
+                      {pill.diaNum}
+                    </span>
+                    {pill.count > 0 ? (
+                      <span
+                        className={`w-[0.3125rem] h-[0.3125rem] rounded-full mt-[0.1875rem] ${
+                          pill.isSelected ? 'bg-slate-950' : 'bg-primary'
+                        }`}
+                      />
+                    ) : (
+                      <span className="w-[0.3125rem] h-[0.3125rem] mt-[0.1875rem]" />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Gradientes sutis nas bordas esquerda e direita para indicar continuidade de rolagem */}
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-[1.25rem] bg-gradient-to-r from-light-surface/90 dark:from-surface/90 to-transparent rounded-l-[0.875rem]" />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-[1.25rem] bg-gradient-to-l from-light-surface/90 dark:from-surface/90 to-transparent rounded-r-[0.875rem]" />
             </div>
           </div>
         ) : (

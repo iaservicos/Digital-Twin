@@ -29,12 +29,11 @@ import TecnicosManager from '../components/settings/TecnicosManager';
 import CampaignManager from '../components/settings/CampaignManager';
 import { useAuthStore } from '../store/authStore';
 import { useSyncStore, getPythonApiUrl, getPythonHeaders } from '../store/syncStore';
-import { useThemeStore } from '../store/themeStore';
 import { BentoCard } from '../components/ui/BentoCard';
 import { Button } from '../components/ui/Button';
 import { cn } from '../utils/cn';
 
-type TabType = 'UPLOADS' | 'TECNICOS' | 'CAMPANHA' | 'PREFERENCIAS';
+type TabType = 'UPLOADS' | 'TECNICOS' | 'CAMPANHA';
 type IngestMode = 'planilhas' | 'databricks';
 type SpreadSheetType = 'BaseDL' | 'Parts' | 'Reincidencia' | 'EncerradosRRC';
 type PeriodMode = 'BIMESTRE' | 'CUSTOM';
@@ -276,7 +275,6 @@ const UploadCard: React.FC<UploadCardProps> = ({
 export default function SettingsScreen() {
   const { token, user } = useAuthStore();
   const { tracker, triggerSync } = useSyncStore();
-  const { backgroundDistortion, toggleBackgroundDistortion } = useThemeStore();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const isModerador = user?.role === 'MODERADOR' || user?.cargo === 'Moderador';
@@ -294,7 +292,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     const tab = searchParams.get('tab') as TabType;
     const mode = searchParams.get('mode') as IngestMode;
-    if (tab && ['UPLOADS', 'TECNICOS', 'CAMPANHA', 'PREFERENCIAS'].includes(tab)) {
+    if (tab && ['UPLOADS', 'TECNICOS', 'CAMPANHA'].includes(tab)) {
       if (!isModerador && (tab === 'UPLOADS' || tab === 'CAMPANHA')) {
         setActiveTab('TECNICOS');
       } else {
@@ -521,7 +519,7 @@ export default function SettingsScreen() {
               {isModerador ? 'Painel do Moderador' : 'Painel de Gestão'}
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-light-text-main dark:text-text-main tracking-tight">
-              {isModerador ? 'Gestão Operacional & Ingestão' : 'Gestão de Colaboradores & Preferências'}
+              {isModerador ? 'Gestão Operacional & Ingestão' : 'Gestão de Colaboradores'}
             </h1>
             <p className="text-light-text-muted dark:text-text-muted text-xs sm:text-sm max-w-2xl">
               {isModerador
@@ -584,16 +582,6 @@ export default function SettingsScreen() {
               Gestão de Campanha
             </button>
           )}
-          <button
-            onClick={() => handleTabChange('PREFERENCIAS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === 'PREFERENCIAS'
-              ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
-              : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
-              }`}
-          >
-            <Sparkles size={16} />
-            Aparência
-          </button>
         </div>
       </BentoCard>
 
@@ -953,49 +941,6 @@ export default function SettingsScreen() {
         {activeTab === 'CAMPANHA' && isModerador && (
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
             <CampaignManager />
-          </div>
-        )}
-
-        {/* ABA PREFERÊNCIAS VISUAIS / APARÊNCIA */}
-        {activeTab === 'PREFERENCIAS' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
-            <BentoCard className="max-w-3xl">
-              <div className="flex items-start justify-between gap-6">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
-                      <Sparkles size={18} />
-                    </div>
-                    <h2 className="text-base font-bold text-light-text-main dark:text-text-main">
-                      Distorção Interativa no Fundo
-                    </h2>
-                  </div>
-                  <p className="text-xs text-light-text-secondary dark:text-text-muted leading-relaxed pl-9">
-                    Ativa a distorção elástica suave da malha no background conforme o movimento do cursor. Desative caso prefira um fundo estático ou queira economizar processamento e consumo de bateria.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={toggleBackgroundDistortion}
-                  className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer shrink-0 mt-2 ${backgroundDistortion ? 'bg-primary' : 'bg-light-borderStrong dark:bg-surface-hover'
-                    }`}
-                  title={backgroundDistortion ? 'Desativar distorção' : 'Ativar distorção'}
-                >
-                  <div
-                    className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${backgroundDistortion ? 'translate-x-6' : 'translate-x-0'
-                      }`}
-                  />
-                </button>
-              </div>
-
-              <div className="mt-5 pt-3.5 border-t border-light-border dark:border-border flex items-center justify-between text-xs">
-                <span className="text-light-text-muted dark:text-text-muted">Estado da animação:</span>
-                <span className={`font-bold ${backgroundDistortion ? 'text-emerald-500 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'}`}>
-                  {backgroundDistortion ? 'Ativado (Dinâmico)' : 'Desativado (Estático)'}
-                </span>
-              </div>
-            </BentoCard>
           </div>
         )}
       </div>

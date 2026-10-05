@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
-import { Pencil, Trash2, KeyRound, Plus, X, Search, Loader2, Users, UserPlus, ChevronDown, Check, ArrowRightLeft, Building2 } from 'lucide-react';
+import { Pencil, Trash2, KeyRound, Plus, X, Search, Loader2, Users, UserPlus, ChevronDown, Check, ArrowRightLeft, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toTitleCase } from '../../utils/stringFormatters';
 import { BentoCard } from '../ui/BentoCard';
 import { Button } from '../ui/Button';
+import { validatePassword, SENHA_PADRAO_SISTEMA } from '../../utils/passwordValidator';
 
 interface SupervisorOption {
   idSupervisor: number;
@@ -26,6 +27,8 @@ interface Tecnico {
   statusColaborador?: string;
   centroCusto?: string;
   codigoBaseAtp?: string;
+  email?: string;
+  celularCorporativo?: string;
   idSupervisor?: number;
   nomeSupervisor?: string;
   idSupervisorEmprestimo?: number;
@@ -40,6 +43,8 @@ export default function TecnicosManager() {
   const [supervisores, setSupervisores] = useState<SupervisorOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
   
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -47,9 +52,10 @@ export default function TecnicosManager() {
   const [selectedTecnico, setSelectedTecnico] = useState<Tecnico | null>(null);
   
   // Form state
-  const [primeiroNome, setPrimeiroNome] = useState('');
-  const [sobrenome, setSobrenome] = useState('');
+  const [nome, setNome] = useState('');
   const [matricula, setMatricula] = useState('');
+  const [email, setEmail] = useState('');
+  const [celularCorporativo, setCelularCorporativo] = useState('');
   const [ctBasesList, setCtBasesList] = useState<string[]>(['']);
   const [role, setRole] = useState('PADRAO');
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
@@ -99,7 +105,10 @@ export default function TecnicosManager() {
     setIsRoleDropdownOpen(false);
     if (tecnico) {
       setSelectedTecnico(tecnico);
+      setNome(tecnico.nomeCompleto || `${tecnico.primeiroNome || ''} ${tecnico.sobrenome || ''}`.trim());
       setMatricula(tecnico.matricula || '');
+      setEmail(tecnico.email || '');
+      setCelularCorporativo(tecnico.celularCorporativo || '');
       setRole(tecnico.role || 'PADRAO');
       setAtivo(tecnico.ativo ?? true);
       
@@ -109,19 +118,6 @@ export default function TecnicosManager() {
       setCodigoBaseAtp(tecnico.codigoBaseAtp || '');
       setIdSupervisorEmprestimo(tecnico.idSupervisorEmprestimo || '');
       setCodigoBaseAtpEmprestimo(tecnico.codigoBaseAtpEmprestimo || '');
-      
-      // Separar Primeiro Nome e Sobrenome
-      if (tecnico.primeiroNome) {
-        setPrimeiroNome(tecnico.primeiroNome);
-        setSobrenome(tecnico.sobrenome || '');
-      } else if (tecnico.nomeCompleto) {
-        const parts = tecnico.nomeCompleto.trim().split(' ');
-        setPrimeiroNome(parts[0] || '');
-        setSobrenome(parts.slice(1).join(' ') || '');
-      } else {
-        setPrimeiroNome('');
-        setSobrenome('');
-      }
 
       // CT Bases Lista
       if (tecnico.ctBases && tecnico.ctBases.length > 0) {
@@ -131,9 +127,10 @@ export default function TecnicosManager() {
       }
     } else {
       setSelectedTecnico(null);
-      setPrimeiroNome('');
-      setSobrenome('');
+      setNome('');
       setMatricula('');
+      setEmail('');
+      setCelularCorporativo('');
       setCtBasesList(['']);
       setRole('PADRAO');
       setAtivo(true);
@@ -202,16 +199,21 @@ export default function TecnicosManager() {
     setIsSubmitting(true);
     setError('');
 
-    const nomeCompletoFormatted = `${primeiroNome.trim()} ${sobrenome.trim()}`.trim();
-    const cleanCtBases = ctBasesList.map(b => b.trim()).filter(b => b.length > 0);
+    const nameTrimmed = nome.trim();
+    const parts = nameTrimmed.split(' ');
+    const pNome = parts[0] || '';
+    const sNome = parts.slice(1).join(' ') || '';
 
+    const cleanCtBases = ctBasesList.map(b => b.trim()).filter(b => b.length > 0);
     const isAtivoVal = ['Ativo', 'Férias', 'Emprestado'].includes(statusColaborador);
 
     const payload = {
-      primeiroNome: primeiroNome.trim(),
-      sobrenome: sobrenome.trim(),
-      nomeCompleto: nomeCompletoFormatted,
+      primeiroNome: pNome,
+      sobrenome: sNome,
+      nomeCompleto: nameTrimmed,
       matricula: matricula.trim(),
+      email: email.trim() || null,
+      celularCorporativo: celularCorporativo.trim() || null,
       ctBases: cleanCtBases,
       role: isModerador ? role : 'PADRAO',
       ativo: isAtivoVal,
@@ -228,9 +230,17 @@ export default function TecnicosManager() {
         await api.put(`/tecnicos/${selectedTecnico.idTecnico}`, payload);
       } else {
         // Create 
+        if (!autoPassword) {
+          const val = validatePassword(createPassword);
+          if (!val.isValid) {
+            setError(`Senha inicial inválida: ${val.errors[0]}`);
+            setIsSubmitting(false);
+            return;
+          }
+        }
         await api.post('/tecnicos', {
           ...payload,
-          senha: autoPassword ? 'brilha123' : createPassword 
+          senha: autoPassword ? SENHA_PADRAO_SISTEMA : createPassword 
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -248,6 +258,12 @@ export default function TecnicosManager() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTecnico || !newPassword) return;
+
+    const val = validatePassword(newPassword);
+    if (!val.isValid) {
+      setError(`Senha inválida: ${val.errors[0]}`);
+      return;
+    }
     
     setIsSubmitting(true);
     setError('');
@@ -316,9 +332,54 @@ export default function TecnicosManager() {
     t.matricula?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.primeiroNome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.sobrenome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.celularCorporativo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.centroCusto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.codigoBaseAtp?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Reset para a primeira página sempre que o termo de busca mudar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.ceil(filteredTecnicos.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredTecnicos.length);
+  const paginatedTecnicos = filteredTecnicos.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      
+      if (currentPage > 3) {
+        pages.push('ellipsis-start');
+      }
+      
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (currentPage < totalPages - 2) {
+        pages.push('ellipsis-end');
+      }
+      
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   return (
     <>
@@ -392,7 +453,7 @@ export default function TecnicosManager() {
                 </td>
               </tr>
             ) : (
-              filteredTecnicos.map(t => (
+              paginatedTecnicos.map(t => (
                 <tr key={t.idTecnico} className="hover:bg-primary/5 transition-colors">
                   <td className="px-4 py-3.5 font-medium text-light-text-main dark:text-text-main font-mono">{t.matricula || '-'}</td>
                   <td className="px-4 py-3.5 font-bold text-light-text-main dark:text-text-main">
@@ -465,6 +526,61 @@ export default function TecnicosManager() {
           </tbody>
         </table>
       </div>
+
+      {/* Paginação */}
+      {!loading && filteredTecnicos.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-light-text-muted dark:text-text-muted">
+          <p>
+            Exibindo <span className="font-bold text-light-text-main dark:text-text-main">{startIndex + 1}</span> a{' '}
+            <span className="font-bold text-light-text-main dark:text-text-main">{endIndex}</span> de{' '}
+            <span className="font-bold text-light-text-main dark:text-text-main">{filteredTecnicos.length}</span> usuários
+          </p>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-primary/50 hover:bg-primary/10 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                title="Página Anterior"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <div className="flex items-center gap-1">
+                {getPageNumbers().map((page, idx) => (
+                  typeof page === 'number' ? (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`min-w-8 h-8 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
+                        currentPage === page
+                          ? 'bg-primary text-black shadow-sm shadow-primary/30 border border-primary'
+                          : 'bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-primary/50 hover:bg-primary/10 hover:text-primary'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ) : (
+                    <span key={`ellipsis-${idx}`} className="px-1 text-light-text-muted dark:text-text-muted text-xs">
+                      •••
+                    </span>
+                  )
+                ))}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-primary/50 hover:bg-primary/10 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                title="Próxima Página"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </BentoCard>
 
     {/* MODAL CRIAR / EDITAR USUÁRIO */}
@@ -497,32 +613,20 @@ export default function TecnicosManager() {
           
           <form onSubmit={handleSave}>
             <div className="p-6 space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Primeiro Nome</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
-                    value={primeiroNome}
-                    onChange={e => setPrimeiroNome(e.target.value)}
-                    placeholder="Ex: João"
-                  />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Sobrenome</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
-                    value={sobrenome}
-                    onChange={e => setSobrenome(e.target.value)}
-                    placeholder="Ex: da Silva"
-                  />
-                </div>
+              {/* Campo Nome Unificado */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Nome</label>
+                <input 
+                  required
+                  type="text" 
+                  className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+                  value={nome}
+                  onChange={e => setNome(e.target.value)}
+                  placeholder="Ex: João da Silva"
+                />
               </div>
 
+              {/* Matrícula e Status */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Matrícula</label>
@@ -539,7 +643,7 @@ export default function TecnicosManager() {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
-                    Status do Colaborador
+                    Status
                   </label>
                   <select
                     value={statusColaborador}
@@ -555,11 +659,36 @@ export default function TecnicosManager() {
                 </div>
               </div>
 
-              {/* Localização Dupla: Centro de Custo + Código Base ATP */}
+              {/* Contatos: E-mail e Telefone / Celular */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">E-mail</label>
+                  <input 
+                    type="email" 
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Ex: joao.silva@positivo.com.br"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Telefone / Celular</label>
+                  <input 
+                    type="tel" 
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm font-mono text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+                    value={celularCorporativo}
+                    onChange={e => setCelularCorporativo(e.target.value)}
+                    placeholder="Ex: (11) 98765-4321"
+                  />
+                </div>
+              </div>
+
+              {/* Localização Dupla: Centro de Custo + Base ATP (Sem legendas redundantes) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-light-surface-elevated/40 dark:bg-white/5 border border-light-border dark:border-white/10">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                    <Building2 size={13} className="text-primary" /> Centro de Custo (Contábil)
+                    <Building2 size={13} className="text-primary" /> Centro de custo
                   </label>
                   <input 
                     type="text" 
@@ -568,12 +697,11 @@ export default function TecnicosManager() {
                     onChange={e => setCentroCusto(e.target.value)}
                     placeholder="Ex: 1145920"
                   />
-                  <p className="text-[10px] text-light-text-muted dark:text-text-muted">Código financeiro oficial da filial/RH</p>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                    <Building2 size={13} className="text-primary" /> Código Base ATP (CT Chamados)
+                    <Building2 size={13} className="text-primary" /> Base ATP
                   </label>
                   <input 
                     type="text" 
@@ -582,7 +710,6 @@ export default function TecnicosManager() {
                     onChange={e => setCodigoBaseAtp(e.target.value)}
                     placeholder="Ex: 2791040"
                   />
-                  <p className="text-[10px] text-light-text-muted dark:text-text-muted">Código do CT encontrado nos chamados</p>
                 </div>
               </div>
 
@@ -678,20 +805,23 @@ export default function TecnicosManager() {
                         className="w-4 h-4 rounded border-light-border dark:border-border text-primary accent-primary focus:ring-primary/30 bg-light-background dark:bg-surface-elevated cursor-pointer"
                       />
                       <span className="text-sm font-medium text-light-text-main dark:text-text-main">
-                        Gerar senha padrão automaticamente (brilha123)
+                        Gerar senha padrão automaticamente ({SENHA_PADRAO_SISTEMA})
                       </span>
                     </label>
                     
                     {!autoPassword && (
                       <div className="space-y-1.5 mt-3 animate-in fade-in slide-in-from-top-2">
-                        <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Senha Inicial</label>
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Senha Inicial</label>
+                          <span className="text-[11px] text-light-text-secondary dark:text-text-muted">Mínimo 8 dígitos (A-Z, a-z, 0-9, especial)</span>
+                        </div>
                         <input 
                           required={!autoPassword}
                           type="text" 
                           className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
                           value={createPassword}
                           onChange={e => setCreatePassword(e.target.value)}
-                          placeholder="Digite a senha..."
+                          placeholder={`Ex: ${SENHA_PADRAO_SISTEMA}`}
                         />
                       </div>
                     )}
@@ -829,14 +959,17 @@ export default function TecnicosManager() {
                 O usuário precisará utilizar essa senha no próximo login.
               </p>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Nova Senha Temporária</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Nova Senha Temporária</label>
+                  <span className="text-[11px] text-light-text-secondary dark:text-text-muted">Mín. 8 char (A-Z, a-z, 0-9, especial)</span>
+                </div>
                 <input 
                   required
                   type="text" 
                   className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all shadow-inner"
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
-                  placeholder="Ex: Temp@2025"
+                  placeholder={`Ex: ${SENHA_PADRAO_SISTEMA}`}
                 />
               </div>
               {error && <p className="text-sm text-rose-500 dark:text-rose-400 font-semibold">{error}</p>}

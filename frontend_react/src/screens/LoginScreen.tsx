@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import { jwtDecode } from 'jwt-decode';
 import { User, Lock, Eye, EyeOff, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { validatePassword, SENHA_PADRAO_SISTEMA } from '../utils/passwordValidator';
 import IntroSplashOverlay from '../components/common/IntroSplashOverlay';
 import MatrixBackground from '../components/common/MatrixBackground';
 
@@ -30,6 +31,15 @@ export default function LoginScreen() {
   const [showNovaSenha, setShowNovaSenha] = useState(false);
   const [trocaLoading, setTrocaLoading] = useState(false);
   const [trocaError, setTrocaError] = useState('');
+
+  const passwordValidation = useMemo(() => validatePassword(novaSenha), [novaSenha]);
+  const isDifferentFromDefault = Boolean(
+    novaSenha &&
+    novaSenha !== SENHA_PADRAO_SISTEMA &&
+    novaSenha !== 'Brilha123' &&
+    novaSenha !== 'brilha123'
+  );
+  const isMatching = Boolean(novaSenha && confirmaSenha && novaSenha === confirmaSenha);
 
   // Controle de reprodução da intro do vídeo BrilhaMaisV7.mp4 na abertura do site
   const [showIntro, setShowIntro] = useState(() => {
@@ -110,15 +120,15 @@ export default function LoginScreen() {
     if (!primeiroAcessoData) return;
 
     setTrocaError('');
-    if (novaSenha.length < 6) {
-      setTrocaError('A nova senha deve ter no mínimo 6 caracteres.');
+    if (!passwordValidation.isValid) {
+      setTrocaError(passwordValidation.errors[0] || 'A nova senha não atende aos requisitos mínimos.');
       return;
     }
-    if (novaSenha === 'Brilha123') {
-      setTrocaError('Por segurança, sua nova senha não pode ser igual à senha provisória Brilha123.');
+    if (!isDifferentFromDefault) {
+      setTrocaError('Por segurança, sua nova senha não pode ser igual à senha provisória inicial.');
       return;
     }
-    if (novaSenha !== confirmaSenha) {
+    if (!isMatching) {
       setTrocaError('As senhas digitadas não coincidem.');
       return;
     }
@@ -318,16 +328,34 @@ export default function LoginScreen() {
 
               {/* Dicas de validação */}
               <div className="bg-light-surface-elevated/40 dark:bg-white/5 rounded-xl p-3 border border-light-border/40 dark:border-white/5 text-[0.6875rem] space-y-1.5 text-light-text-muted dark:text-text-muted">
-                <div className={`flex items-center gap-1.5 ${novaSenha.length >= 6 ? 'text-emerald-500 font-semibold' : ''}`}>
-                  <CheckCircle2 size={13} className={novaSenha.length >= 6 ? 'text-emerald-500' : 'opacity-40'} />
-                  <span>Pelo menos 6 caracteres</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <div className={`flex items-center gap-1.5 ${passwordValidation.hasMinLength ? 'text-emerald-500 font-semibold' : ''}`}>
+                    <CheckCircle2 size={13} className={passwordValidation.hasMinLength ? 'text-emerald-500' : 'opacity-40'} />
+                    <span>Pelo menos 8 caracteres</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passwordValidation.hasUpperCase ? 'text-emerald-500 font-semibold' : ''}`}>
+                    <CheckCircle2 size={13} className={passwordValidation.hasUpperCase ? 'text-emerald-500' : 'opacity-40'} />
+                    <span>Letra maiúscula (A-Z)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passwordValidation.hasLowerCase ? 'text-emerald-500 font-semibold' : ''}`}>
+                    <CheckCircle2 size={13} className={passwordValidation.hasLowerCase ? 'text-emerald-500' : 'opacity-40'} />
+                    <span>Letra minúscula (a-z)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passwordValidation.hasNumber ? 'text-emerald-500 font-semibold' : ''}`}>
+                    <CheckCircle2 size={13} className={passwordValidation.hasNumber ? 'text-emerald-500' : 'opacity-40'} />
+                    <span>Número (0-9)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passwordValidation.hasSpecialChar ? 'text-emerald-500 font-semibold' : ''}`}>
+                    <CheckCircle2 size={13} className={passwordValidation.hasSpecialChar ? 'text-emerald-500' : 'opacity-40'} />
+                    <span>Caractere especial (!@#$...)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${isDifferentFromDefault ? 'text-emerald-500 font-semibold' : ''}`}>
+                    <CheckCircle2 size={13} className={isDifferentFromDefault ? 'text-emerald-500' : 'opacity-40'} />
+                    <span>Diferente da senha inicial</span>
+                  </div>
                 </div>
-                <div className={`flex items-center gap-1.5 ${novaSenha && novaSenha !== 'Brilha123' ? 'text-emerald-500 font-semibold' : ''}`}>
-                  <CheckCircle2 size={13} className={novaSenha && novaSenha !== 'Brilha123' ? 'text-emerald-500' : 'opacity-40'} />
-                  <span>Diferente da senha inicial (Brilha123)</span>
-                </div>
-                <div className={`flex items-center gap-1.5 ${novaSenha && novaSenha === confirmaSenha ? 'text-emerald-500 font-semibold' : ''}`}>
-                  <CheckCircle2 size={13} className={novaSenha && novaSenha === confirmaSenha ? 'text-emerald-500' : 'opacity-40'} />
+                <div className={`flex items-center gap-1.5 pt-1 border-t border-light-border/40 dark:border-white/5 ${isMatching ? 'text-emerald-500 font-semibold' : ''}`}>
+                  <CheckCircle2 size={13} className={isMatching ? 'text-emerald-500' : 'opacity-40'} />
                   <span>Senhas idênticas</span>
                 </div>
               </div>

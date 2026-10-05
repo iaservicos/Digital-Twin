@@ -3,7 +3,7 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from backend_python.core.database import get_db_cursor
-from backend_python.core.security import hash_password, get_current_user
+from backend_python.core.security import hash_password, get_current_user, validate_password_complexity, SENHA_PADRAO_SISTEMA
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Técnicos & Equipes"])
@@ -32,6 +32,7 @@ class TecnicoCreateRequest(BaseModel):
     role: Optional[str] = "PADRAO"
     cpf: Optional[str] = None
     email: Optional[str] = None
+    celularCorporativo: Optional[str] = None
     senha: Optional[str] = None
     ativo: Optional[bool] = True
     statusColaborador: Optional[str] = "Ativo"
@@ -56,6 +57,7 @@ class TecnicoUpdateRequest(BaseModel):
     idSupervisorEmprestimo: Optional[int] = None
     codigoBaseAtpEmprestimo: Optional[str] = None
     email: Optional[str] = None
+    celularCorporativo: Optional[str] = None
     ctBases: Optional[List[str]] = None
 
 class ResetSenhaRequest(BaseModel):
@@ -152,7 +154,11 @@ def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] =
     nome_completo = f"{primeiro_nome} {sobrenome}".strip() or (request.nomeCompleto.strip() if request.nomeCompleto else mat)
 
     # Senha inicial
-    raw_senha = request.senha.strip() if request.senha and request.senha.strip() else mat
+    if request.senha and request.senha.strip():
+        raw_senha = request.senha.strip()
+        validate_password_complexity(raw_senha)
+    else:
+        raw_senha = SENHA_PADRAO_SISTEMA
     senha_hash = hash_password(raw_senha)
     
     id_sup = request.idSupervisor
@@ -173,14 +179,15 @@ def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] =
         cur.execute("""
             INSERT INTO tb_tecnico (
                 matricula, nome_completo, primeiro_nome, sobrenome, cargo, id_supervisor, role, 
-                cpf, email, senha, ativo, status_colaborador, centro_custo, codigo_base_atp,
+                cpf, email, celular_corporativo, senha, ativo, status_colaborador, centro_custo, codigo_base_atp,
                 id_supervisor_emprestimo, codigo_base_atp_emprestimo, is_primeiro_acesso
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true)
             RETURNING id_tecnico;
         """, (
             mat, nome_completo, primeiro_nome, sobrenome, request.cargo or "Tecnico de Campo", id_sup, role_to_set, 
-            request.cpf, request.email, senha_hash, ativo_val, status_colab, 
+            request.cpf, request.email, request.celularCorporativo.strip() if request.celularCorporativo else None,
+            senha_hash, ativo_val, status_colab, 
             request.centroCusto.strip() if request.centroCusto else None,
             request.codigoBaseAtp.strip() if request.codigoBaseAtp else None,
             id_sup_emp, base_emp
@@ -278,7 +285,11 @@ def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user:
 
         if request.email is not None:
             updates.append("email = %s")
-            params.append(request.email)
+            params.append(request.email.strip() if request.email else None)
+
+        if request.celularCorporativo is not None:
+            updates.append("celular_corporativo = %s")
+            params.append(request.celularCorporativo.strip() if request.celularCorporativo else None)
 
         if updates:
             sql = f"UPDATE tb_tecnico SET {', '.join(updates)} WHERE id_tecnico = %s;"
@@ -308,11 +319,13 @@ def reset_senha(id_tecnico: int, request: Optional[ResetSenhaRequest] = None, cu
             raise HTTPException(status_code=404, detail="Técnico não encontrado.")
         
         if request and request.novaSenha and request.novaSenha.strip():
-            senha_hash = hash_password(request.novaSenha.strip())
+            nova_senha = request.novaSenha.strip()
+            validate_password_complexity(nova_senha)
+            senha_hash = hash_password(nova_senha)
             msg = "Senha redefinida com sucesso."
         else:
-            senha_hash = hash_password(t["matricula"])
-            msg = "Senha resetada para a matrícula com sucesso."
+            senha_hash = hash_password(SENHA_PADRAO_SISTEMA)
+            msg = f"Senha resetada para a senha padrão ({SENHA_PADRAO_SISTEMA}) com sucesso."
 
         cur.execute("UPDATE tb_tecnico SET senha = %s, is_primeiro_acesso = true WHERE id_tecnico = %s;", (senha_hash, id_tecnico))
         return {"message": msg}

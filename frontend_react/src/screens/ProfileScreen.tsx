@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { validatePassword } from '../utils/passwordValidator';
 import { 
   User, 
   Camera, 
@@ -262,8 +263,9 @@ export default function ProfileScreen() {
       return;
     }
 
-    if (novaSenha.length < 5) {
-      setSenhaFeedback({ tipo: 'erro', texto: 'A nova senha deve possuir no mínimo 5 caracteres.' });
+    const val = validatePassword(novaSenha);
+    if (!val.isValid) {
+      setSenhaFeedback({ tipo: 'erro', texto: val.errors[0] || 'A nova senha não atende aos requisitos mínimos.' });
       return;
     }
 
@@ -548,7 +550,7 @@ export default function ProfileScreen() {
                       required
                       value={novaSenha}
                       onChange={(e) => setNovaSenha(e.target.value)}
-                      placeholder="Mínimo de 5 caracteres"
+                      placeholder="Mínimo 8 caracteres (A-Z, a-z, 0-9, especial)"
                       className="w-full glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-5 pr-11 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner placeholder:text-light-text-muted dark:placeholder:text-text-muted/60"
                     />
                     <button

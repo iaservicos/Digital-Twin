@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Camera, Lock, CheckCircle2, UserCircle2, Search, Calendar, Sparkles } from 'lucide-react';
+import { validatePassword } from '../../utils/passwordValidator';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../services/api';
 import { useCampanhaStore } from '../../store/campanhaStore';
@@ -85,8 +86,9 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
       return;
     }
 
-    if (novaSenha.length < 6) {
-      setSenhaMensagem({ tipo: 'erro', texto: 'A senha deve ter no mínimo 6 caracteres.' });
+    const val = validatePassword(novaSenha);
+    if (!val.isValid) {
+      setSenhaMensagem({ tipo: 'erro', texto: val.errors[0] || 'A senha não atende aos requisitos mínimos.' });
       return;
     }
 
@@ -314,7 +316,7 @@ export default function ModalConfiguracoes({ isOpen, onClose }: ModalConfiguraco
                   value={novaSenha}
                   onChange={(e) => setNovaSenha(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-input-bg border border-light-border dark:border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-light-text-main dark:text-text-main text-sm transition-all"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres (A-Z, a-z, 0-9, especial)"
                 />
               </div>
 

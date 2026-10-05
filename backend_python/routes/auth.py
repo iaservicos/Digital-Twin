@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from backend_python.core import config
 from backend_python.core.database import get_db_cursor
-from backend_python.core.security import verify_password, hash_password, create_access_token, get_current_user
+from backend_python.core.security import verify_password, hash_password, create_access_token, get_current_user, validate_password_complexity
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Autenticação"])
@@ -169,8 +169,7 @@ def login(request: AuthRequest):
 @router.post("/auth/change-password")
 def change_password(request: ChangePasswordRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
     nova_senha = (request.novaSenha or "").strip()
-    if len(nova_senha) < 4:
-        raise HTTPException(status_code=400, detail="A nova senha deve ter no mínimo 4 caracteres.")
+    validate_password_complexity(nova_senha)
 
     matricula = (request.matricula or current_user.get("sub") or "").strip()
     if not matricula:
