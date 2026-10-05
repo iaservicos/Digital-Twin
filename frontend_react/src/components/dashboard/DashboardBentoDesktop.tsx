@@ -166,12 +166,17 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
     }
   }, [selectedDate]);
 
+  const perdasChartTotal = useMemo(
+    () => perdasChartData.reduce((acc, c) => acc + (c.value || 0), 0),
+    [perdasChartData]
+  );
+
   return (
     <div className="w-full space-y-[1.5rem]">
-      {/* 1. CABEÇALHO SUPERIOR (Desktop) */}
-      <header className="flex items-center justify-between gap-[1rem]">
+      {/* 1. CABEÇALHO SUPERIOR (Responsivo para Mobile, Tablet e Desktop) */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-[0.75rem] md:gap-[1rem]">
         <div>
-          <h2 className="text-[1.5rem] font-black text-light-text-main dark:text-text-main tracking-tight leading-tight">
+          <h2 className="text-[1.25rem] sm:text-[1.5rem] font-black text-light-text-main dark:text-text-main tracking-tight leading-tight">
             Dashboard de Performance
           </h2>
           <p className="text-[0.75rem] text-light-text-muted dark:text-text-muted font-medium">
@@ -180,56 +185,58 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           </p>
         </div>
 
-        {/* Barra de Pesquisa Central */}
-        <div className="flex-1 max-w-[28rem] relative">
-          <Search
-            size={16}
-            className="absolute left-[0.875rem] top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none"
-          />
-          <input
-            type="text"
-            placeholder="Buscar chamado, métrica, indicador..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full glass-bento border rounded-full pl-[2.5rem] pr-[1rem] py-[0.5rem] text-[0.75rem] text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
-          />
-        </div>
+        {/* Barra de Pesquisa, Filtro de Segmento e Ações */}
+        <div className="flex flex-wrap items-center gap-[0.5rem] sm:gap-[0.75rem] flex-1 md:justify-end">
+          <div className="w-full sm:flex-1 sm:max-w-[20rem] xl:max-w-[28rem] relative min-w-[180px]">
+            <Search
+              size={16}
+              className="absolute left-[0.875rem] top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder="Buscar chamado, métrica, indicador..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full glass-bento border rounded-full pl-[2.5rem] pr-[1rem] py-[0.5rem] text-[0.75rem] text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+            />
+          </div>
 
-        {/* Segmento Filter Pill no cabeçalho se não for modo gestor (para técnico direto) */}
-        {!isSupervisorOrAdmin && setSelectedSegmento && (
-          <SegmentoFilterPill
-            value={selectedSegmento}
-            onChange={setSelectedSegmento}
-          />
-        )}
-
-        {/* Ações à Direita: Botão de Elegibilidade + Notificações */}
-        <div className="flex items-center gap-[0.75rem]">
-          {displayMetricas.elegivel ? (
-            <button
-              onClick={onOpenElegivelModal}
-              className="flex items-center gap-[0.5rem] bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 px-[1rem] py-[0.5rem] rounded-full font-bold text-[0.75rem] transition-colors cursor-pointer shadow-sm shadow-emerald-500/10"
-            >
-              <CheckCircle2 size={15} />
-              <span>Elegível para Premiação</span>
-            </button>
-          ) : (
-            <button
-              onClick={onOpenInelegivelModal}
-              className="flex items-center gap-[0.5rem] bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20 px-[1rem] py-[0.5rem] rounded-full font-bold text-[0.75rem] transition-colors cursor-pointer shadow-sm shadow-red-500/10"
-            >
-              <XCircle size={15} />
-              <span>Não Elegível</span>
-            </button>
+          {/* Segmento Filter Pill no cabeçalho se não for modo gestor (para técnico direto) */}
+          {!isSupervisorOrAdmin && setSelectedSegmento && (
+            <SegmentoFilterPill
+              value={selectedSegmento}
+              onChange={setSelectedSegmento}
+            />
           )}
 
-          <button
-            className="relative p-[0.625rem] rounded-full glass-bento border text-light-text-muted dark:text-text-muted hover:text-primary hover:border-primary/50 transition-colors cursor-pointer"
-            title="Notificações"
-          >
-            <Bell size={18} />
-            <span className="absolute top-[0.375rem] right-[0.375rem] w-[0.5rem] h-[0.5rem] bg-primary rounded-full shadow-glow-primary-sm"></span>
-          </button>
+          {/* Ações à Direita: Botão de Elegibilidade + Notificações */}
+          <div className="flex items-center gap-[0.5rem] sm:gap-[0.75rem] shrink-0">
+            {displayMetricas.elegivel ? (
+              <button
+                onClick={onOpenElegivelModal}
+                className="flex items-center gap-[0.5rem] bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 px-[0.875rem] sm:px-[1rem] py-[0.5rem] rounded-full font-bold text-[0.75rem] transition-colors cursor-pointer shadow-sm shadow-emerald-500/10 whitespace-nowrap"
+              >
+                <CheckCircle2 size={15} />
+                <span>Elegível para Premiação</span>
+              </button>
+            ) : (
+              <button
+                onClick={onOpenInelegivelModal}
+                className="flex items-center gap-[0.5rem] bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20 px-[0.875rem] sm:px-[1rem] py-[0.5rem] rounded-full font-bold text-[0.75rem] transition-colors cursor-pointer shadow-sm shadow-red-500/10 whitespace-nowrap"
+              >
+                <XCircle size={15} />
+                <span>Não Elegível</span>
+              </button>
+            )}
+
+            <button
+              className="relative p-[0.625rem] rounded-full glass-bento border text-light-text-muted dark:text-text-muted hover:text-primary hover:border-primary/50 transition-colors cursor-pointer shrink-0"
+              title="Notificações"
+            >
+              <Bell size={18} />
+              <span className="absolute top-[0.375rem] right-[0.375rem] w-[0.5rem] h-[0.5rem] bg-primary rounded-full shadow-glow-primary-sm"></span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -237,11 +244,21 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-[1rem] sm:gap-[1.25rem] xl:gap-[1.5rem]">
         {/* CARD 1: SLA total / Operação */}
         <SlaTotalCard
-          slaTotal={slaSegmentosData.equipe?.total?.sla ?? slaSegmentosData.total?.sla ?? percentualSla}
+          slaTotal={
+            (slaSegmentosData.equipe?.total?.totalChamados ?? 0) > 0
+              ? (slaSegmentosData.equipe?.total?.sla ?? percentualSla)
+              : (slaSegmentosData.total?.totalChamados ?? 0) > 0
+                ? (slaSegmentosData.total?.sla ?? percentualSla)
+                : percentualSla
+          }
           slaGov={slaSegmentosData.equipe?.gov?.sla ?? slaSegmentosData.gov?.sla}
           slaCorp={slaSegmentosData.equipe?.corp?.sla ?? slaSegmentosData.corp?.sla}
           pontosSla={displayMetricas?.pontosSla}
-          slaIndividualTotal={slaSegmentosData.individual?.total?.sla}
+          slaIndividualTotal={
+            (slaSegmentosData.individual?.total?.totalChamados ?? 0) > 0
+              ? slaSegmentosData.individual?.total?.sla
+              : percentualSla
+          }
           slaIndividualGov={slaSegmentosData.individual?.gov?.sla}
           slaIndividualCorp={slaSegmentosData.individual?.corp?.sla}
           selectedSegmento={selectedSegmento}
@@ -277,7 +294,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
         {/* CARD 4: Perdas - Falha técnica */}
         <PerdasFalhaTecnicaCard
           percentualPerdidos={percentualPerdidos}
-          perdasQtd={selectedSegmento !== 'Total' ? perdasChartData.reduce((acc, c) => acc + (c.value || 0), 0) : displayMetricas.perdasQtd}
+          perdasQtd={selectedSegmento !== 'Total' || perdasChartTotal > 0 ? perdasChartTotal : displayMetricas.perdasQtd}
           pontosPerdidos={displayMetricas?.pontosPerdidos}
           chartData={perdasChartData}
           onOpenPerdasModal={onOpenPerdasModal}

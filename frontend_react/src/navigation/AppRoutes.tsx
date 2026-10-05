@@ -34,8 +34,20 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   // Verifica as roles se `allowedRoles` for fornecido
   if (allowedRoles && allowedRoles.length > 0) {
-    const userRole = useAuthStore.getState().user?.role || 'PADRAO';
-    if (!allowedRoles.includes(userRole)) {
+    const user = useAuthStore.getState().user;
+    const userRole = (user?.role || 'PADRAO').toUpperCase();
+    const userCargo = (user?.cargo || '').toLowerCase();
+
+    const isAllowed = allowedRoles.some((r) => {
+      const target = r.toUpperCase();
+      if (userRole === target || userRole.includes(target)) return true;
+      if (target === 'SUPERVISOR' && userCargo.includes('supervisor')) return true;
+      if ((target === 'ADMINISTRADOR' || target === 'ADMIN') && userCargo.includes('admin')) return true;
+      if (target === 'MODERADOR' && userCargo.includes('moderador')) return true;
+      return false;
+    });
+
+    if (!isAllowed) {
       return <Navigate to="/dashboard" replace />;
     }
   }
@@ -62,11 +74,12 @@ export default function AppRoutes() {
       {/* Rotas Privadas (Com o MainLayout) */}
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<DashboardScreen />} />
-        <Route path="/ranking" element={<RankingScreen />} />
+        {/* Ranking blindado: somente moderadores, administradores e supervisores */}
+        <Route path="/ranking" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR', 'SUPERVISOR', 'ADMIN']}><RankingScreen /></ProtectedRoute>} />
         <Route path="/profile" element={<ProfileScreen />} />
-        <Route path="/configuracoes" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR', 'SUPERVISOR']}><SettingsScreen /></ProtectedRoute>} />
+        <Route path="/configuracoes" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR', 'SUPERVISOR', 'ADMIN']}><SettingsScreen /></ProtectedRoute>} />
         {/* JSDoc: Administradores, Moderadores e Supervisores têm acesso à Supervisão */}
-        <Route path="/supervisao" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR', 'SUPERVISOR']}><AdminDashboardScreen /></ProtectedRoute>} />
+        <Route path="/supervisao" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR', 'SUPERVISOR', 'ADMIN']}><AdminDashboardScreen /></ProtectedRoute>} />
       </Route>
 
       {/* Redirecionamento padrão para rotas não encontradas */}

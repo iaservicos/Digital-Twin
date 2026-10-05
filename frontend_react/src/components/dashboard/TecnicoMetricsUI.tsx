@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
-import { Award, TrendingUp, CheckCircle2, Medal, XCircle, ShieldAlert } from 'lucide-react';
-import { CircularProgress } from '../ui/CircularProgress';
-import ChamadosHistoryCard from './ChamadosHistoryCard';
 import { ModalDetalhesPontuacao } from './ModalDetalhesPontuacao';
 import { ModalExplicacaoSla } from './ModalExplicacaoSla';
 import { ModalElegivel } from './ModalElegivel';
@@ -13,8 +10,6 @@ import ModalChamadosPerdas from './ModalChamadosPerdas';
 import ModalChamadosPecas from './ModalChamadosPecas';
 import { ModalHistoricoChamados } from './ModalHistoricoChamados';
 import { DashboardBentoDesktop } from './DashboardBentoDesktop';
-import { BentoCard } from '../ui/BentoCard';
-import { themeColors } from '../../../tailwind.config.js';
 import { SegmentoType } from '../common/SegmentoFilterPill';
 
 interface TecnicoMetricsUIProps {
@@ -48,7 +43,16 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   const [isHistoricoModalOpen, setIsHistoricoModalOpen] = useState(false);
   const [historicoInitialDate, setHistoricoInitialDate] = useState<string>('');
 
-  if (!displayMetricas) return null;
+  if (!displayMetricas) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+        <span className="mt-3 text-xs text-light-text-secondary dark:text-text-muted font-medium">
+          Carregando dados do técnico...
+        </span>
+      </div>
+    );
+  }
 
   const percentualConsumo = displayMetricas.percentualEficienciaPecas || 0;
   const percentualSla = displayMetricas.percentualSla || 0;
@@ -60,284 +64,27 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
 
   return (
     <div className="w-full">
-      {/* Visualização Mobile & Tablet (< lg): Preserva 100% da experiência atual */}
-      <div className="block lg:hidden space-y-6 pb-6 w-full">
-      {/* Header do Dashboard */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-light-text-main dark:text-text-main">Dashboard de Performance</h1>
-          <p className="text-sm text-light-text-muted dark:text-text-muted mt-1 font-medium">
-            {displayMetricas.tecnico || 'Técnico'}{displayMetricas.localEquipe ? ` - ${displayMetricas.localEquipe}` : ''}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          {displayMetricas.elegivel ? (
-            <button
-              onClick={() => setIsElegivelModalOpen(true)}
-              className="flex items-center space-x-2 bg-transparent border border-accent-emerald text-accent-emerald px-4 py-2 rounded-full font-medium text-sm hover:bg-accent-emerald/10 transition-colors cursor-pointer">
-              <CheckCircle2 size={16} />
-              <span>Elegível para Premiação</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsInelegivelModalOpen(true)}
-              className="flex items-center space-x-2 bg-transparent border border-status-danger text-status-danger px-4 py-2 rounded-full font-medium text-sm hover:bg-status-danger/10 transition-colors cursor-pointer">
-              <XCircle size={16} />
-              <span>Não Elegível</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Seletor de Mês em Pílula (Segmented Control) */}
-      {metricas?.historico && metricas.historico.length > 0 && (
-        <div className="flex justify-center mt-2 mb-8">
-          <div className="inline-flex bg-slate-100 dark:bg-background/80 p-1.5 rounded-full border border-light-borderStrong dark:border-border/50 shadow-inner overflow-x-auto max-w-full scrollbar-hide">
-            <button
-              key="campanha-inteira"
-              onClick={() => setSelectedMonth('Campanha Inteira')}
-              className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${
-                isCampanhaInteira
-                  ? 'bg-light-surface dark:bg-surface text-accent-teal shadow-md border border-light-borderStrong/50 dark:border-border transform scale-105'
-                  : 'text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover border border-transparent hover:border-light-borderHover dark:hover:border-borderHover'
-              }`}
-            >
-              Campanha Inteira
-            </button>
-            {metricas.historico
-              .filter((h: any) => h.mes !== 'Média Final')
-              .map((h: any, idx: number) => {
-                const labelMes = h.mes; // 'Julho', 'Agosto'
-                const isSelected = !isCampanhaInteira && (
-                  selLower === labelMes.toLowerCase() || 
-                  selLower === (h.mesReferencia || '').toLowerCase()
-                );
-                return (
-                  <button
-                    key={`${h.mes}-${h.mesReferencia || idx}`}
-                    onClick={() => setSelectedMonth(labelMes)}
-                    className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${
-                      isSelected
-                        ? 'bg-light-surface dark:bg-surface text-accent-teal shadow-md border border-light-borderStrong/50 dark:border-border transform scale-105'
-                        : 'text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover border border-transparent hover:border-light-borderHover dark:hover:border-borderHover'
-                    }`}
-                  >
-                    {labelMes}
-                  </button>
-                );
-              })}
-          </div>
-        </div>
-      )}
-
-      {/* Top Grid: Pontuação Total & Últimos Chamados */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <BentoCard
-          hoverable
-          onClick={() => setDetailsModalOpen(true)}
-          className="p-6 flex flex-col items-center justify-center text-center relative overflow-hidden group cursor-pointer min-h-[220px]"
-        >
-          <div className="absolute -right-6 -top-6 text-light-text-secondary/30 dark:text-light-text-secondary/20 transform group-hover:scale-110 transition-transform duration-500 pointer-events-none">
-            <Award size={120} />
-          </div>
-          <h3 className="text-xs md:text-sm font-bold text-light-text-secondary dark:text-slate-300 mb-2 z-10 uppercase tracking-widest">
-            Pontuação Total
-          </h3>
-          <div className="flex items-baseline justify-center gap-1 z-10 my-1">
-            <span className="text-6xl md:text-7xl font-black text-light-text-main dark:text-text-main tracking-tight">
-              {pontuacaoTotal}
-            </span>
-            <span className="text-lg md:text-xl text-light-text-muted font-bold">
-              /100
-            </span>
-          </div>
-          <div className="mt-3 bg-slate-100/80 dark:bg-slate-800/80 border border-light-borderStrong/40 dark:border-border/40 backdrop-blur px-4 py-1.5 rounded-full z-10 flex items-center justify-center gap-1.5 shadow-sm">
-            <TrendingUp size={14} className="text-accent-emerald" />
-            <span className="text-xs text-light-text-secondary dark:text-slate-200 font-medium">
-              Sua performance global
-            </span>
-          </div>
-        </BentoCard>
-
-        <div className="lg:col-span-2">
-          <ChamadosHistoryCard 
-            tecnicoId={displayMetricas.idTecnico || (displayMetricas as any).id || (user as any)?.idTecnico || (user as any)?.id || 0} 
-          />
-        </div>
-      </div>
-
-      {/* Grid Inferior: 6 KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* 1. Card SLA - INTERATIVO */}
-        <BentoCard 
-          hoverable
-          onClick={() => setIsSlaExplicacaoModalOpen(true)}
-          className="p-4 flex flex-col items-center text-center justify-center cursor-pointer group relative"
-          title="Clique para ver explicação e regras de pontuação do SLA"
-        >
-          <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-light-surface-elevated dark:bg-surface-elevated text-light-text-secondary dark:text-text-muted border border-light-border dark:border-border px-2 py-0.5 rounded-full mb-1 group-hover:bg-primary group-hover:text-light-surface dark:group-hover:text-surface transition-colors">
-              EQUIPE
-            </span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-primary transition-colors">
-              SLA
-            </h3>
-          </div>
-          <CircularProgress
-            value={percentualSla}
-            maxValue={100}
-            color={percentualSla < 90.0 ? themeColors.status.danger : (themeColors.brand.chart || themeColors.brand.primary)}
-            label={percentualSla.toFixed(1)}
-            isPercentage={true}
-          />
-          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-primary font-semibold group-hover:underline">
-            <span>Ver perdas</span>
-            <span className="text-[11px]">→</span>
-          </div>
-          <p className="text-[9px] text-light-text-muted dark:text-text-muted">Meta: ≥ 90%</p>
-        </BentoCard>
-
-        {/* 2. Card Reincidência (Equipe) - INTERATIVO */}
-        <BentoCard 
-          hoverable
-          onClick={() => setIsReincidentesModalOpen(true)}
-          className="p-4 flex flex-col items-center text-center justify-center cursor-pointer group relative"
-          title={isSupervisorOrAdmin ? "Clique para ver todas as reincidências da equipe/base" : "Clique para ver as reincidências da equipe"}
-        >
-          <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-light-surface-elevated dark:bg-surface-elevated text-light-text-secondary dark:text-text-muted border border-light-border dark:border-border px-2 py-0.5 rounded-full mb-1 group-hover:bg-primary group-hover:text-light-surface dark:group-hover:text-surface transition-colors">
-              EQUIPE
-            </span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-primary transition-colors">
-              Reincidência
-            </h3>
-          </div>
-          <CircularProgress
-            value={displayMetricas.percentualReincidenciaEquipe || 0}
-            maxValue={100}
-            color={(displayMetricas.percentualReincidenciaEquipe || 0) > 7.0 ? themeColors.status.danger : (themeColors.brand.chart || themeColors.brand.primary)}
-            label={(displayMetricas.percentualReincidenciaEquipe || 0).toFixed(1)}
-            isPercentage={true}
-          />
-          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-primary font-semibold group-hover:underline">
-            <span>Ver falhas</span>
-            <span className="text-[11px]">→</span>
-          </div>
-          <p className="text-[9px] text-light-text-muted dark:text-text-muted">Meta: &lt; 7%</p>
-        </BentoCard>
-
-        {/* 3. Card Reincidência (Individual) - INTERATIVO */}
-        <BentoCard 
-          hoverable
-          onClick={() => setIsReincidentesModalOpen(true)}
-          className="p-4 flex flex-col items-center text-center justify-center cursor-pointer group relative"
-          title={isSupervisorOrAdmin ? "Clique para ver todas as reincidências da equipe/base" : "Clique para ver suas reincidências e análise de falhas"}
-        >
-          <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-primary/10 text-primary border border-primary/30 px-2 py-0.5 rounded-full mb-1 group-hover:bg-primary group-hover:text-light-surface dark:group-hover:text-surface transition-colors">
-              INDIVIDUAL
-            </span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-primary transition-colors">
-              REINC. (IND)
-            </h3>
-          </div>
-          <CircularProgress
-            value={percentualReincidencia}
-            maxValue={100}
-            color={percentualReincidencia > 7.0 ? themeColors.status.danger : (themeColors.brand.chart || themeColors.brand.primary)}
-            label={percentualReincidencia.toFixed(1)}
-            isPercentage={true}
-          />
-          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-primary font-semibold group-hover:underline">
-            <span>Ver falhas</span>
-            <span className="text-[11px]">→</span>
-          </div>
-          <p className="text-[9px] text-light-text-muted dark:text-text-muted">Meta: ≤ 7.0%</p>
-        </BentoCard>
-
-        {/* 4. Card Perdas SLA - INTERATIVO */}
-        <BentoCard 
-          hoverable
-          onClick={() => setIsPerdasModalOpen(true)}
-          className="p-4 flex flex-col items-center text-center justify-center cursor-pointer group relative"
-          title={isSupervisorOrAdmin ? "Clique para ver todas as perdas da equipe/base" : "Clique para ver suas perdas por falhas de gestão / transferência"}
-        >
-          <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-light-surface-elevated dark:bg-surface-elevated text-light-text-secondary dark:text-text-muted border border-light-border dark:border-border px-2 py-0.5 rounded-full mb-1 group-hover:bg-primary group-hover:text-light-surface dark:group-hover:text-surface transition-colors">
-              EQUIPE
-            </span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-primary transition-colors">
-              Perdas
-            </h3>
-          </div>
-          <CircularProgress
-            value={displayMetricas.percentualPerdidos || 0}
-            maxValue={100}
-            color={(displayMetricas.percentualPerdidos || 0) > 1.0 ? themeColors.status.warning : (themeColors.brand.chart || themeColors.brand.primary)}
-            label={(displayMetricas.percentualPerdidos || 0).toFixed(1)}
-            isPercentage={true}
-          />
-          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-primary font-semibold group-hover:underline">
-            <span>Ver falhas</span>
-            <span className="text-[11px]">→</span>
-          </div>
-          <p className="text-[9px] text-light-text-muted dark:text-text-muted">Meta: ≤ 1%</p>
-        </BentoCard>
-
-        {/* 5. Card Peças - INTERATIVO */}
-        <BentoCard 
-          hoverable
-          onClick={() => setIsPecasModalOpen(true)}
-          className="p-4 flex flex-col items-center text-center justify-center cursor-pointer group relative"
-          title="Clique para ver o detalhamento de peças da campanha (Placa Mãe, SSD, HD/HDD e Tela LCD)"
-        >
-          <div className="flex flex-col items-center mb-2">
-            <span className="text-[10px] font-bold bg-primary/10 text-primary border border-primary/30 px-2 py-0.5 rounded-full mb-1 group-hover:bg-primary group-hover:text-light-surface dark:group-hover:text-surface transition-colors">
-              INDIVIDUAL
-            </span>
-            <h3 className="text-xs font-bold text-light-text-secondary dark:text-text-main uppercase tracking-wider group-hover:text-primary transition-colors">
-              Peças
-            </h3>
-          </div>
-          <CircularProgress
-            value={percentualConsumo}
-            maxValue={100}
-            color={percentualConsumo > 25.0 ? themeColors.status.danger : (themeColors.brand.chart || themeColors.brand.primary)}
-            label={percentualConsumo.toFixed(1)}
-            isPercentage={true}
-          />
-          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-primary font-semibold group-hover:underline">
-            <span>Ver peças</span>
-            <span className="text-[11px]">→</span>
-          </div>
-          <p className="text-[9px] text-light-text-muted dark:text-text-muted">Meta: ≤ 25%</p>
-        </BentoCard>
-      </div>
-      </div>
-
-      {/* Visualização Desktop (≥ lg): Bento Grid 3x2 com Sidebar e Header Integrados */}
-      <div className="hidden lg:block w-full">
-        <DashboardBentoDesktop 
-          metricas={metricas}
-          displayMetricas={displayMetricas}
-          selectedMonth={selectedMonth}
-          setSelectedMonth={setSelectedMonth}
-          selectedSegmento={selectedSegmento}
-          setSelectedSegmento={setSelectedSegmento}
-          onOpenDetailsModal={() => setDetailsModalOpen(true)}
-          onOpenSlaExplicacaoModal={() => setIsSlaExplicacaoModalOpen(true)}
-          onOpenSlaModal={() => setIsSlaModalOpen(true)}
-          onOpenReincidentesModal={() => setIsReincidentesModalOpen(true)}
-          onOpenPecasModal={() => setIsPecasModalOpen(true)}
-          onOpenPerdasModal={() => setIsPerdasModalOpen(true)}
-          onOpenHistoricoModal={(date?: string) => {
-            setHistoricoInitialDate(date || '');
-            setIsHistoricoModalOpen(true);
-          }}
-          onOpenElegivelModal={() => setIsElegivelModalOpen(true)}
-          onOpenInelegivelModal={() => setIsInelegivelModalOpen(true)}
-        />
-      </div>
+      {/* Bento Grid V2 Unificado e 100% Responsivo (Mobile, Tablet e Desktop) */}
+      <DashboardBentoDesktop 
+        metricas={metricas}
+        displayMetricas={displayMetricas}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        selectedSegmento={selectedSegmento}
+        setSelectedSegmento={setSelectedSegmento}
+        onOpenDetailsModal={() => setDetailsModalOpen(true)}
+        onOpenSlaExplicacaoModal={() => setIsSlaExplicacaoModalOpen(true)}
+        onOpenSlaModal={() => setIsSlaModalOpen(true)}
+        onOpenReincidentesModal={() => setIsReincidentesModalOpen(true)}
+        onOpenPecasModal={() => setIsPecasModalOpen(true)}
+        onOpenPerdasModal={() => setIsPerdasModalOpen(true)}
+        onOpenHistoricoModal={(date?: string) => {
+          setHistoricoInitialDate(date || '');
+          setIsHistoricoModalOpen(true);
+        }}
+        onOpenElegivelModal={() => setIsElegivelModalOpen(true)}
+        onOpenInelegivelModal={() => setIsInelegivelModalOpen(true)}
+      />
 
       {/* MODAL DE CHAMADOS REINCIDENTES COM ANÁLISE DE FALHAS */}
       <ModalChamadosReincidentes

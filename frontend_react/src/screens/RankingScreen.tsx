@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
 import { 
   Trophy, 
   Medal, 
@@ -10,9 +11,9 @@ import {
   User, 
   ChevronLeft, 
   ChevronRight, 
-  ArrowUpRight,
-  Sparkles,
-  Crown
+  ArrowUpRight, 
+  Sparkles, 
+  Crown 
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
@@ -21,10 +22,16 @@ import { BentoCard } from '../components/ui/BentoCard';
 
 export default function RankingScreen() {
   const { user } = useAuthStore();
-  const isAdmin = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador';
+  const isAdmin = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador' || ['ADMINISTRADOR', 'ADMIN'].includes((user?.role || '').toUpperCase());
   const isModerador = ['MODERADOR', 'ROLE_MODERADOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Moderador';
-  const isSupervisor = ['SUPERVISOR', 'ROLE_SUPERVISOR', 'ADMINISTRADOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Supervisor' || user?.cargo === 'Supervisor de Campo';
-  const canViewDetails = isAdmin || isModerador || isSupervisor;
+  const isSupervisor = ['SUPERVISOR', 'ROLE_SUPERVISOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Supervisor' || user?.cargo === 'Supervisor de Campo';
+  const canViewRanking = isAdmin || isModerador || isSupervisor;
+  const canViewDetails = canViewRanking;
+
+  // Se for técnico, redireciona imediatamente para o Dashboard pessoal
+  if (!canViewRanking) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const [rankingData, setRankingData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

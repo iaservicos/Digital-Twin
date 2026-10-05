@@ -33,14 +33,13 @@ export default function BottomNav() {
       ]
     : [
         { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/ranking', icon: Trophy, label: 'Ranking' },
         { path: '/profile', icon: User, label: 'Perfil' }
       ];
 
   return (
     <>
       <nav className="block lg:hidden fixed bottom-0 left-0 right-0 bg-light-surface/95 dark:bg-background/95 backdrop-blur-md border-t border-light-borderStrong dark:border-border pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_16px_rgba(0,0,0,0.35)] z-40 transition-colors">
-        <div className={`grid ${isGestor ? 'grid-cols-5' : 'grid-cols-3'} items-center w-full max-w-lg mx-auto px-1 pt-1.5 pb-1`}>
+        <div className={`grid ${isGestor ? 'grid-cols-5' : 'grid-cols-2'} items-center w-full max-w-lg mx-auto px-1 pt-1.5 pb-1`}>
           {navItems.map((item, idx) => {
             const isActive = item.path ? location.pathname === item.path : false;
             const Icon = item.icon;

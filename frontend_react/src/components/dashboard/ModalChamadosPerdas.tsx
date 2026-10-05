@@ -41,6 +41,7 @@ interface ModalChamadosPerdasProps {
   tecnicoNome?: string;
   selectedMonth?: string;
   percentualPerdidos?: number;
+  equipe?: string;
 }
 
 
@@ -133,7 +134,8 @@ export default function ModalChamadosPerdas({
   tecnicoId,
   tecnicoNome = 'Técnico',
   selectedMonth,
-  percentualPerdidos = 0
+  percentualPerdidos = 0,
+  equipe
 }: ModalChamadosPerdasProps) {
   const [chamados, setChamados] = useState<ChamadoPerda[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -143,13 +145,23 @@ export default function ModalChamadosPerdas({
   const [expandedChamado, setExpandedChamado] = useState<string | null>(null);
   
   // Para supervisores/moderadores: alternador entre ver apenas o técnico atual ou toda a base
-  const [visaoFiltro, setVisaoFiltro] = useState<'INDIVIDUAL' | 'BASE'>('INDIVIDUAL');
+  const [visaoFiltro, setVisaoFiltro] = useState<'INDIVIDUAL' | 'BASE'>(
+    tecnicoId === 0 || !tecnicoId ? 'BASE' : 'INDIVIDUAL'
+  );
+
+  useEffect(() => {
+    if (tecnicoId === 0 || !tecnicoId) {
+      setVisaoFiltro('BASE');
+    } else {
+      setVisaoFiltro('INDIVIDUAL');
+    }
+  }, [tecnicoId]);
   
   const { user } = useAuthStore();
   const isSupervisorOrAdmin = user?.role === 'SUPERVISOR' || user?.role === 'MODERADOR' || user?.role === 'ADMINISTRADOR' || user?.cargo === 'Administrador' || user?.cargo === 'Super Administrador';
 
   useEffect(() => {
-    if (!isOpen || !tecnicoId) return;
+    if (!isOpen || tecnicoId === undefined || tecnicoId === null) return;
 
     const fetchChamadosPerdas = async () => {
       setLoading(true);
@@ -158,6 +170,9 @@ export default function ModalChamadosPerdas({
         const params: Record<string, string> = {};
         if (selectedMonth && selectedMonth !== 'Campanha Inteira' && selectedMonth !== 'Média Final') {
           params.mesAno = selectedMonth;
+        }
+        if (equipe) {
+          params.equipe = equipe;
         }
         const res = await api.get(`/dashboard/tecnico/${tecnicoId}/perdas`, { params });
         setChamados(res.data || []);
@@ -170,20 +185,25 @@ export default function ModalChamadosPerdas({
     };
 
     fetchChamadosPerdas();
-  }, [isOpen, tecnicoId, selectedMonth]);
+  }, [isOpen, tecnicoId, selectedMonth, equipe]);
 
   // Se a visão for individual, filtra somente pelo nome do técnico atual
   const chamadosEscopo = useMemo(() => {
+    if (tecnicoId === 0 || visaoFiltro === 'BASE') {
+      return chamados;
+    }
     if (!isSupervisorOrAdmin || visaoFiltro === 'INDIVIDUAL') {
       const nomeAlvo = (tecnicoNome || user?.nomeCompleto || '').trim().toLowerCase();
-      if (!nomeAlvo) return chamados;
+      if (!nomeAlvo || nomeAlvo.includes('operação') || nomeAlvo.includes('supervisão') || nomeAlvo === 'todas as bases') {
+        return chamados;
+      }
       return chamados.filter(c => {
         const tec = (c.tecnicoNome || '').trim().toLowerCase();
         return tec === nomeAlvo || tec.includes(nomeAlvo) || nomeAlvo.includes(tec);
       });
     }
     return chamados;
-  }, [chamados, isSupervisorOrAdmin, visaoFiltro, tecnicoNome, user]);
+  }, [chamados, isSupervisorOrAdmin, visaoFiltro, tecnicoNome, user, tecnicoId]);
 
   // Contadores por classificação do escopo atual
   const stats = useMemo(() => {
@@ -291,7 +311,9 @@ export default function ModalChamadosPerdas({
             </span>
             <div className="mt-1 flex items-baseline gap-2">
               <span className={`text-2xl font-black ${percentualPerdidos <= 1.0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                {percentualPerdidos.toFixed(1)}%
+                {percentualPerdidos < 1 && percentualPerdidos > 0 
+                  ? percentualPerdidos.toFixed(2) 
+                  : percentualPerdidos.toFixed(1)}%
               </span>
               <span className="text-[11px] text-light-text-muted dark:text-text-muted font-medium">
                 {percentualPerdidos <= 1.0 ? '✓ Dentro da Meta' : '⚠ Acima da Meta'}

@@ -7,19 +7,42 @@ export function useTecnicoMetrics(
   selectedMonth: string
 ) {
   const metricas = useMemo(() => {
-    if (!selectedTecnicoIdentifier || selectedTecnicoIdentifier === 'all') return null;
+    if (!selectedTecnicoIdentifier || selectedTecnicoIdentifier === 'all') {
+      if (rankingOriginal.length > 0) {
+        return rankingOriginal[0];
+      }
+      return null;
+    }
     
-    const tecnicoInfo = tecnicosVisiveis.find(t => 
-        (t.matricula && t.matricula === selectedTecnicoIdentifier) || 
+    const selUpper = String(selectedTecnicoIdentifier || '').trim().toUpperCase();
+
+    let tecnicoInfo = tecnicosVisiveis.find(t => 
+        (t.matricula && String(t.matricula).trim().toUpperCase() === selUpper) || 
         t.idTecnico?.toString() === selectedTecnicoIdentifier
     );
-    if (!tecnicoInfo) return null;
+
+    // Fallback: se houver técnicos visíveis
+    if (!tecnicoInfo && tecnicosVisiveis.length > 0) {
+      tecnicoInfo = tecnicosVisiveis[0];
+    }
+
+    if (!tecnicoInfo) {
+      if (rankingOriginal.length > 0) {
+        return rankingOriginal[0];
+      }
+      return null;
+    }
     
-    const rankingData = rankingOriginal.find(r => 
-        (r.matricula && String(r.matricula) === selectedTecnicoIdentifier) || 
+    let rankingData = rankingOriginal.find(r => 
+        (r.matricula && String(r.matricula).trim().toUpperCase() === selUpper) || 
         (r.idTecnico && String(r.idTecnico) === selectedTecnicoIdentifier) ||
-        (r.tecnico && String(r.tecnico).toUpperCase() === String(tecnicoInfo.nomeCompleto).toUpperCase())
+        (r.tecnico && String(r.tecnico).trim().toUpperCase() === String(tecnicoInfo.nomeCompleto).trim().toUpperCase())
     );
+
+    // Fallback: se houver dados no ranking mas não deu match exato de string
+    if (!rankingData && rankingOriginal.length > 0) {
+      rankingData = rankingOriginal[0];
+    }
     
     if (!rankingData) {
       return {
@@ -46,17 +69,18 @@ export function useTecnicoMetrics(
   }, [tecnicosVisiveis, selectedTecnicoIdentifier, rankingOriginal]);
 
   const displayMetricas = useMemo(() => {
-    if (!metricas) return null;
+    const baseMetricas = metricas || (rankingOriginal.length > 0 ? rankingOriginal[0] : null);
+    if (!baseMetricas) return null;
     
     const sel = (selectedMonth || '').trim().toLowerCase();
     
     // Se for Campanha Inteira / Média Final / Vazio -> Retorna a Média Consolidada da Campanha
     if (!sel || sel === 'média final' || sel === 'campanha inteira' || sel === 'campanha' || sel.includes('final')) {
-      return metricas;
+      return baseMetricas;
     }
     
     // Busca no histórico do técnico pelo mês selecionado
-    const monthData = metricas.historico?.find((h: any) => {
+    const monthData = baseMetricas.historico?.find((h: any) => {
       const hMes = (h.mes || '').trim().toLowerCase();
       const hRef = (h.mesReferencia || '').trim().toLowerCase();
       
@@ -75,24 +99,24 @@ export function useTecnicoMetrics(
       return hMes === sel || hRef === sel || hMes.includes(sel) || hRef.includes(sel);
     });
 
-    if (!monthData) return metricas;
+    if (!monthData) return baseMetricas;
 
     return { 
-      ...metricas, 
+      ...baseMetricas, 
       ...monthData,
-      pontosTotal: monthData.pontosTotal !== undefined ? monthData.pontosTotal : metricas.pontosTotal,
-      percentualSla: monthData.percentualSla !== undefined ? monthData.percentualSla : metricas.percentualSla,
-      pontosSla: monthData.pontosSla !== undefined ? monthData.pontosSla : metricas.pontosSla,
-      percentualReincidencia: monthData.percentualReincidencia !== undefined ? monthData.percentualReincidencia : metricas.percentualReincidencia,
-      pontosReincidencia: monthData.pontosReincidencia !== undefined ? monthData.pontosReincidencia : metricas.pontosReincidencia,
-      percentualEficienciaPecas: monthData.percentualEficienciaPecas !== undefined ? monthData.percentualEficienciaPecas : metricas.percentualEficienciaPecas,
-      pontosPecas: monthData.pontosPecas !== undefined ? monthData.pontosPecas : metricas.pontosPecas,
-      percentualPerdidos: monthData.percentualPerdidos !== undefined ? monthData.percentualPerdidos : metricas.percentualPerdidos,
-      pontosPerdidos: monthData.pontosPerdidos !== undefined ? monthData.pontosPerdidos : metricas.pontosPerdidos,
-      elegivel: monthData.elegivel !== undefined ? monthData.elegivel : metricas.elegivel,
-      motivoInelegibilidade: monthData.motivoInelegibilidade || metricas.motivoInelegibilidade
+      pontosTotal: monthData.pontosTotal !== undefined ? monthData.pontosTotal : baseMetricas.pontosTotal,
+      percentualSla: monthData.percentualSla !== undefined ? monthData.percentualSla : baseMetricas.percentualSla,
+      pontosSla: monthData.pontosSla !== undefined ? monthData.pontosSla : baseMetricas.pontosSla,
+      percentualReincidencia: monthData.percentualReincidencia !== undefined ? monthData.percentualReincidencia : baseMetricas.percentualReincidencia,
+      pontosReincidencia: monthData.pontosReincidencia !== undefined ? monthData.pontosReincidencia : baseMetricas.pontosReincidencia,
+      percentualEficienciaPecas: monthData.percentualEficienciaPecas !== undefined ? monthData.percentualEficienciaPecas : baseMetricas.percentualEficienciaPecas,
+      pontosPecas: monthData.pontosPecas !== undefined ? monthData.pontosPecas : baseMetricas.pontosPecas,
+      percentualPerdidos: monthData.percentualPerdidos !== undefined ? monthData.percentualPerdidos : baseMetricas.percentualPerdidos,
+      pontosPerdidos: monthData.pontosPerdidos !== undefined ? monthData.pontosPerdidos : baseMetricas.pontosPerdidos,
+      elegivel: monthData.elegivel !== undefined ? monthData.elegivel : baseMetricas.elegivel,
+      motivoInelegibilidade: monthData.motivoInelegibilidade || baseMetricas.motivoInelegibilidade
     };
-  }, [metricas, selectedMonth]);
+  }, [metricas, selectedMonth, rankingOriginal]);
 
-  return { metricas, displayMetricas };
+  return { metricas: metricas || (rankingOriginal.length > 0 ? rankingOriginal[0] : null), displayMetricas };
 }

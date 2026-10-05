@@ -66,11 +66,13 @@ export const PerdasFalhaTecnicaCard: React.FC<PerdasFalhaTecnicaCardProps> = ({
       <div className="pt-[0.375rem]">
         <div className="flex items-baseline gap-[0.375rem] sm:gap-[0.5rem] flex-wrap">
           <p className="text-[1.625rem] sm:text-[1.875rem] 2xl:text-[2.25rem] font-black text-light-text-main dark:text-text-main tracking-tight leading-none">
-            {percentualPerdidos.toFixed(1)}%
+            {percentualPerdidos < 1 && percentualPerdidos > 0 
+              ? percentualPerdidos.toFixed(2) 
+              : percentualPerdidos.toFixed(1)}%
           </p>
           {perdasQtd !== undefined && (
             <span className="text-[0.6875rem] sm:text-[0.75rem] text-light-text-muted dark:text-text-muted font-semibold">
-              ({perdasQtd} ocorrências)
+              ({perdasQtd} {perdasQtd === 1 ? 'ocorrência' : 'ocorrências'})
             </span>
           )}
         </div>
@@ -92,9 +94,11 @@ export const PerdasFalhaTecnicaCard: React.FC<PerdasFalhaTecnicaCardProps> = ({
         <div className="flex items-center gap-[0.375rem] min-w-0">
           <span
             className={`w-[0.5rem] h-[0.5rem] rounded-full shrink-0 ${
-              pontosCalculados > 0
+              percentualPerdidos <= 1.0
                 ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]'
-                : 'bg-amber-400 shadow-[0_0_6px_#fbbf24]'
+                : percentualPerdidos <= 2.0
+                ? 'bg-amber-400 shadow-[0_0_6px_#fbbf24]'
+                : 'bg-rose-500 shadow-[0_0_6px_#f43f5e]'
             }`}
           ></span>
           <span
@@ -107,7 +111,7 @@ export const PerdasFalhaTecnicaCard: React.FC<PerdasFalhaTecnicaCardProps> = ({
             }`}
           >
             {percentualPerdidos === 0
-              ? '✨ Zero perdas na equipe'
+              ? '✨ Zero perdas'
               : percentualPerdidos <= 1.0
               ? 'Meta Atingida (≤ 1,0%)'
               : percentualPerdidos <= 2.0
@@ -117,7 +121,11 @@ export const PerdasFalhaTecnicaCard: React.FC<PerdasFalhaTecnicaCardProps> = ({
         </div>
         <span
           className={`font-black shrink-0 ${
-            pontosCalculados > 0 ? 'text-primary' : 'text-amber-500 dark:text-amber-400'
+            pontosCalculados >= 21.0
+              ? 'text-primary'
+              : pontosCalculados > 0
+              ? 'text-amber-500 dark:text-amber-400'
+              : 'text-rose-500 dark:text-rose-400'
           }`}
         >
           {pontosCalculados.toFixed(1)} / 21,0 pts

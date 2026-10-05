@@ -8,10 +8,8 @@ import {
   User,
   Sun,
   Moon,
-  LogOut,
-  ArrowUpRight
+  LogOut
 } from 'lucide-react';
-import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
 import { toTitleCase } from '../../utils/stringFormatters';
@@ -22,40 +20,10 @@ export const DesktopSidebar: React.FC = () => {
   const { user, logout } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
 
-  const isAdmin = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador';
-  const isModerador = user?.role === 'MODERADOR';
-  const isSupervisor = user?.role === 'ADMINISTRADOR' || user?.role === 'SUPERVISOR';
-  const isTecnico = !isAdmin && !isModerador && !isSupervisor;
-
-  const [tecnicoRank, setTecnicoRank] = React.useState<{ posicao: number | string; pontos: number | null }>({
-    posicao: '--',
-    pontos: null
-  });
-
-  React.useEffect(() => {
-    if (!isTecnico || !user?.matricula) return;
-    let mounted = true;
-
-    api.get('/dashboard/ranking').then(res => {
-      if (mounted && res.data) {
-        const normalize = (str: string) => str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() : '';
-        const match = res.data.find((r: any) =>
-          (r.matricula && String(r.matricula) === String(user.matricula)) ||
-          (r.tecnico && user.nomeCompleto && normalize(r.tecnico) === normalize(user.nomeCompleto))
-        );
-        if (match) {
-          setTecnicoRank({
-            posicao: match.posicaoRanking,
-            pontos: match.pontosTotal
-          });
-        }
-      }
-    }).catch(err => {
-      console.warn('Erro ao carregar ranking do técnico na sidebar:', err);
-    });
-
-    return () => { mounted = false; };
-  }, [isTecnico, user?.matricula, user?.nomeCompleto]);
+  const isAdmin = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador' || ['ADMINISTRADOR', 'ADMIN'].includes((user?.role || '').toUpperCase());
+  const isModerador = ['MODERADOR', 'ROLE_MODERADOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Moderador';
+  const isSupervisor = ['SUPERVISOR', 'ROLE_SUPERVISOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Supervisor' || user?.cargo === 'Supervisor de Campo';
+  const isGestor = isAdmin || isModerador || isSupervisor;
 
   const handleLogout = async () => {
     await logout();
@@ -128,17 +96,19 @@ export const DesktopSidebar: React.FC = () => {
             <span>Dashboard</span>
           </button>
 
-          {/* Ranking */}
-          <button
-            onClick={() => navigate('/ranking')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${location.pathname === '/ranking'
-              ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-              : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
-              }`}
-          >
-            <Trophy size={18} className={location.pathname === '/ranking' ? 'text-primary' : 'text-light-text-muted dark:text-text-muted'} />
-            <span>Ranking</span>
-          </button>
+          {/* Ranking (Somente Supervisores, Moderadores e Administradores) */}
+          {isGestor && (
+            <button
+              onClick={() => navigate('/ranking')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${location.pathname === '/ranking'
+                ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/10'
+                : 'text-light-text-secondary dark:text-text-muted hover:text-primary hover:bg-light-surface-hover dark:hover:bg-surface-hover'
+                }`}
+            >
+              <Trophy size={18} className={location.pathname === '/ranking' ? 'text-primary' : 'text-light-text-muted dark:text-text-muted'} />
+              <span>Ranking</span>
+            </button>
+          )}
 
           {/* Supervisão (se Moderador ou Supervisor) */}
           {(isAdmin || isModerador || isSupervisor) && (
@@ -179,35 +149,6 @@ export const DesktopSidebar: React.FC = () => {
             <User size={18} className={location.pathname === '/profile' ? 'text-primary' : 'text-light-text-muted dark:text-text-muted'} />
             <span>Perfil</span>
           </button>
-
-          {/* Widget da Posição do Técnico Logado (Abaixo do botão Perfil) */}
-          {isTecnico && (
-            <div
-              onClick={() => navigate('/ranking')}
-              className="mt-3 p-3 rounded-2xl bg-primary/10 border border-primary/30 hover:border-primary/60 transition-all cursor-pointer group shadow-sm"
-              title="Clique para ver o Ranking completo"
-            >
-              <div className="flex items-center justify-between text-[10px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider mb-1">
-                <span className="flex items-center gap-1.5 text-primary">
-                  <Trophy size={13} className="text-amber-400" />
-                  Sua Posição
-                </span>
-                <span className="text-[10px] text-primary group-hover:underline flex items-center gap-0.5">
-                  Ver <ArrowUpRight size={11} />
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between mt-0.5">
-                <span className="text-lg font-black text-light-text-main dark:text-text-main tracking-tight">
-                  {tecnicoRank.posicao !== '--' ? `${tecnicoRank.posicao}º Lugar` : '--'}
-                </span>
-                {tecnicoRank.pontos !== null && (
-                  <span className="text-xs font-bold text-primary">
-                    {tecnicoRank.pontos.toFixed(1)} <span className="text-[10px] text-light-text-muted dark:text-text-muted font-normal">pts</span>
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
         </nav>
       </div>
 

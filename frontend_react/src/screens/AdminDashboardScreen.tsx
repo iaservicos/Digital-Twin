@@ -863,10 +863,11 @@ export default function AdminDashboardScreen() {
       <ModalChamadosPerdas
         isOpen={isPerdasModalOpen}
         onClose={() => setIsPerdasModalOpen(false)}
-        tecnicoId={primeiroTecnicoId}
-        tecnicoNome={escopoNomeOperacao}
+        tecnicoId={selectedTecnicoIdentifier !== 'all' ? Number(selectedTecnicoIdentifier) : 0}
+        tecnicoNome={selectedTecnicoIdentifier !== 'all' ? (selectedTecnicoObj?.nomeCompleto || 'Técnico') : escopoNomeOperacao}
         selectedMonth={selectedMonth}
-        percentualPerdidos={teamSummary?.perdasMedia || 0}
+        percentualPerdidos={selectedTecnicoIdentifier !== 'all' ? (displayMetricas?.percentualPerdidos || 0) : (teamSummary?.perdasMedia || 0)}
+        equipe={selectedEquipe !== 'all' ? selectedEquipe : undefined}
       />
 
       <ModalChamadosReincidentes

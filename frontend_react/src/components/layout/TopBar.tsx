@@ -29,8 +29,9 @@ export default function TopBar() {
       try {
         const res = await api.get('/campanha/todas');
         setCampanhas(res.data);
-        // Só define a ativa se não houver nenhuma campanha selecionada no storage
-        if (!useCampanhaStore.getState().selectedCampanha && res.data.length > 0) {
+        // Atualiza para a campanha ativa se não houver seleção ou se a selecionada estiver inativa
+        const currentStored = useCampanhaStore.getState().selectedCampanha;
+        if ((!currentStored || !currentStored.ativa || !res.data.some((c: Campanha) => c.idCampanha === currentStored.idCampanha)) && res.data.length > 0) {
           const ativa = res.data.find((c: Campanha) => c.ativa);
           setSelectedCampanha(ativa || res.data[0]);
         }

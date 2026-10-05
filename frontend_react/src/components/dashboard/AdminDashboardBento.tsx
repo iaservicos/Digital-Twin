@@ -151,6 +151,11 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
     }
   }, [selectedDate]);
 
+  const perdasChartTotal = useMemo(
+    () => perdasChartData.reduce((acc, c) => acc + (c.value || 0), 0),
+    [perdasChartData]
+  );
+
   return (
     <div className="w-full space-y-4 sm:space-y-6">
       {/* GRID BENTO: 2 COLUNAS EM TELAS INTERMEDIÁRIAS (1024px-1279px) E 3 COLUNAS EM TELAS GRANDES (≥ 1280px) */}
@@ -196,7 +201,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
         {/* CARD 4: Perdas - Falha técnica */}
         <PerdasFalhaTecnicaCard
           percentualPerdidos={percentualPerdidos}
-          perdasQtd={selectedSegmento !== 'Total' ? perdasChartData.reduce((acc, c) => acc + (c.value || 0), 0) : teamSummary.perdasQtd}
+          perdasQtd={selectedSegmento !== 'Total' || perdasChartTotal > 0 ? perdasChartTotal : teamSummary.perdasQtd}
           pontosPerdidos={percentualPerdidos <= 1.0 ? 21.0 : percentualPerdidos <= 2.0 ? 16.0 : 0.0}
           chartData={perdasChartData}
           onOpenPerdasModal={onOpenPerdasModal}

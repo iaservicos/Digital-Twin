@@ -145,7 +145,8 @@ def get_version():
 def get_ranking(
     mesAno: Optional[str] = Query(None, description="Data YYYY-MM-DD"),
     campanhaId: Optional[int] = Query(None, description="ID da Campanha"),
-    segmento: Optional[str] = Query(None, description="Total, Gov ou Corp")
+    segmento: Optional[str] = Query(None, description="Total, Gov ou Corp"),
+    request: Request = None
 ):
     with get_db_cursor() as cur:
         # 1. Busca campanha (por ID ou ativa)
@@ -244,7 +245,7 @@ def get_ranking(
                     "pontosReincidenciaEquipe": val_to_double(h.get("pontos_reincidencia_equipe")),
                     "percentualEficienciaPecas": val_to_pct(h.get("atingimento_pecas")),
                     "pontosPecas": val_to_double(h.get("pontos_pecas")),
-                    "percentualPerdidos": val_to_pct(h.get("atingimento_perdidos")),
+                    "percentualPerdidos": val_to_double(h.get("atingimento_perdidos")),
                     "pontosPerdidos": val_to_double(h.get("pontos_perdidos")),
                     "pontosTotal": val_to_double(h.get("pontuacao_total")),
                     "elegivel": bool(h.get("status_elegibilidade")),
@@ -270,7 +271,7 @@ def get_ranking(
                 "localEquipe": local_equipe,
                 "fotoPerfil": a.get("foto_perfil"),
                 "pontosTotal": 0.0 if sem_chamados else val_to_double(a.get("pontuacao_total")),
-                "percentualPerdidos": 0.0 if sem_chamados else val_to_pct(a.get("atingimento_perdidos")),
+                "percentualPerdidos": 0.0 if sem_chamados else val_to_double(a.get("atingimento_perdidos")),
                 "pontosPerdidos": 0.0 if sem_chamados else val_to_double(a.get("pontos_perdidos")),
                 "percentualSla": 0.0 if sem_chamados else val_to_pct(a.get("atingimento_sla")),
                 "pontosSla": 0.0 if sem_chamados else val_to_double(a.get("pontos_sla")),
@@ -293,6 +294,32 @@ def get_ranking(
 
             ranking_list.append(ranking_dto)
             posicao += 1
+
+        # Blindagem de segurança: Se a requisição vier de um técnico autenticado,
+        # filtra a lista retornando apenas os indicadores do próprio técnico para
+        # alimentar seu dashboard pessoal sem expor o ranking competitivo dos demais.
+        if request:
+            auth_header = request.headers.get("Authorization") or request.headers.get("authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                token_str = auth_header.split(" ", 1)[1].strip()
+                try:
+                    user_payload = decode_access_token(token_str)
+                    user_role = (user_payload.get("role") or "").upper()
+                    user_cargo = (user_payload.get("cargo") or "").lower()
+                    is_gestor = (
+                        any(r in user_role for r in ("SUPERVISOR", "MODERADOR", "ADMINISTRADOR", "ADMIN")) or
+                        any(c in user_cargo for c in ("supervisor", "moderador", "admin"))
+                    )
+                    if not is_gestor:
+                        matricula_tec = str(user_payload.get("sub") or "").strip().upper()
+                        nome_tec = str(user_payload.get("nome") or "").strip().upper()
+                        return [
+                            r for r in ranking_list
+                            if (matricula_tec and str(r.get("matricula") or "").strip().upper() == matricula_tec)
+                            or (nome_tec and str(r.get("tecnico") or "").strip().upper() == nome_tec)
+                        ]
+                except Exception:
+                    pass
 
         return ranking_list
 
@@ -1010,7 +1037,9 @@ def get_tecnico_sla_segmentos(
                     res_indiv = res_indiv_base
                 else:
                     res_indiv = _calc_segmentos_from_chamados_sla(None, nome_tec)
-            else:
+            
+            # Se chamados_sla não tiver registros para este técnico, faz fallback para tb_chamado
+            if not res_indiv or res_indiv["total"]["totalChamados"] == 0:
                 res_indiv = _calc_segmentos(
                     "(c.id_tecnico = %s OR UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(%s)))",
                     [id_tecnico, nome_tec]
@@ -1022,6 +1051,10 @@ def get_tecnico_sla_segmentos(
                 res_equipe = _calc_segmentos_from_chamados_sla(ct_list, None)
             else:
                 res_equipe = _calc_segmentos("c.assistencia_centro_trabalho = ANY(%s)", [ct_list])
+            
+            # Se chamados_sla não tiver registros para este centro de trabalho, faz fallback para tb_chamado
+            if not res_equipe or res_equipe["total"]["totalChamados"] == 0:
+                res_equipe = _calc_segmentos("c.assistencia_centro_trabalho = ANY(%s)", [ct_list])
         elif id_tecnico > 0 and res_indiv:
             res_equipe = res_indiv
         else:
@@ -1029,9 +1062,11 @@ def get_tecnico_sla_segmentos(
                 res_equipe = _calc_segmentos_from_chamados_sla(None, None)
             else:
                 res_equipe = _calc_segmentos("", [])
+            if not res_equipe or res_equipe["total"]["totalChamados"] == 0:
+                res_equipe = _calc_segmentos("", [])
 
         # Se não há individual (ex: id_tecnico == 0), individual espelha equipe
-        if not res_indiv:
+        if not res_indiv or res_indiv["total"]["totalChamados"] == 0:
             res_indiv = res_equipe
 
         # Bloco raiz retornado: por padrão exibe equipe (ou individual se mode == 'individual')

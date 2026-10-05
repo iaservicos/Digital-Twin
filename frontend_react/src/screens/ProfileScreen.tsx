@@ -86,9 +86,10 @@ export default function ProfileScreen() {
   const [campanhaDefinidaSucesso, setCampanhaDefinidaSucesso] = useState(false);
 
   // Identificação do cargo
-  const isAdmin = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador';
+  const isAdmin = user?.cargo === 'Administrador' || user?.cargo === 'Admin' || user?.cargo === 'Super Administrador' || ['ADMINISTRADOR', 'ADMIN'].includes((user?.role || '').toUpperCase());
   const isModerador = ['MODERADOR', 'ROLE_MODERADOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Moderador';
-  const isSupervisor = ['SUPERVISOR', 'ROLE_SUPERVISOR', 'ADMINISTRADOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Supervisor' || user?.cargo === 'Supervisor de Campo';
+  const isSupervisor = ['SUPERVISOR', 'ROLE_SUPERVISOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Supervisor' || user?.cargo === 'Supervisor de Campo';
+  const isGestor = isAdmin || isModerador || isSupervisor;
 
   const themeOptions: { value: ThemeMode; label: string; icon: any }[] = [
     { value: 'dark', label: 'Escuro', icon: Moon },
@@ -119,7 +120,7 @@ export default function ProfileScreen() {
   // REVELAR O RANKING DA CAMPANHA ESCOLHIDA
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (!campanhaAtivaId) return;
+    if (!campanhaAtivaId || !isGestor) return;
 
     let isMounted = true;
     const fetchRankingCampanha = async () => {
@@ -188,12 +189,23 @@ export default function ProfileScreen() {
   // INTERAÇÃO AO CLICAR EM UMA CAMPANHA DO HISTÓRICO
   // ---------------------------------------------------------------------------
   const handleSelectCampanha = (id: number) => {
+    setCampanhaAtivaId(id);
+    if (!isGestor) {
+      // Para técnicos: apenas seleciona a campanha para navegação individual no app
+      const camp = campanhas.find(c => c.idCampanha === id);
+      if (camp) {
+        setSelectedCampanha(camp);
+        setCampanhaDefinidaSucesso(true);
+        setTimeout(() => setCampanhaDefinidaSucesso(false), 3000);
+      }
+      return;
+    }
+
     if (campanhaAtivaId === id) {
       // Se clicar na mesma campanha, alterna a expansão do ranking
       setIsRankingOpen(!isRankingOpen);
     } else {
       // Seleciona a nova campanha e abre o ranking automaticamente
-      setCampanhaAtivaId(id);
       setIsRankingOpen(true);
     }
   };
@@ -636,7 +648,7 @@ export default function ProfileScreen() {
               </h3>
               <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5">
                 {isCampanhasOpen 
-                  ? 'Selecione uma campanha abaixo para consultar e revelar o seu ranking correspondente' 
+                  ? (isGestor ? 'Selecione uma campanha abaixo para consultar e revelar o seu ranking correspondente' : 'Selecione uma campanha abaixo para navegar pelo histórico no aplicativo') 
                   : 'Clique para expandir as campanhas registradas no sistema'}
               </p>
             </div>
@@ -657,7 +669,7 @@ export default function ProfileScreen() {
           <div className="px-5 pb-6 md:px-6 pt-3 border-t border-light-borderStrong/60 dark:border-border/60 animate-in fade-in slide-in-from-top-2 duration-200 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
-                Selecione uma campanha para abrir o ranking oficial:
+                {isGestor ? 'Selecione uma campanha para abrir o ranking oficial:' : 'Selecione uma campanha para aplicar ao aplicativo:'}
               </span>
             </div>
 
@@ -716,9 +728,9 @@ export default function ProfileScreen() {
       </BentoCard>
 
       {/* ======================================================================= */}
-      {/* 5. MÓDULO CLICÁVEL 3: RANKING DA CAMPANHA (SOMENTE SELECIONADA!)        */}
+      {/* 5. MÓDULO CLICÁVEL 3: RANKING DA CAMPANHA (SOMENTE GESTORES & SELECIONADA!) */}
       {/* ======================================================================= */}
-      {campanhaAtivaId !== null && (
+      {campanhaAtivaId !== null && isGestor && (
         <BentoCard className="shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-3 duration-300">
           
           {/* Cabeçalho Clicável do Ranking com Opção de Fechar e Ocultar */}
