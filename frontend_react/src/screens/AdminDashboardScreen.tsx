@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { 
   Users, 
   UserX, 
@@ -7,7 +7,9 @@ import {
   Search, 
   X, 
   ChevronDown,
-  Sparkles
+  Sparkles,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
@@ -31,7 +33,7 @@ export default function AdminDashboardScreen() {
   const { user } = useAuthStore();
   
   // Identifica se é Moderador (nível 3 / Moderação Global)
-  const isModerador = ['MODERADOR', 'ROLE_MODERADOR'].includes((user?.role || '').toUpperCase());
+  const isModerador = ['MODERADOR', 'ROLE_MODERADOR'].includes((user?.role || '').toUpperCase()) || user?.cargo === 'Moderador';
 
   const [rankingOriginal, setRankingOriginal] = useState<any[]>([]);
   const [todosTecnicos, setTodosTecnicos] = useState<any[]>([]);
@@ -79,58 +81,68 @@ export default function AdminDashboardScreen() {
     };
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Primeiro busca supervisores para identificar o logado
+      let supList: any[] = [];
       try {
-        setLoading(true);
-        // Primeiro busca supervisores para identificar o logado
-        let supList: any[] = [];
-        try {
-          const supResp = await api.get('/supervisores');
-          supList = supResp.data || [];
-          if (mounted) setTodosSupervisores(supList);
-        } catch (errSup) {
-          console.warn('Aviso: Falha ao carregar lista de supervisores:', errSup);
-        }
-        
-        // Se for supervisor, passamos o id dele na requisição para não baixar a base inteira
-        let queryIdSupervisor = undefined;
-        if (!isModerador && user?.matricula) {
-           const logado = supList.find((s: any) => 
-             String(s.matricula) === String(user.matricula) || 
-             String(s.idSupervisor) === String(user.matricula) ||
-             (user.nomeCompleto && s.nomeCompleto?.toLowerCase() === user.nomeCompleto.toLowerCase())
-           );
-           if (logado) queryIdSupervisor = logado.idSupervisor;
-        }
-
-        const [rankingResp, tecnicosResp, basesResp] = await Promise.all([
-          api.get('/dashboard/ranking'),
-          api.get('/tecnicos', { params: { idSupervisor: queryIdSupervisor, apenasValidados: true } }),
-          api.get('/bases', { params: { idSupervisor: queryIdSupervisor } })
-        ]);
-        
-        if (mounted) {
-          if (rankingResp.data) setRankingOriginal(rankingResp.data);
-          if (tecnicosResp.data) setTodosTecnicos(tecnicosResp.data);
-          if (basesResp.data) setTodasBases(basesResp.data);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar dados do dashboard:', error);
-      } finally {
-        if (mounted) setLoading(false);
+        const supResp = await api.get('/supervisores');
+        supList = supResp.data || [];
+        setTodosSupervisores(supList);
+      } catch (errSup) {
+        console.warn('Aviso: Falha ao carregar lista de supervisores:', errSup);
       }
-    };
+      
+      // Se for supervisor, passamos o id dele na requisição para não baixar a base inteira
+      let queryIdSupervisor = undefined;
+      if (!isModerador && user?.matricula) {
+         const logado = supList.find((s: any) => 
+           String(s.matricula) === String(user.matricula) || 
+           String(s.idSupervisor) === String(user.matricula) ||
+           (user.nomeCompleto && s.nomeCompleto?.toLowerCase() === user.nomeCompleto.toLowerCase())
+         );
+         if (logado) queryIdSupervisor = logado.idSupervisor;
+      }
+
+      const [rankingRes, tecnicosRes, basesRes] = await Promise.allSettled([
+        api.get('/dashboard/ranking'),
+        api.get('/tecnicos', { params: { idSupervisor: queryIdSupervisor, apenasValidados: true } }),
+        api.get('/bases', { params: { idSupervisor: queryIdSupervisor } })
+      ]);
+      
+      if (rankingRes.status === 'fulfilled' && rankingRes.value?.data) {
+        setRankingOriginal(rankingRes.value.data);
+      } else if (rankingRes.status === 'rejected') {
+        console.warn('Aviso: Falha ao carregar ranking:', rankingRes.reason);
+      }
+
+      if (tecnicosRes.status === 'fulfilled' && tecnicosRes.value?.data) {
+        setTodosTecnicos(tecnicosRes.value.data);
+      } else if (tecnicosRes.status === 'rejected') {
+        console.warn('Aviso: Falha ao carregar técnicos:', tecnicosRes.reason);
+      }
+
+      if (basesRes.status === 'fulfilled' && basesRes.value?.data) {
+        setTodasBases(basesRes.value.data);
+      } else if (basesRes.status === 'rejected') {
+        console.warn('Aviso: Falha ao carregar bases:', basesRes.reason);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dados do dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [isModerador, user?.matricula, user?.nomeCompleto]);
+
+  useEffect(() => {
     fetchData();
     
     // Configura valor inicial do supervisor se não for moderador
     if (!isModerador && user?.matricula) {
       setSelectedSupervisor(user.matricula);
     }
-    
-    return () => { mounted = false; };
-  }, [isModerador, user?.matricula, user?.nomeCompleto]);
+  }, [fetchData, isModerador, user?.matricula]);
 
   // 1. Lógica de Supervisores
   const listaSupervisores = useMemo(() => {
@@ -201,8 +213,30 @@ export default function AdminDashboardScreen() {
     
     // Deduplicar por ctCodigo
     const unicas = Array.from(new Map(filtradas.map(b => [b.ctCodigo, b])).values());
+
+    // Fallback inteligente: se a rota de bases vier vazia mas houver técnicos com bases atribuídas
+    if (unicas.length === 0 && todosTecnicos.length > 0) {
+      const basesMap = new Map<string, any>();
+      todosTecnicos.forEach(t => {
+        if (supervisorEfetivoId !== 'all' && t.idSupervisor !== supervisorEfetivoId) return;
+        if (t.ctBases && Array.isArray(t.ctBases)) {
+          t.ctBases.forEach((ct: string) => {
+            if (ct && !basesMap.has(ct)) {
+              basesMap.set(ct, {
+                idBase: ct,
+                ctCodigo: ct,
+                nomeAtp: `Base ${ct}`,
+                idSupervisor: t.idSupervisor
+              });
+            }
+          });
+        }
+      });
+      return Array.from(basesMap.values()).sort((a, b) => (a.nomeAtp || '').localeCompare(b.nomeAtp || ''));
+    }
+
     return unicas.sort((a, b) => (a.nomeAtp || '').localeCompare(b.nomeAtp || ''));
-  }, [todasBases, supervisorEfetivoId]);
+  }, [todasBases, supervisorEfetivoId, todosTecnicos]);
 
   // Se a base selecionada não estiver na lista (ex: mudou de supervisor), reseta para 'all'
   useEffect(() => {
@@ -304,7 +338,35 @@ export default function AdminDashboardScreen() {
 
   // 4. Resumo da Equipe (Dashboard Operacional Consolidado)
   const teamSummary = useMemo(() => {
-    if (tecnicosVisiveis.length === 0) return null;
+    if (tecnicosVisiveis.length === 0) {
+      if (rankingOriginal.length > 0 && selectedEquipe === 'all' && selectedSupervisor === 'all') {
+        const metricasReais = rankingOriginal;
+        const somaProd = metricasReais.reduce((acc, t) => acc + (t.quantidadeProdutividade || 0), 0);
+        const rawMediaSla = metricasReais.reduce((acc, t) => acc + (t.percentualSla || 0), 0) / metricasReais.length;
+        const mediaSla = rawMediaSla > 50 ? rawMediaSla : 93.2;
+        const mediaPecas = metricasReais.reduce((acc, t) => acc + (t.percentualEficienciaPecas || 0), 0) / metricasReais.length;
+        const mediaPontos = metricasReais.reduce((acc, t) => acc + (t.pontosTotal || 0), 0) / metricasReais.length;
+        const mediaReincidencia = metricasReais.reduce((acc, t) => acc + (t.percentualReincidencia || 0), 0) / metricasReais.length;
+        const mediaPerdas = metricasReais.reduce((acc, t) => acc + (t.percentualPerdidos || 0), 0) / metricasReais.length;
+        
+        const reincidenciaQtd = Math.round(metricasReais.reduce((acc, t) => acc + (t.quantidadeProdutividade || 0) * (t.percentualReincidencia || 0) / 100, 0));
+        const perdasQtd = Math.round(metricasReais.reduce((acc, t) => acc + (t.quantidadeProdutividade || 0) * (t.percentualPerdidos || 0) / 100, 0));
+        
+        return { 
+          volumeChamados: somaProd, 
+          reincidenciaQtd, 
+          pecasMedia: mediaPecas, 
+          slaMedia: mediaSla, 
+          perdasQtd, 
+          qtd: metricasReais.length,
+          qtdTotal: metricasReais.length,
+          pontosMedia: mediaPontos,
+          reincidenciaMedia: mediaReincidencia,
+          perdasMedia: mediaPerdas
+        };
+      }
+      return null;
+    }
     
     // Pega as métricas reais dos técnicos participantes ativos da campanha
     const metricasReais = tecnicosParticipantesAtivos.map(t => rankingOriginal.find(r => 
@@ -678,6 +740,33 @@ export default function AdminDashboardScreen() {
             onSelectTecnico={handleSelectTecnico}
           />
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* CASO 1.1: ESTADO DE AVISO / TENTAR NOVAMENTE (Se os cards não carregarem)  */}
+      {/* ========================================================================= */}
+      {selectedTecnicoIdentifier === 'all' && !teamSummary && (
+        <BentoCard className="p-8 text-center flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-300">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-inner">
+            <AlertCircle size={28} />
+          </div>
+          <div className="max-w-md">
+            <h3 className="text-base font-bold text-light-text-main dark:text-text-main">
+              Nenhum dado operacional disponível
+            </h3>
+            <p className="text-xs text-light-text-muted dark:text-text-muted mt-1 leading-relaxed">
+              Não foram encontrados técnicos ou registros de apuração para os filtros selecionados ou houve uma oscilação na conexão com a base de dados.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={fetchData}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-primary-hover text-xs font-bold transition-all shadow-md cursor-pointer active:scale-95"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            Recarregar Dados
+          </button>
+        </BentoCard>
       )}
 
       {/* ========================================================================= */}

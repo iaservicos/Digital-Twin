@@ -339,8 +339,37 @@ def list_supervisores():
                 "nomeCompleto": r["nome_completo"],
                 "email": r.get("email"),
                 "celularCorporativo": r.get("celular_corporativo"),
+                "cpf": r.get("cpf"),
+                "idCoordenador": r.get("id_coordenador"),
                 "ativo": r.get("ativo", True),
                 "role": r.get("role", "SUPERVISOR")
+            }
+            for r in rows
+        ]
+
+@router.get("/bases")
+def list_bases(idSupervisor: Optional[int] = Query(None)):
+    with get_db_cursor() as cur:
+        sql = """
+            SELECT b.id_base, b.ct_codigo, b.nome_atp, b.cidade, b.uf, b.id_supervisor, b.atp_resumidas
+            FROM tb_base_atp b
+        """
+        params = []
+        if idSupervisor:
+            sql += " WHERE b.id_supervisor = %s"
+            params.append(idSupervisor)
+        sql += " ORDER BY b.cidade ASC, b.nome_atp ASC;"
+        cur.execute(sql, tuple(params))
+        rows = cur.fetchall()
+        return [
+            {
+                "idBase": r["id_base"],
+                "ctCodigo": r["ct_codigo"],
+                "nomeAtp": r["nome_atp"],
+                "cidade": r.get("cidade"),
+                "uf": r.get("uf"),
+                "idSupervisor": r.get("id_supervisor"),
+                "atpResumidas": r.get("atp_resumidas")
             }
             for r in rows
         ]
