@@ -4,6 +4,7 @@ import { Award, TrendingUp, CheckCircle2, Medal, XCircle, ShieldAlert } from 'lu
 import { CircularProgress } from '../ui/CircularProgress';
 import ChamadosHistoryCard from './ChamadosHistoryCard';
 import { ModalDetalhesPontuacao } from './ModalDetalhesPontuacao';
+import { ModalExplicacaoSla } from './ModalExplicacaoSla';
 import { ModalElegivel } from './ModalElegivel';
 import { ModalInelegivel } from './ModalInelegivel';
 import ModalChamadosReincidentes from './ModalChamadosReincidentes';
@@ -37,6 +38,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
   const isSupervisorOrAdmin = ['SUPERVISOR', 'MODERADOR', 'ADMIN', 'ROLE_SUPERVISOR', 'ROLE_MODERADOR', 'ROLE_ADMIN'].includes((user?.role || '').toUpperCase());
 
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [isSlaExplicacaoModalOpen, setIsSlaExplicacaoModalOpen] = useState(false);
   const [isReincidentesModalOpen, setIsReincidentesModalOpen] = useState(false);
   const [isSlaModalOpen, setIsSlaModalOpen] = useState(false);
   const [isPerdasModalOpen, setIsPerdasModalOpen] = useState(false);
@@ -169,9 +171,9 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         {/* 1. Card SLA - INTERATIVO */}
         <BentoCard 
           hoverable
-          onClick={() => setIsSlaModalOpen(true)}
+          onClick={() => setIsSlaExplicacaoModalOpen(true)}
           className="p-4 flex flex-col items-center text-center justify-center cursor-pointer group relative"
-          title="Clique para ver os chamados perdidos e causas de estouro do SLA"
+          title="Clique para ver explicação e regras de pontuação do SLA"
         >
           <div className="flex flex-col items-center mb-2">
             <span className="text-[10px] font-bold bg-light-surface-elevated dark:bg-surface-elevated text-light-text-secondary dark:text-text-muted border border-light-border dark:border-border px-2 py-0.5 rounded-full mb-1 group-hover:bg-primary group-hover:text-light-surface dark:group-hover:text-surface transition-colors">
@@ -323,6 +325,7 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
           selectedSegmento={selectedSegmento}
           setSelectedSegmento={setSelectedSegmento}
           onOpenDetailsModal={() => setDetailsModalOpen(true)}
+          onOpenSlaExplicacaoModal={() => setIsSlaExplicacaoModalOpen(true)}
           onOpenSlaModal={() => setIsSlaModalOpen(true)}
           onOpenReincidentesModal={() => setIsReincidentesModalOpen(true)}
           onOpenPecasModal={() => setIsPecasModalOpen(true)}
@@ -384,6 +387,12 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         isOpen={detailsModalOpen} 
         onClose={() => setDetailsModalOpen(false)} 
         metricas={displayMetricas}
+      />
+
+      {/* MODAL EXPLICATIVO DE SLA & REGRAS DE PONTUAÇÃO (CARD 1) */}
+      <ModalExplicacaoSla
+        isOpen={isSlaExplicacaoModalOpen}
+        onClose={() => setIsSlaExplicacaoModalOpen(false)}
       />
       
       <ModalElegivel 

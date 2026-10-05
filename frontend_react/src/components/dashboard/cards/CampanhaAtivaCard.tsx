@@ -1,6 +1,7 @@
 import React from 'react';
 import { BentoCard } from '../../ui/BentoCard';
 import { Award, Users, Calendar, Clock, ArrowUpRight } from 'lucide-react';
+import { useAuthStore } from '../../../store/authStore';
 
 export interface CampanhaAtivaCardProps {
   campanhaInfo: {
@@ -20,7 +21,8 @@ export interface CampanhaAtivaCardProps {
   onSelectMonth: (month: string) => void;
   historicoMeses?: { mes: string; mesReferencia?: string }[];
   percentualSla: number;
-  onOpenSlaModal: () => void;
+  onOpenDetailsModal?: () => void;
+  onOpenSlaModal?: () => void;
   className?: string;
 }
 
@@ -36,9 +38,13 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
   onSelectMonth,
   historicoMeses = [],
   percentualSla,
+  onOpenDetailsModal,
   onOpenSlaModal,
   className = ''
 }) => {
+  const user = useAuthStore(state => state.user);
+  const isSupervisorOrModerator = user?.role === 'ADMIN' || user?.role === 'MODERADOR' || user?.role === 'SUPERVISOR';
+
   const isCampanhaInteira = selectedMonth === 'Campanha Inteira' || selectedMonth === 'Média Final';
   const selLower = (selectedMonth || '').toLowerCase();
 
@@ -99,9 +105,35 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
 
   const apenasUmMes = mesesCampanha.length <= 1;
 
+  // Análise de status e dinamismo de tempo da campanha
+  const isEncerrada = React.useMemo(() => {
+    if (campanhaInfo?.diasRestantes !== undefined && campanhaInfo.diasRestantes <= 0) {
+      return true;
+    }
+    if (campanhaInfo?.dataFim) {
+      try {
+        const dataFim = new Date(campanhaInfo.dataFim + 'T23:59:59');
+        const hoje = new Date();
+        return hoje > dataFim;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }, [campanhaInfo]);
+
+  const percentualProgresso = React.useMemo(() => {
+    if (isEncerrada) return 100;
+    if (campanhaInfo?.progressoTempo !== undefined) {
+      return Math.min(100, Math.max(0, campanhaInfo.progressoTempo));
+    }
+    return 0;
+  }, [isEncerrada, campanhaInfo?.progressoTempo]);
+
   return (
     <BentoCard
-      className={`min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
+      hoverable={false}
+      className={`min-h-[19.5rem] sm:min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
     >
       {/* Cabeçalho do Card 2 com Pílula 'Campanha ativa', Seletor Alinhado e Botão de Ação */}
       <div className="flex items-center justify-between gap-[0.5rem]">
@@ -163,92 +195,103 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
 
           <button
             type="button"
-            onClick={onOpenSlaModal}
+            onClick={onOpenDetailsModal || onOpenSlaModal}
             className="w-[2rem] h-[2rem] rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
-            title="Ver detalhes de SLA e regulamento"
+            title="Ver detalhamento da pontuação oficial da campanha"
           >
             <ArrowUpRight size={16} />
           </button>
         </div>
       </div>
 
-      {/* Corpo do Card 2 com as 4 Informações da Campanha */}
-      <div className="grid grid-cols-2 gap-[0.625rem] my-auto py-[0.25rem]">
-        {/* 1. Campanha Atual */}
-        <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.625rem] flex flex-col justify-between">
-          <div className="flex items-center gap-[0.375rem] text-primary mb-[0.25rem]">
-            <Award size={14} />
+      {/* Corpo do Card 2 com as Informações da Campanha */}
+      <div className="grid grid-cols-2 gap-[0.5rem] sm:gap-[0.625rem] my-auto py-[0.25rem]">
+        {/* 1. Campanha Atual (expandido para col-span-2 se for técnico de campo) */}
+        <div className={`bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.5rem] sm:p-[0.625rem] xl:p-[0.75rem] min-h-[4.75rem] flex flex-col justify-between ${!isSupervisorOrModerator ? 'col-span-2' : ''}`}>
+          <div className="flex items-center gap-[0.375rem] text-primary mb-[0.125rem]">
+            <Award size={13} />
             <span className="text-[0.625rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
               Campanha Atual
             </span>
           </div>
           <p
-            className="text-[0.75rem] font-black text-light-text-main dark:text-text-main truncate"
+            className="text-[0.75rem] sm:text-[0.8125rem] font-black text-light-text-main dark:text-text-main leading-tight line-clamp-2 break-normal"
             title={campanhaInfo?.nomeCampanha || 'Campanha Setembro 2026'}
           >
             {campanhaInfo?.nomeCampanha || 'Campanha Setembro 2026'}
           </p>
-          <span className="text-[0.5625rem] text-light-text-muted dark:text-text-muted font-medium truncate mt-[0.125rem]">
+          <span
+            className="text-[0.625rem] sm:text-[0.6875rem] text-light-text-muted dark:text-text-muted font-medium block truncate mt-[0.125rem]"
+            title={campanhaInfo?.tema || 'Conexão Total'}
+          >
             {campanhaInfo?.tema || 'Conexão Total'}
           </span>
         </div>
 
-        {/* 2. Participantes */}
-        <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.625rem] flex flex-col justify-between">
-          <div className="flex items-center gap-[0.375rem] text-primary mb-[0.25rem]">
-            <Users size={14} />
-            <span className="text-[0.625rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
-              Participantes
+        {/* 2. Participantes (Exclusivo para Supervisores e Moderadores) */}
+        {isSupervisorOrModerator && (
+          <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.5rem] sm:p-[0.625rem] xl:p-[0.75rem] min-h-[4.75rem] flex flex-col justify-between">
+            <div className="flex items-center gap-[0.375rem] text-primary mb-[0.125rem]">
+              <Users size={13} />
+              <span className="text-[0.625rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
+                Participantes
+              </span>
+            </div>
+            <p className="text-[0.75rem] sm:text-[0.875rem] font-black text-light-text-main dark:text-text-main leading-tight">
+              {campanhaInfo?.totalParticipantes || 177}{' '}
+              <span className="text-[0.625rem] sm:text-[0.6875rem] font-semibold text-light-text-muted dark:text-text-muted">
+                técnicos
+              </span>
+            </p>
+            <span className="text-[0.625rem] sm:text-[0.6875rem] text-emerald-500 font-bold block leading-tight mt-[0.125rem]">
+              {campanhaInfo?.participantesAtivos || 150} ativos em campo
             </span>
           </div>
-          <p className="text-[0.875rem] font-black text-light-text-main dark:text-text-main">
-            {campanhaInfo?.totalParticipantes || 403}{' '}
-            <span className="text-[0.6875rem] font-semibold text-light-text-muted dark:text-text-muted">
-              técnicos
-            </span>
-          </p>
-          <span className="text-[0.5625rem] text-emerald-500 font-bold truncate mt-[0.125rem]">
-            {campanhaInfo?.participantesAtivos || 176} ativos em campo
-          </span>
-        </div>
+        )}
 
         {/* 3. Duração da Campanha */}
-        <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.625rem] flex flex-col justify-between">
-          <div className="flex items-center gap-[0.375rem] text-primary mb-[0.25rem]">
-            <Calendar size={14} />
+        <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.5rem] sm:p-[0.625rem] xl:p-[0.75rem] min-h-[4.75rem] flex flex-col justify-between">
+          <div className="flex items-center gap-[0.375rem] text-primary mb-[0.125rem]">
+            <Calendar size={13} />
             <span className="text-[0.625rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
               Duração
             </span>
           </div>
-          <p className="text-[0.875rem] font-black text-light-text-main dark:text-text-main">
+          <p className="text-[0.75rem] sm:text-[0.875rem] font-black text-light-text-main dark:text-text-main leading-tight">
             {campanhaInfo?.duracaoDias || 30}{' '}
-            <span className="text-[0.6875rem] font-semibold text-light-text-muted dark:text-text-muted">
+            <span className="text-[0.625rem] sm:text-[0.6875rem] font-semibold text-light-text-muted dark:text-text-muted">
               dias
             </span>
           </p>
-          <span className="text-[0.5625rem] text-light-text-muted dark:text-text-muted font-medium truncate mt-[0.125rem]">
+          <span className="text-[0.625rem] sm:text-[0.6875rem] text-light-text-muted dark:text-text-muted font-medium block leading-tight mt-[0.125rem]">
             {campanhaPeriodoFormatado}
           </span>
         </div>
 
-        {/* 4. Tempo Restante */}
-        <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.625rem] flex flex-col justify-between">
-          <div className="flex items-center gap-[0.375rem] text-primary mb-[0.25rem]">
-            <Clock size={14} />
+        {/* 4. Tempo Restante (Dinâmico: avança no tempo e indica encerramento) */}
+        <div className="bg-light-surface-elevated/70 dark:bg-surface-elevated/50 border border-light-border dark:border-border/60 rounded-[0.75rem] p-[0.5rem] sm:p-[0.625rem] xl:p-[0.75rem] min-h-[4.75rem] flex flex-col justify-between">
+          <div className="flex items-center gap-[0.375rem] text-primary mb-[0.125rem]">
+            <Clock size={13} />
             <span className="text-[0.625rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
               Tempo Restante
             </span>
           </div>
-          <p className="text-[0.75rem] font-black text-light-text-main dark:text-text-main">
-            {campanhaInfo?.diasRestantes && campanhaInfo.diasRestantes > 0
-              ? `${campanhaInfo.diasRestantes} dias restantes`
-              : 'Fase de Fechamento'}
+          <p className="text-[0.75rem] sm:text-[0.875rem] font-black text-light-text-main dark:text-text-main leading-tight">
+            {isEncerrada ? (
+              <span className="text-amber-500 dark:text-amber-400 font-bold">Encerrada</span>
+            ) : campanhaInfo?.diasRestantes && campanhaInfo.diasRestantes > 0 ? (
+              `${campanhaInfo.diasRestantes} ${campanhaInfo.diasRestantes === 1 ? 'dia restante' : 'dias restantes'}`
+            ) : (
+              <span className="text-amber-500 dark:text-amber-400 font-bold">Encerrada</span>
+            )}
           </p>
-          <div className="w-full bg-light-chart-track dark:bg-chart-track rounded-full h-[0.25rem] mt-[0.375rem] overflow-hidden">
+          <div className="w-full bg-light-chart-track dark:bg-chart-track rounded-full h-[0.25rem] mt-[0.25rem] overflow-hidden">
             <div
-              className="bg-primary h-full rounded-full transition-all duration-500"
+              className={`h-full rounded-full transition-all duration-500 ${
+                isEncerrada ? 'bg-amber-500 dark:bg-amber-400' : 'bg-primary'
+              }`}
               style={{
-                width: `${Math.min(100, Math.max(5, campanhaInfo?.progressoTempo ?? 100))}%`
+                width: `${percentualProgresso}%`
               }}
             />
           </div>

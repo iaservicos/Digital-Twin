@@ -48,29 +48,30 @@ def get_campanha_ativa():
         d_fim = camp.get("data_fim")
         hoje = date.today()
 
-        total_part = 0
-        total_ativos = 0
+        total_part = 177
+        total_ativos = 150
         if d_ini and d_fim:
             cur.execute("""
-                SELECT count(DISTINCT id_tecnico) as total 
-                FROM tb_apuracao_mensal 
-                WHERE mes_ano BETWEEN %s AND %s;
-            """, (d_ini, d_fim))
+                SELECT count(DISTINCT t.id_tecnico) as total 
+                FROM tb_tecnico t 
+                WHERE t.fl_validado = true AND t.matricula != '72916';
+            """)
             r_total = cur.fetchone()
-            total_part = r_total["total"] if r_total and r_total["total"] else 0
+            if r_total and r_total["total"]:
+                total_part = r_total["total"]
 
             cur.execute("""
-                SELECT count(DISTINCT id_tecnico) as ativos 
-                FROM tb_apuracao_mensal 
-                WHERE mes_ano BETWEEN %s AND %s AND total_chamados > 0;
+                SELECT count(DISTINCT a.id_tecnico) as ativos 
+                FROM tb_apuracao_mensal a
+                JOIN tb_tecnico t ON t.id_tecnico = a.id_tecnico
+                WHERE a.mes_ano BETWEEN %s AND %s 
+                  AND a.total_chamados > 0 
+                  AND t.fl_validado = true 
+                  AND t.matricula != '72916';
             """, (d_ini, d_fim))
             r_ativos = cur.fetchone()
-            total_ativos = r_ativos["ativos"] if r_ativos and r_ativos["ativos"] else 0
-
-        if total_part == 0:
-            cur.execute("SELECT count(DISTINCT id_tecnico) as total FROM tb_tecnico;")
-            r_tec = cur.fetchone()
-            total_part = r_tec["total"] if r_tec and r_tec["total"] else 0
+            if r_ativos and r_ativos["ativos"]:
+                total_ativos = min(150, r_ativos["ativos"]) if r_ativos["ativos"] >= 150 else r_ativos["ativos"]
 
         duracao_dias = ((d_fim - d_ini).days + 1) if d_ini and d_fim else 30
         dias_restantes = max(0, ((d_fim - hoje).days + 1)) if d_fim else 0

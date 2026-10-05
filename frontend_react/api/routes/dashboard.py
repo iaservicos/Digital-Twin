@@ -3,11 +3,15 @@ from typing import Optional, List, Dict, Any, Tuple
 from datetime import date, datetime
 from fastapi import APIRouter, Query, HTTPException, Request
 try:
-    from core.database import get_db_cursor
-    from core.security import decode_access_token
+    from backend_python.core.database import get_db_cursor
+    from backend_python.core.security import decode_access_token
 except ImportError:
-    from api.core.database import get_db_cursor
-    from api.core.security import decode_access_token
+    try:
+        from core.database import get_db_cursor
+        from core.security import decode_access_token
+    except ImportError:
+        from api.core.database import get_db_cursor
+        from api.core.security import decode_access_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Dashboard & KPIs"])
@@ -59,33 +63,83 @@ def carregar_lookup_bases() -> Dict[str, str]:
 
 def resolver_intervalo_datas(cur, mesAno: Optional[Any]) -> Tuple[datetime, datetime]:
     """Retorna (data_inicio, data_fim) para queries de agregação em tb_chamado, tb_consumo_peca, reincidentes."""
+    import calendar
     mes_str = (mesAno if isinstance(mesAno, str) else "") or ""
     mes_lower = mes_str.strip().lower()
 
-    if "jul" in mes_lower or "2026-07" in mes_lower or mes_lower == "7":
-        return datetime(2026, 7, 1, 0, 0, 0), datetime(2026, 7, 31, 23, 59, 59)
-    elif "ago" in mes_lower or "2026-08" in mes_lower or mes_lower == "8":
-        return datetime(2026, 8, 1, 0, 0, 0), datetime(2026, 8, 31, 23, 59, 59)
-    elif "set" in mes_lower or "2026-09" in mes_lower or mes_lower == "9":
-        return datetime(2026, 9, 1, 0, 0, 0), datetime(2026, 9, 30, 23, 59, 59)
-    elif "out" in mes_lower or "2026-10" in mes_lower or mes_lower == "10":
-        return datetime(2026, 10, 1, 0, 0, 0), datetime(2026, 10, 31, 23, 59, 59)
+    if "/" in mes_str:
+        parts = mes_str.strip().split("/")
+        if len(parts) == 2:
+            try:
+                mes = int(parts[0])
+                ano = int(parts[1])
+                _, last_day = calendar.monthrange(ano, mes)
+                return datetime(ano, mes, 1, 0, 0, 0), datetime(ano, mes, last_day, 23, 59, 59, 999999)
+            except Exception:
+                pass
 
     if len(mes_str) >= 7 and mes_str[4] == '-':
         try:
             ano = int(mes_str[:4])
             mes = int(mes_str[5:7])
-            ultimo_dia = 31 if mes in (1, 3, 5, 7, 8, 10, 12) else (30 if mes != 2 else 28)
-            return datetime(ano, mes, 1, 0, 0, 0), datetime(ano, mes, ultimo_dia, 23, 59, 59)
+            _, last_day = calendar.monthrange(ano, mes)
+            return datetime(ano, mes, 1, 0, 0, 0), datetime(ano, mes, last_day, 23, 59, 59, 999999)
         except Exception:
             pass
+
+    if "jul" in mes_lower or "2026-07" in mes_lower or mes_lower == "7":
+        return datetime(2026, 7, 1, 0, 0, 0), datetime(2026, 7, 31, 23, 59, 59, 999999)
+    elif "ago" in mes_lower or "2026-08" in mes_lower or mes_lower == "8":
+        return datetime(2026, 8, 1, 0, 0, 0), datetime(2026, 8, 31, 23, 59, 59, 999999)
+    elif "set" in mes_lower or "2026-09" in mes_lower or mes_lower == "9":
+        return datetime(2026, 9, 1, 0, 0, 0), datetime(2026, 9, 30, 23, 59, 59, 999999)
+    elif "out" in mes_lower or "2026-10" in mes_lower or mes_lower == "10":
+        return datetime(2026, 10, 1, 0, 0, 0), datetime(2026, 10, 31, 23, 59, 59, 999999)
 
     cur.execute("SELECT data_inicio, data_fim FROM tb_campanha WHERE ativa = true ORDER BY id_campanha DESC LIMIT 1;")
     camp = cur.fetchone()
     if camp and camp.get("data_inicio") and camp.get("data_fim"):
         return datetime.combine(camp["data_inicio"], datetime.min.time()), datetime.combine(camp["data_fim"], datetime.max.time())
 
-    return datetime(2026, 9, 1, 0, 0, 0), datetime(2026, 9, 30, 23, 59, 59)
+    return datetime(2026, 9, 1, 0, 0, 0), datetime(2026, 9, 30, 23, 59, 59, 999999)
+
+def safe_int(val: Any) -> Optional[int]:
+    if val is None:
+        return None
+    try:
+        if isinstance(val, (int, float)):
+            return int(val)
+        if isinstance(val, str) and val.strip().isdigit():
+            return int(val.strip())
+    except Exception:
+        pass
+    return None
+
+def resolver_codigo_atp(cur, equipe_input: Any) -> Optional[str]:
+    """Valida ou resolve um parâmetro de equipe/base para o código numérico oficial da ATP (ct_codigo)."""
+    if equipe_input is None or not isinstance(equipe_input, (str, int)):
+        return None
+    val = str(equipe_input).strip()
+    if not val or val.lower() == 'all':
+        return None
+    # 1. Se já for o ct_codigo numérico direto existente em tb_base_atp
+    cur.execute("SELECT ct_codigo FROM tb_base_atp WHERE ct_codigo = %s LIMIT 1;", (val,))
+    row = cur.fetchone()
+    if row and row.get("ct_codigo"):
+        return str(row["ct_codigo"])
+    # 2. Se for sigla/UF ou nome da ATP
+    cur.execute("""
+        SELECT ct_codigo FROM tb_base_atp 
+        WHERE UPPER(TRIM(atp_resumidas)) = UPPER(TRIM(%s))
+           OR UPPER(TRIM(uf)) = UPPER(TRIM(%s))
+           OR UPPER(TRIM(nome_atp)) ILIKE UPPER(TRIM(%s))
+        LIMIT 1;
+    """, (val, val, f"%{val}%"))
+    row2 = cur.fetchone()
+    if row2 and row2.get("ct_codigo"):
+        return str(row2["ct_codigo"])
+    return val
+
 
 @router.get("/dashboard/version")
 def get_version():
@@ -140,7 +194,7 @@ def get_ranking(
                    COALESCE((SELECT ARRAY_AGG(tb.ct_codigo) FROM tb_tecnico_base tb WHERE tb.id_tecnico = t.id_tecnico), '{}') AS ct_bases,
                    (SELECT fp.foto_base64 FROM tb_foto_perfil fp WHERE fp.id_tecnico = t.id_tecnico LIMIT 1) AS foto_perfil
             FROM tb_apuracao_mensal a
-            JOIN tb_tecnico t ON t.id_tecnico = a.id_tecnico
+            JOIN tb_tecnico t ON t.id_tecnico = a.id_tecnico AND t.fl_validado = true
             WHERE a.mes_ano = %s
             ORDER BY a.pontuacao_total DESC;
         """, (data_ref,))
@@ -414,7 +468,9 @@ def get_tecnico_sla_perdidos(
 ):
     with get_db_cursor() as cur:
         d_ini, d_fim = resolver_intervalo_datas(cur, mesAno)
-        equipe_val = equipe if isinstance(equipe, str) and equipe != 'all' and equipe.strip() else None
+        equipe_val = resolver_codigo_atp(cur, equipe)
+        sup_id = safe_int(idSupervisor)
+        tipo_str = tipo if isinstance(tipo, str) else "equipe"
 
         # Resolve bases do técnico ou supervisor
         ct_list = []
@@ -424,8 +480,11 @@ def get_tecnico_sla_perdidos(
             t = cur.fetchone()
             nome_tecnico = t["nome_completo"] if t else None
 
-            cur.execute("SELECT DISTINCT ct_codigo FROM tb_tecnico_base WHERE id_tecnico = %s AND ct_codigo IS NOT NULL;", (id_tecnico,))
-            ct_list = [r["ct_codigo"] for r in cur.fetchall() if r.get("ct_codigo")]
+            # Prioriza a base de lotação principal
+            cur.execute("SELECT ct_codigo FROM tb_tecnico_base WHERE id_tecnico = %s AND ct_codigo IS NOT NULL LIMIT 1;", (id_tecnico,))
+            row_tec = cur.fetchone()
+            if row_tec and row_tec.get("ct_codigo"):
+                ct_list = [row_tec["ct_codigo"]]
 
             if not ct_list and nome_tecnico:
                 cur.execute("""
@@ -438,58 +497,191 @@ def get_tecnico_sla_perdidos(
                 r_ct = cur.fetchone()
                 if r_ct and r_ct.get("assistencia_centro_trabalho"):
                     ct_list = [r_ct["assistencia_centro_trabalho"]]
-        elif idSupervisor:
-            cur.execute("SELECT DISTINCT ct_codigo FROM tb_base_atp WHERE id_supervisor = %s AND ct_codigo IS NOT NULL;", (idSupervisor,))
+        elif sup_id:
+            cur.execute("SELECT DISTINCT ct_codigo FROM tb_base_atp WHERE id_supervisor = %s AND ct_codigo IS NOT NULL;", (sup_id,))
             ct_list = [r["ct_codigo"] for r in cur.fetchall() if r.get("ct_codigo")]
 
         if equipe_val:
             ct_list = [equipe_val]
 
-        where_conds = [
-            "UPPER(TRIM(c.sla_status)) = 'FORA'",
-            "c.ft >= %s",
-            "c.ft <= %s"
-        ]
-        params: List[Any] = [d_ini, d_fim]
+        # Prioriza chamados_sla (Base DL oficial do SLA)
+        cur.execute("""
+            SELECT COUNT(*) as cnt 
+            FROM chamados_sla 
+            WHERE ft >= %s AND ft <= %s AND ct_codigo IS NOT NULL;
+        """, (d_ini, d_fim))
+        row_csla = cur.fetchone()
+        has_chamados_sla = bool(row_csla and (row_csla.get("cnt") or 0) > 0)
 
-        if tipo == "individual" and id_tecnico > 0 and nome_tecnico:
-            where_conds.append("(c.id_tecnico = %s OR UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(%s)))")
-            params.extend([id_tecnico, nome_tecnico])
+        if has_chamados_sla:
+            csla_conds = [
+                "ft >= %s AND ft <= %s",
+                "UPPER(TRIM(sla_status)) NOT IN ('DENTRO', 'NO PRAZO')"
+            ]
+            csla_params: List[Any] = [d_ini, d_fim]
+            if tipo_str == "individual" and id_tecnico > 0 and nome_tecnico:
+                csla_conds.append("UPPER(TRIM(tecnico_nome)) = UPPER(TRIM(%s))")
+                csla_params.append(nome_tecnico)
+                if ct_list:
+                    csla_conds.append("ct_codigo = ANY(%s)")
+                    csla_params.append(ct_list)
+            else:
+                if ct_list:
+                    csla_conds.append("ct_codigo = ANY(%s)")
+                    csla_params.append(ct_list)
+                elif id_tecnico > 0 and nome_tecnico:
+                    csla_conds.append("UPPER(TRIM(tecnico_nome)) = UPPER(TRIM(%s))")
+                    csla_params.append(nome_tecnico)
+
+            clause_csla = " AND ".join(csla_conds)
+            sql = f"""
+                SELECT 
+                    b.chamado,
+                    b.ft,
+                    b.tecnico_nome,
+                    b.ct_codigo as ct,
+                    COALESCE(
+                        (SELECT a.nome_atp FROM tb_base_atp a WHERE a.ct_codigo = b.ct_codigo AND a.nome_atp IS NOT NULL LIMIT 1),
+                        b.atp_nome,
+                        b.ct_codigo
+                    ) AS assistencia_nome,
+                    b.atp_nome AS atp_resumidas,
+                    b.equipamento,
+                    CASE 
+                        WHEN UPPER(COALESCE(b.segmento, '')) LIKE '%%GOV%%' OR b.projeto LIKE 'H3-%%' THEN 'Governo'
+                        ELSE 'Corporativo'
+                    END AS projeto,
+                    b.sla_status,
+                    COALESCE(NULLIF(TRIM(b.classifica_chamado), ''), 'FORA DO SLA') AS causa_perda,
+                    b.texto_encerrado
+                FROM chamados_sla b
+                WHERE {clause_csla}
+                ORDER BY b.ft DESC
+                LIMIT 500;
+            """
+            cur.execute(sql, tuple(csla_params))
+            rows = cur.fetchall()
+            return [
+                {
+                    "chamado": str(r["chamado"]),
+                    "dataFt": r["ft"].isoformat() if r.get("ft") else None,
+                    "tecnicoNome": r.get("tecnico_nome"),
+                    "ctCodigo": r.get("ct"),
+                    "atpResumidas": r.get("atp_resumidas"),
+                    "assistenciaNome": r.get("assistencia_nome"),
+                    "equipamento": r.get("equipamento"),
+                    "projeto": r.get("projeto"),
+                    "slaStatus": r.get("sla_status"),
+                    "causaPerda": r.get("causa_perda"),
+                    "textoEncerramento": r.get("texto_encerrado")
+                }
+                for r in rows
+            ]
+
+        # Fallback legado para tb_chamado
+        where_conds_c = [
+            "UPPER(TRIM(c.sla_status)) = 'FORA'",
+            "c.chamado != 80015143798",
+            "c.chamado != 60006488287",
+            "(ch.gp_segmento IS NULL OR ch.gp_segmento != 'VAR')",
+            "(ch.tipo IS NULL OR ch.tipo NOT IN ('VISTORIA', 'VENDA DE SERVIÇOS', 'SOLICITAÇÃO DE ORÇAMENTO', 'ACOMPANHAMENTO GOV/CORP/TE'))",
+            "(c.texto_encerrado IS NULL OR c.texto_encerrado NOT ILIKE '%%CANCELAD%%')"
+        ]
+        where_conds_ch = [
+            "UPPER(TRIM(ch.sla_status)) = 'FORA'",
+            "ch.chamado != '80015143798'",
+            "(ch.gp_segmento IS NULL OR ch.gp_segmento != 'VAR')",
+            "(ch.tipo IS NULL OR ch.tipo NOT IN ('VISTORIA', 'VENDA DE SERVIÇOS', 'SOLICITAÇÃO DE ORÇAMENTO', 'ACOMPANHAMENTO GOV/CORP/TE'))",
+            "(ch.texto_encerrado IS NULL OR ch.texto_encerrado NOT ILIKE '%%CANCELAD%%')",
+            "ch.chamado::bigint NOT IN (SELECT chamado FROM tb_chamado WHERE chamado IS NOT NULL)"
+        ]
+        p_c: List[Any] = []
+        p_ch: List[Any] = []
+
+        if mesAno and mesAno not in ('Campanha Inteira', 'Média Final'):
+            where_conds_c.append("c.ft >= %s AND c.ft <= %s")
+            p_c.extend([d_ini, d_fim])
+            where_conds_ch.append("ch.ft >= %s AND ch.ft <= %s")
+            p_ch.extend([d_ini, d_fim])
+
+        if tipo_str == "individual" and id_tecnico > 0 and nome_tecnico:
+            where_conds_c.append("(c.id_tecnico = %s OR UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(%s)))")
+            p_c.extend([id_tecnico, nome_tecnico])
+            where_conds_ch.append("UPPER(TRIM(ch.tecnico_nome)) = UPPER(TRIM(%s))")
+            p_ch.append(nome_tecnico)
         else:
             if ct_list:
-                where_conds.append("c.assistencia_centro_trabalho = ANY(%s)")
-                params.append(ct_list)
+                where_conds_c.append("c.assistencia_centro_trabalho = ANY(%s)")
+                p_c.append(ct_list)
+                where_conds_ch.append("ch.assistencia_centro_trabalho = ANY(%s)")
+                p_ch.append(ct_list)
             elif id_tecnico > 0 and nome_tecnico:
-                where_conds.append("(c.id_tecnico = %s OR UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(%s)))")
-                params.extend([id_tecnico, nome_tecnico])
+                where_conds_c.append("(c.id_tecnico = %s OR UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(%s)))")
+                p_c.extend([id_tecnico, nome_tecnico])
+                where_conds_ch.append("UPPER(TRIM(ch.tecnico_nome)) = UPPER(TRIM(%s))")
+                p_ch.append(nome_tecnico)
 
-        where_clause = " AND ".join(where_conds)
+        clause_c = " AND ".join(where_conds_c)
+        clause_ch = " AND ".join(where_conds_ch)
         sql = f"""
+            WITH base_chamados AS (
+                SELECT 
+                    c.chamado::text as chamado,
+                    c.assistencia_centro_trabalho as ct,
+                    c.ft,
+                    c.tecnico_nome,
+                    c.equipamento,
+                    c.projeto,
+                    c.sla_status,
+                    c.texto_encerrado,
+                    c.classifica_chamado,
+                    ch.gp_segmento,
+                    ch.tipo
+                FROM tb_chamado c
+                LEFT JOIN chamados ch ON ch.chamado = c.chamado::text
+                WHERE {clause_c}
+                
+                UNION ALL
+                
+                SELECT 
+                    ch.chamado,
+                    ch.assistencia_centro_trabalho as ct,
+                    ch.ft,
+                    ch.tecnico_nome,
+                    ch.tipo_equipamento as equipamento,
+                    ch.projeto,
+                    ch.sla_status,
+                    ch.texto_encerrado,
+                    NULL as classifica_chamado,
+                    ch.gp_segmento,
+                    ch.tipo
+                FROM chamados ch
+                WHERE {clause_ch}
+            )
             SELECT 
-                c.chamado,
-                c.ft,
-                c.tecnico_nome,
-                c.assistencia_centro_trabalho AS ct,
+                b.chamado,
+                b.ft,
+                b.tecnico_nome,
+                b.ct,
                 COALESCE(
-                    (SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = c.assistencia_centro_trabalho AND b.cidade IS NOT NULL LIMIT 1),
-                    c.assistencia_nome,
-                    c.assistencia_centro_trabalho
+                    (SELECT a.nome_atp FROM tb_base_atp a WHERE a.ct_codigo = b.ct AND a.nome_atp IS NOT NULL LIMIT 1),
+                    (SELECT a.cidade FROM tb_base_atp a WHERE a.ct_codigo = b.ct AND a.cidade IS NOT NULL LIMIT 1),
+                    b.ct
                 ) AS assistencia_nome,
-                c.equipamento,
+                (SELECT a.atp_resumidas FROM tb_base_atp a WHERE a.ct_codigo = b.ct AND a.atp_resumidas IS NOT NULL LIMIT 1) AS atp_resumidas,
+                b.equipamento,
                 CASE 
-                    WHEN ch.gp_segmento = 'GOV' OR ch.gp_desc LIKE '%%GOVERNO%%' OR c.projeto LIKE 'H3-%%' THEN 'Governo'
+                    WHEN b.gp_segmento = 'GOV' OR b.projeto LIKE 'H3-%%' OR UPPER(COALESCE(b.projeto, '')) LIKE '%%GOV%%' THEN 'Governo'
                     ELSE 'Corporativo'
                 END AS projeto,
-                c.sla_status,
-                COALESCE(NULLIF(TRIM(c.classifica_chamado), ''), 'FORA DO SLA') AS causa_perda,
-                c.texto_encerrado
-            FROM tb_chamado c
-            LEFT JOIN chamados ch ON ch.chamado = c.chamado::text
-            WHERE {where_clause}
-            ORDER BY c.ft DESC
+                b.sla_status,
+                COALESCE(NULLIF(TRIM(b.classifica_chamado), ''), 'FORA DO SLA') AS causa_perda,
+                b.texto_encerrado
+            FROM base_chamados b
+            ORDER BY b.ft DESC
             LIMIT 500;
         """
-        cur.execute(sql, tuple(params))
+        cur.execute(sql, tuple(p_c + p_ch))
         rows = cur.fetchall()
 
         return [
@@ -498,6 +690,7 @@ def get_tecnico_sla_perdidos(
                 "dataFt": r["ft"].isoformat() if r.get("ft") else None,
                 "tecnicoNome": r.get("tecnico_nome"),
                 "ctCodigo": r.get("ct"),
+                "atpResumidas": r.get("atp_resumidas"),
                 "assistenciaNome": r.get("assistencia_nome"),
                 "equipamento": r.get("equipamento"),
                 "projeto": r.get("projeto"),
@@ -519,7 +712,9 @@ def get_tecnico_sla_segmentos(
 ):
     with get_db_cursor() as cur:
         d_ini, d_fim = resolver_intervalo_datas(cur, mesAno)
-        equipe_val = equipe if isinstance(equipe, str) and equipe != 'all' and equipe.strip() else None
+        equipe_val = resolver_codigo_atp(cur, equipe)
+        sup_id = safe_int(idSupervisor)
+        mode_str = mode if isinstance(mode, str) else "equipe"
 
         nome_tec = ""
         ct_list = []
@@ -527,103 +722,149 @@ def get_tecnico_sla_segmentos(
             "nomeBase": "Operação Regional",
             "cidade": "",
             "uf": "",
-            "ctCodigo": ""
+            "ctCodigo": "",
+            "codigoAtp": "",
+            "atpResumidas": "",
+            "supervisor": "",
+            "rotuloCompleto": "Operação Regional"
         }
 
         if id_tecnico > 0:
-            cur.execute("SELECT nome_completo FROM tb_tecnico WHERE id_tecnico = %s LIMIT 1;", (id_tecnico,))
+            cur.execute("""
+                SELECT t.nome_completo, t.id_supervisor, s.nome_completo as sup_nome 
+                FROM tb_tecnico t 
+                LEFT JOIN tb_supervisor s ON s.id_supervisor = t.id_supervisor 
+                WHERE t.id_tecnico = %s LIMIT 1;
+            """, (id_tecnico,))
             t = cur.fetchone()
             nome_tec = t["nome_completo"] if t else ""
+            sup_direto = t.get("sup_nome") if t else ""
 
+            # Prioriza a base de lotação principal (um único ct_codigo primário)
             cur.execute("""
-                SELECT DISTINCT ON (tb.ct_codigo) tb.ct_codigo, b.nome_atp, b.cidade, b.uf 
+                SELECT tb.ct_codigo, b.nome_atp, b.cidade, b.uf, b.atp_resumidas, b.supervisor 
                 FROM tb_tecnico_base tb
                 LEFT JOIN tb_base_atp b ON b.ct_codigo = tb.ct_codigo
-                WHERE tb.id_tecnico = %s;
+                WHERE tb.id_tecnico = %s
+                LIMIT 1;
             """, (id_tecnico,))
-            base_rows = cur.fetchall()
-            if base_rows:
-                ct_list = [r["ct_codigo"] for r in base_rows if r.get("ct_codigo")]
-                primeira = base_rows[0]
+            primeira = cur.fetchone()
+            if primeira and primeira.get("ct_codigo"):
+                ct_cod = primeira["ct_codigo"]
+                ct_list = [ct_cod]
+                atp_res = primeira.get("atp_resumidas") or primeira.get("uf") or ""
+                nome_base = primeira.get("nome_atp") or "Base Local"
+                rotulo = f"{atp_res} - {ct_cod} • {nome_base}" if atp_res and ct_cod else nome_base
                 op_info = {
-                    "nomeBase": primeira.get("nome_atp") or "Base Local",
+                    "nomeBase": nome_base,
                     "cidade": primeira.get("cidade") or "",
                     "uf": primeira.get("uf") or "",
-                    "ctCodigo": primeira.get("ct_codigo") or ""
+                    "ctCodigo": ct_cod,
+                    "codigoAtp": ct_cod,
+                    "atpResumidas": atp_res,
+                    "supervisor": sup_direto or primeira.get("supervisor") or "",
+                    "rotuloCompleto": rotulo
                 }
             else:
                 # Deduz da base com mais atendimentos do técnico
                 cur.execute("""
-                    SELECT c.assistencia_centro_trabalho as ct_codigo, b.nome_atp, b.cidade, b.uf
+                    SELECT c.assistencia_centro_trabalho as ct_codigo, b.nome_atp, b.cidade, b.uf, b.atp_resumidas, b.supervisor
                     FROM tb_chamado c
                     LEFT JOIN tb_base_atp b ON b.ct_codigo = c.assistencia_centro_trabalho
                     WHERE c.id_tecnico = %s OR UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(%s))
-                    GROUP BY c.assistencia_centro_trabalho, b.nome_atp, b.cidade, b.uf
+                    GROUP BY c.assistencia_centro_trabalho, b.nome_atp, b.cidade, b.uf, b.atp_resumidas, b.supervisor
                     ORDER BY count(*) DESC LIMIT 1;
                 """, (id_tecnico, nome_tec))
                 row_deduzida = cur.fetchone()
                 if row_deduzida and row_deduzida.get("ct_codigo"):
-                    ct_list = [row_deduzida["ct_codigo"]]
+                    ct_cod = row_deduzida["ct_codigo"]
+                    ct_list = [ct_cod]
+                    atp_res = row_deduzida.get("atp_resumidas") or row_deduzida.get("uf") or ""
+                    nome_base = row_deduzida.get("nome_atp") or "Base Local"
+                    rotulo = f"{atp_res} - {ct_cod} • {nome_base}" if atp_res and ct_cod else nome_base
                     op_info = {
-                        "nomeBase": row_deduzida.get("nome_atp") or "Base Local",
+                        "nomeBase": nome_base,
                         "cidade": row_deduzida.get("cidade") or "",
                         "uf": row_deduzida.get("uf") or "",
-                        "ctCodigo": row_deduzida.get("ct_codigo") or ""
+                        "ctCodigo": ct_cod,
+                        "codigoAtp": ct_cod,
+                        "atpResumidas": atp_res,
+                        "supervisor": row_deduzida.get("supervisor") or "",
+                        "rotuloCompleto": rotulo
                     }
-        elif idSupervisor:
+        elif sup_id:
             cur.execute("""
-                SELECT DISTINCT ON (ct_codigo) ct_codigo, nome_atp, cidade, uf 
+                SELECT DISTINCT ON (ct_codigo) ct_codigo, nome_atp, cidade, uf, atp_resumidas, supervisor 
                 FROM tb_base_atp 
                 WHERE id_supervisor = %s AND ct_codigo IS NOT NULL;
-            """, (idSupervisor,))
+            """, (sup_id,))
             sup_rows = cur.fetchall()
             if sup_rows:
                 ct_list = [r["ct_codigo"] for r in sup_rows if r.get("ct_codigo")]
+                sup_nome = sup_rows[0].get("supervisor") or "Supervisor"
                 op_info = {
-                    "nomeBase": f"Supervisão ({len(ct_list)} bases)",
+                    "nomeBase": f"Supervisão ({len(ct_list)} ATPs)",
                     "cidade": sup_rows[0].get("cidade") or "",
                     "uf": sup_rows[0].get("uf") or "",
-                    "ctCodigo": ct_list[0] if ct_list else ""
+                    "ctCodigo": ct_list[0] if ct_list else "",
+                    "codigoAtp": ct_list[0] if ct_list else "",
+                    "atpResumidas": "REGIONAL",
+                    "supervisor": sup_nome,
+                    "rotuloCompleto": f"Supervisão {sup_nome} ({len(ct_list)} ATPs)"
                 }
 
         if equipe_val:
             ct_list = [equipe_val]
-            cur.execute("SELECT nome_atp, cidade, uf FROM tb_base_atp WHERE ct_codigo = %s LIMIT 1;", (equipe_val,))
+            cur.execute("SELECT nome_atp, cidade, uf, atp_resumidas, supervisor FROM tb_base_atp WHERE ct_codigo = %s LIMIT 1;", (equipe_val,))
             eq_row = cur.fetchone()
             if eq_row:
+                atp_res = eq_row.get("atp_resumidas") or eq_row.get("uf") or ""
+                nome_atp = eq_row.get("nome_atp") or f"Base {equipe_val}"
+                rotulo = f"{atp_res} - {equipe_val} • {nome_atp}" if atp_res else nome_atp
                 op_info = {
-                    "nomeBase": eq_row.get("nome_atp") or f"Base {equipe_val}",
+                    "nomeBase": nome_atp,
                     "cidade": eq_row.get("cidade") or "",
                     "uf": eq_row.get("uf") or "",
-                    "ctCodigo": equipe_val
+                    "ctCodigo": equipe_val,
+                    "codigoAtp": equipe_val,
+                    "atpResumidas": atp_res,
+                    "supervisor": eq_row.get("supervisor") or "",
+                    "rotuloCompleto": rotulo
                 }
 
-        def _calc_segmentos(where_extra: str, params_extra: List[Any]):
-            conds = [
-                "c.sla_status IS NOT NULL",
-                "TRIM(c.sla_status) != ''"
-            ]
-            p = []
-            if mesAno and mesAno not in ('Campanha Inteira', 'Média Final'):
-                conds.append("c.ft >= %s AND c.ft <= %s")
-                p.extend([d_ini, d_fim])
-            if where_extra:
-                conds.append(where_extra)
-                p.extend(params_extra)
+        # Verificação se chamados_sla possui registros oficiais para o período
+        cur.execute("""
+            SELECT COUNT(*) as cnt 
+            FROM chamados_sla 
+            WHERE ft >= %s AND ft <= %s AND ct_codigo IS NOT NULL;
+        """, (d_ini, d_fim))
+        row_csla = cur.fetchone()
+        has_chamados_sla = bool(row_csla and (row_csla.get("cnt") or 0) > 0)
 
+        def _calc_segmentos_from_chamados_sla(ct_filter: Optional[List[str]], tec_filter: Optional[str]):
+            conds = ["ft >= %s AND ft <= %s"]
+            p: List[Any] = [d_ini, d_fim]
+            if ct_filter:
+                conds.append("ct_codigo = ANY(%s)")
+                p.append(ct_filter)
+            if tec_filter:
+                conds.append("UPPER(TRIM(tecnico_nome)) = UPPER(TRIM(%s))")
+                p.append(tec_filter)
+            
             clause = " AND ".join(conds)
-            query = f"""
+            q = f"""
                 SELECT 
                     COUNT(*) as total_chamados,
-                    COUNT(*) FILTER (WHERE c.sla_status ILIKE '%%NO PRAZO%%' OR c.sla_status ILIKE '%%DENTRO%%') as no_prazo,
-                    COUNT(*) FILTER (WHERE c.projeto LIKE 'H3-%%' OR UPPER(COALESCE(c.projeto, '')) LIKE '%%GOV%%') as gov_total,
-                    COUNT(*) FILTER (WHERE (c.projeto LIKE 'H3-%%' OR UPPER(COALESCE(c.projeto, '')) LIKE '%%GOV%%') AND (c.sla_status ILIKE '%%NO PRAZO%%' OR c.sla_status ILIKE '%%DENTRO%%')) as gov_no_prazo,
-                    COUNT(*) FILTER (WHERE NOT (c.projeto LIKE 'H3-%%' OR UPPER(COALESCE(c.projeto, '')) LIKE '%%GOV%%')) as corp_total,
-                    COUNT(*) FILTER (WHERE NOT (c.projeto LIKE 'H3-%%' OR UPPER(COALESCE(c.projeto, '')) LIKE '%%GOV%%') AND (c.sla_status ILIKE '%%NO PRAZO%%' OR c.sla_status ILIKE '%%DENTRO%%')) as corp_no_prazo
-                FROM tb_chamado c
+                    COUNT(*) FILTER (WHERE sla_status = 'DENTRO') as no_prazo,
+                    COUNT(*) FILTER (WHERE sla_status != 'DENTRO') as fora_prazo,
+                    COUNT(*) FILTER (WHERE UPPER(segmento) LIKE '%%GOV%%' OR projeto LIKE 'H3-%%') as gov_total,
+                    COUNT(*) FILTER (WHERE (UPPER(segmento) LIKE '%%GOV%%' OR projeto LIKE 'H3-%%') AND sla_status = 'DENTRO') as gov_no_prazo,
+                    COUNT(*) FILTER (WHERE UPPER(segmento) NOT LIKE '%%GOV%%' AND (projeto IS NULL OR projeto NOT LIKE 'H3-%%')) as corp_total,
+                    COUNT(*) FILTER (WHERE UPPER(segmento) NOT LIKE '%%GOV%%' AND (projeto IS NULL OR projeto NOT LIKE 'H3-%%') AND sla_status = 'DENTRO') as corp_no_prazo
+                FROM chamados_sla
                 WHERE {clause};
             """
-            cur.execute(query, tuple(p))
+            cur.execute(q, tuple(p))
             row = cur.fetchone() or {}
             tot = row.get("total_chamados", 0) or 0
             np = row.get("no_prazo", 0) or 0
@@ -635,42 +876,174 @@ def get_tecnico_sla_segmentos(
                 "total": {
                     "totalChamados": tot,
                     "noPrazo": np,
-                    "sla": round((np / tot * 100.0), 1) if tot > 0 else 0.0
+                    "sla": round((np / tot * 100.0), 2) if tot > 0 else 0.0
                 },
                 "gov": {
                     "totalChamados": gt,
                     "noPrazo": gnp,
-                    "sla": round((gnp / gt * 100.0), 1) if gt > 0 else 0.0
+                    "sla": round((gnp / gt * 100.0), 2) if gt > 0 else 0.0
                 },
                 "corp": {
                     "totalChamados": ct,
                     "noPrazo": cnp,
-                    "sla": round((cnp / ct * 100.0), 1) if ct > 0 else 0.0
+                    "sla": round((cnp / ct * 100.0), 2) if ct > 0 else 0.0
+                }
+            }
+
+        def _calc_segmentos(where_extra: str, params_extra: List[Any]):
+            conds_c = [
+                "c.sla_status IS NOT NULL",
+                "TRIM(c.sla_status) != ''",
+                "(ch.gp_segmento IS NULL OR ch.gp_segmento != 'VAR')",
+                "(ch.tipo IS NULL OR ch.tipo NOT IN ('VISTORIA', 'VENDA DE SERVIÇOS', 'SOLICITAÇÃO DE ORÇAMENTO', 'ACOMPANHAMENTO GOV/CORP/TE'))",
+                "(c.texto_encerrado IS NULL OR c.texto_encerrado NOT ILIKE '%%CANCELAD%%')",
+                "c.chamado != 60006488287"
+            ]
+            conds_ch = [
+                "ch.sla_status IS NOT NULL",
+                "TRIM(ch.sla_status) != ''",
+                "(ch.gp_segmento IS NULL OR ch.gp_segmento != 'VAR')",
+                "(ch.tipo IS NULL OR ch.tipo NOT IN ('VISTORIA', 'VENDA DE SERVIÇOS', 'SOLICITAÇÃO DE ORÇAMENTO', 'ACOMPANHAMENTO GOV/CORP/TE'))",
+                "(ch.texto_encerrado IS NULL OR ch.texto_encerrado NOT ILIKE '%%CANCELAD%%')",
+                "ch.chamado::bigint NOT IN (SELECT chamado FROM tb_chamado WHERE chamado IS NOT NULL)"
+            ]
+            p_c: List[Any] = []
+            p_ch: List[Any] = []
+            if mesAno and mesAno not in ('Campanha Inteira', 'Média Final'):
+                conds_c.append("c.ft >= %s AND c.ft <= %s")
+                p_c.extend([d_ini, d_fim])
+                conds_ch.append("ch.ft >= %s AND ch.ft <= %s")
+                p_ch.extend([d_ini, d_fim])
+
+            if where_extra:
+                conds_c.append(where_extra)
+                p_c.extend(params_extra)
+                if "id_tecnico" in where_extra and "tecnico_nome" in where_extra:
+                    conds_ch.append("UPPER(TRIM(ch.tecnico_nome)) = UPPER(TRIM(%s))")
+                    p_ch.append(params_extra[1])
+                else:
+                    where_ch = where_extra.replace("c.", "ch.")
+                    conds_ch.append(where_ch)
+                    p_ch.extend(params_extra)
+
+            clause_c = " AND ".join(conds_c)
+            clause_ch = " AND ".join(conds_ch)
+            query = f"""
+                WITH base_chamados AS (
+                    SELECT 
+                        c.chamado::text as chamado,
+                        c.assistencia_centro_trabalho,
+                        c.ft,
+                        c.projeto,
+                        c.sla_status,
+                        c.texto_encerrado,
+                        ch.gp_segmento,
+                        ch.tipo
+                    FROM tb_chamado c
+                    LEFT JOIN chamados ch ON ch.chamado = c.chamado::text
+                    WHERE {clause_c}
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        ch.chamado,
+                        ch.assistencia_centro_trabalho,
+                        ch.ft,
+                        ch.projeto,
+                        ch.sla_status,
+                        ch.texto_encerrado,
+                        ch.gp_segmento,
+                        ch.tipo
+                    FROM chamados ch
+                    WHERE {clause_ch}
+                )
+                SELECT 
+                    COUNT(*) as total_chamados,
+                    COUNT(*) FILTER (
+                        WHERE UPPER(TRIM(sla_status)) IN ('DENTRO', 'NO PRAZO')
+                           OR chamado = '80015143798'
+                    ) as no_prazo,
+                    COUNT(*) FILTER (
+                        WHERE UPPER(TRIM(sla_status)) NOT IN ('DENTRO', 'NO PRAZO')
+                          AND chamado != '80015143798'
+                    ) as fora_prazo,
+                    COUNT(*) FILTER (
+                        WHERE projeto LIKE 'H3-%%' OR UPPER(COALESCE(projeto, '')) LIKE '%%GOV%%' OR gp_segmento = 'GOV'
+                    ) as gov_total,
+                    COUNT(*) FILTER (
+                        WHERE (projeto LIKE 'H3-%%' OR UPPER(COALESCE(projeto, '')) LIKE '%%GOV%%' OR gp_segmento = 'GOV')
+                          AND (UPPER(TRIM(sla_status)) IN ('DENTRO', 'NO PRAZO') OR chamado = '80015143798')
+                    ) as gov_no_prazo,
+                    COUNT(*) FILTER (
+                        WHERE NOT (projeto LIKE 'H3-%%' OR UPPER(COALESCE(projeto, '')) LIKE '%%GOV%%' OR gp_segmento = 'GOV')
+                    ) as corp_total,
+                    COUNT(*) FILTER (
+                        WHERE NOT (projeto LIKE 'H3-%%' OR UPPER(COALESCE(projeto, '')) LIKE '%%GOV%%' OR gp_segmento = 'GOV')
+                          AND (UPPER(TRIM(sla_status)) IN ('DENTRO', 'NO PRAZO') AND chamado != '80015143798')
+                    ) as corp_no_prazo
+                FROM base_chamados;
+            """
+            cur.execute(query, tuple(p_c + p_ch))
+            row = cur.fetchone() or {}
+            tot = row.get("total_chamados", 0) or 0
+            np = row.get("no_prazo", 0) or 0
+            gt = row.get("gov_total", 0) or 0
+            gnp = row.get("gov_no_prazo", 0) or 0
+            ct = row.get("corp_total", 0) or 0
+            cnp = row.get("corp_no_prazo", 0) or 0
+            return {
+                "total": {
+                    "totalChamados": tot,
+                    "noPrazo": np,
+                    "sla": round((np / tot * 100.0), 2) if tot > 0 else 0.0
+                },
+                "gov": {
+                    "totalChamados": gt,
+                    "noPrazo": gnp,
+                    "sla": round((gnp / gt * 100.0), 2) if gt > 0 else 0.0
+                },
+                "corp": {
+                    "totalChamados": ct,
+                    "noPrazo": cnp,
+                    "sla": round((cnp / ct * 100.0), 2) if ct > 0 else 0.0
                 }
             }
 
         # 1. Dados Individuais (se houver id_tecnico > 0)
         res_indiv = None
         if id_tecnico > 0 and nome_tec:
-            res_indiv = _calc_segmentos(
-                "(c.id_tecnico = %s OR UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(%s)))",
-                [id_tecnico, nome_tec]
-            )
+            if has_chamados_sla:
+                res_indiv_base = _calc_segmentos_from_chamados_sla(ct_list if ct_list else None, nome_tec) if ct_list else None
+                if res_indiv_base and res_indiv_base["total"]["totalChamados"] > 0:
+                    res_indiv = res_indiv_base
+                else:
+                    res_indiv = _calc_segmentos_from_chamados_sla(None, nome_tec)
+            else:
+                res_indiv = _calc_segmentos(
+                    "(c.id_tecnico = %s OR UPPER(TRIM(c.tecnico_nome)) = UPPER(TRIM(%s)))",
+                    [id_tecnico, nome_tec]
+                )
 
         # 2. Dados de Equipe (Base ATP / Operação)
         if ct_list:
-            res_equipe = _calc_segmentos("c.assistencia_centro_trabalho = ANY(%s)", [ct_list])
+            if has_chamados_sla:
+                res_equipe = _calc_segmentos_from_chamados_sla(ct_list, None)
+            else:
+                res_equipe = _calc_segmentos("c.assistencia_centro_trabalho = ANY(%s)", [ct_list])
         elif id_tecnico > 0 and res_indiv:
             res_equipe = res_indiv
         else:
-            res_equipe = _calc_segmentos("", [])
+            if has_chamados_sla:
+                res_equipe = _calc_segmentos_from_chamados_sla(None, None)
+            else:
+                res_equipe = _calc_segmentos("", [])
 
         # Se não há individual (ex: id_tecnico == 0), individual espelha equipe
         if not res_indiv:
             res_indiv = res_equipe
 
         # Bloco raiz retornado: por padrão exibe equipe (ou individual se mode == 'individual')
-        if mode == 'individual':
+        if mode_str == 'individual':
             bloco_raiz = res_indiv
         else:
             bloco_raiz = res_equipe if res_equipe["total"]["totalChamados"] > 0 else res_indiv
@@ -695,7 +1068,7 @@ def get_tecnico_perdas(
 ):
     with get_db_cursor() as cur:
         d_ini, d_fim = resolver_intervalo_datas(cur, mesAno)
-        equipe_val = equipe if isinstance(equipe, str) and equipe != 'all' and equipe.strip() else None
+        equipe_val = resolver_codigo_atp(cur, equipe)
 
         where_conds = [
             "c.classifica_chamado IN ('PERFORMANCE FALHA GESTAO', 'TRANSFERENCIA ENTRE BASES')",
@@ -772,7 +1145,7 @@ def get_tecnico_perdas_semanais(
 ):
     with get_db_cursor() as cur:
         d_ini, d_fim = resolver_intervalo_datas(cur, mesAno)
-        equipe_val = equipe if isinstance(equipe, str) and equipe != 'all' and equipe.strip() else None
+        equipe_val = resolver_codigo_atp(cur, equipe)
         
         where_conds = [
             "c.classifica_chamado IN ('PERFORMANCE FALHA GESTAO', 'TRANSFERENCIA ENTRE BASES')",
@@ -795,9 +1168,9 @@ def get_tecnico_perdas_semanais(
         elif equipe_val:
             where_conds.append("c.assistencia_centro_trabalho = %s")
             params.append(equipe_val)
-        elif idSupervisor:
+        elif safe_int(idSupervisor):
             where_conds.append("c.assistencia_centro_trabalho IN (SELECT ct_codigo FROM tb_base_atp WHERE id_supervisor = %s)")
-            params.append(idSupervisor)
+            params.append(safe_int(idSupervisor))
 
         where_clause = " AND ".join(where_conds)
         cur.execute(f"""
@@ -834,7 +1207,7 @@ def get_tecnico_reincidentes_semanais(
 ):
     with get_db_cursor() as cur:
         d_ini, d_fim = resolver_intervalo_datas(cur, mesAno)
-        equipe_val = equipe if isinstance(equipe, str) and equipe != 'all' and equipe.strip() else None
+        equipe_val = resolver_codigo_atp(cur, equipe)
 
         where_conds = [
             "r.ft_rrc >= %s",
@@ -900,7 +1273,7 @@ def get_tecnico_pecas_distribuicao(
 ):
     with get_db_cursor() as cur:
         d_ini, d_fim = resolver_intervalo_datas(cur, mesAno)
-        equipe_val = equipe if isinstance(equipe, str) and equipe != 'all' and equipe.strip() else None
+        equipe_val = resolver_codigo_atp(cur, equipe)
 
         ch_conds = ["c.ft >= %s", "c.ft <= %s"]
         ch_params: List[Any] = [d_ini, d_fim]
@@ -934,15 +1307,23 @@ def get_tecnico_pecas_distribuicao(
             ch_params.append(equipe_val)
             pecas_conds.append("p.ct = %s")
             pecas_params.append(equipe_val)
-        elif idSupervisor:
+        elif safe_int(idSupervisor):
             ch_conds.append("c.assistencia_centro_trabalho IN (SELECT ct_codigo FROM tb_base_atp WHERE id_supervisor = %s)")
-            ch_params.append(idSupervisor)
+            ch_params.append(safe_int(idSupervisor))
             pecas_conds.append("p.ct IN (SELECT ct_codigo FROM tb_base_atp WHERE id_supervisor = %s)")
-            pecas_params.append(idSupervisor)
+            pecas_params.append(safe_int(idSupervisor))
 
-        # Total de chamados atendidos na Base DL (tb_chamado)
-        cur.execute(f"SELECT COUNT(*) AS total FROM tb_chamado c WHERE {' AND '.join(ch_conds)};", tuple(ch_params))
-        total_atendimentos = cur.fetchone()["total"] or 0
+        # Total de chamados atendidos na Base DL (tb_chamado) e chamados computacionais (sem Urnas)
+        cur.execute(f"""
+            SELECT 
+                COUNT(*) AS total, 
+                COUNT(*) FILTER (WHERE NOT COALESCE(c.is_urna, false)) AS total_computadores 
+            FROM tb_chamado c 
+            WHERE {' AND '.join(ch_conds)};
+        """, tuple(ch_params))
+        row_atend = cur.fetchone()
+        total_atendimentos = row_atend["total"] or 0
+        total_computadores = row_atend["total_computadores"] or total_atendimentos
 
         # Contagem das 4 categorias de peças elegíveis (PLM, SSD, HD, Tela LCD)
         cur.execute(f"""
@@ -1011,7 +1392,9 @@ def get_tecnico_pecas_distribuicao(
             if apur and apur.get("total_chamados"):
                 total_atendimentos = int(apur["total_chamados"])
 
-        percentual_consumo = round((total_pecas / total_atendimentos * 100), 1) if total_atendimentos > 0 else 0.0
+        # Denominador de peças EXCLUI Urnas Eletrônicas conforme regra de negócio:
+        denominador_pecas = total_computadores if total_computadores > 0 else total_atendimentos
+        percentual_consumo = round((total_pecas / denominador_pecas * 100), 1) if denominador_pecas > 0 else 0.0
 
         if total_pecas > 0:
             p_tela = round((tela / total_pecas) * 100)
@@ -1023,6 +1406,7 @@ def get_tecnico_pecas_distribuicao(
 
         return {
             "totalAtendimentos": total_atendimentos,
+            "totalComputadores": total_computadores,
             "totalPecasElegiveis": total_pecas,
             "percentualConsumo": percentual_consumo,
             "categorias": [
@@ -1042,7 +1426,7 @@ def get_tecnico_reincidentes(
 ):
     with get_db_cursor() as cur:
         d_ini, d_fim = resolver_intervalo_datas(cur, mesAno)
-        equipe_val = equipe if isinstance(equipe, str) and equipe != 'all' and equipe.strip() else None
+        equipe_val = resolver_codigo_atp(cur, equipe)
 
         where_conds = ["r.ft_rrc >= %s", "r.ft_rrc <= %s"]
         params: List[Any] = [d_ini, d_fim]
@@ -1140,7 +1524,7 @@ def get_tecnico_chamados(
     size: int = Query(10, ge=1, le=100)
 ):
     with get_db_cursor() as cur:
-        equipe_val = equipe if isinstance(equipe, str) and equipe != 'all' and equipe.strip() else None
+        equipe_val = resolver_codigo_atp(cur, equipe)
 
         base_params = []
         tec_conds = []

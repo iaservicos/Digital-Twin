@@ -182,8 +182,8 @@ export default function RankingScreen() {
             </p>
           </div>
 
-          {/* ESTRUTURA DOS 3 PEDESTAIS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end max-w-4xl mx-auto pt-6 pb-2 relative z-10">
+          {/* ESTRUTURA DOS 3 PEDESTAIS (PÓDIO OLÍMPICO RESPONSIVO) */}
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-4 md:gap-6 items-end max-w-4xl mx-auto pt-6 pb-2 relative z-10">
             
             {/* ----------------------------------------------------------------- */}
             {/* 2º LUGAR (Esquerda - Prata)                                       */}
@@ -191,50 +191,51 @@ export default function RankingScreen() {
             {top2 && (
               <div 
                 onClick={() => canViewDetails && setSelectedTecnico(top2)}
-                className={`flex flex-col items-center text-center order-2 md:order-1 ${
+                className={`flex flex-col items-center text-center order-1 ${
                   canViewDetails ? 'cursor-pointer group transition-transform hover:-translate-y-1' : ''
                 }`}
                 title={canViewDetails ? "Clique para ver o desempenho de 2º lugar" : undefined}
               >
-                {/* Avatar do 2º Colocado: Foto ou Bonequinho Vazio */}
-                <div className="relative mb-3">
-                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-slate-300 dark:border-border shadow-xl flex items-center justify-center bg-surface ${
+                {/* Avatar do 2º Colocado */}
+                <div className="relative mb-2 sm:mb-3">
+                  <div className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-slate-300 dark:border-border shadow-lg flex items-center justify-center bg-surface ${
                     canViewDetails ? 'group-hover:scale-105 transition-transform' : ''
                   }`}>
                     {top2.fotoPerfil ? (
                       <img src={top2.fotoPerfil} alt={top2.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-text-muted">
-                        <User size={30} />
+                        <User size={22} className="sm:hidden" />
+                        <User size={30} className="hidden sm:block" />
                       </div>
                     )}
                   </div>
-                  <span className="absolute -bottom-2 -right-1 w-7 h-7 rounded-full bg-slate-300 dark:bg-surface-elevated text-slate-900 dark:text-text-main font-black text-xs flex items-center justify-center border-2 border-surface shadow-md">
+                  <span className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-1 w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-slate-300 dark:bg-surface-elevated text-slate-900 dark:text-text-main font-black text-[10px] sm:text-xs flex items-center justify-center border-2 border-surface shadow-md">
                     2º
                   </span>
                 </div>
 
-                <div className="mb-2 w-full px-2">
-                  <p className={`font-bold text-sm text-light-text-main dark:text-text-main transition-colors truncate ${
+                <div className="mb-1.5 sm:mb-2 w-full px-1 sm:px-2">
+                  <p className={`font-bold text-xs sm:text-sm text-light-text-main dark:text-text-main transition-colors truncate ${
                     canViewDetails ? 'group-hover:text-primary' : ''
                   }`}>
                     {toTitleCase(top2.name)}
                   </p>
-                  <p className="text-[11px] text-primary font-medium truncate mt-0.5">
+                  <p className="text-[10px] sm:text-[11px] text-primary font-medium truncate mt-0.5">
                     {top2.base}
                   </p>
-                  <p className="text-base font-black text-text-main mt-1">
-                    {top2.score.toFixed(1)} <span className="text-[10px] text-text-muted font-normal">pts</span>
+                  <p className="text-xs sm:text-base font-black text-text-main mt-0.5 sm:mt-1">
+                    {top2.score.toFixed(1)} <span className="text-[9px] sm:text-[10px] text-text-muted font-normal">pts</span>
                   </p>
                 </div>
 
                 {/* Pedestal Prata */}
-                <div className="w-full h-36 md:h-44 rounded-t-2xl bg-gradient-to-t from-slate-400/20 via-slate-400/10 to-slate-400/5 border-t-2 border-x-2 border-border flex flex-col items-center justify-center shadow-lg p-3">
-                  <span className="text-2xl mb-1">🥈</span>
-                  <span className="text-xs font-black text-text-main uppercase tracking-wider">
+                <div className="w-full h-24 sm:h-36 md:h-44 rounded-t-xl sm:rounded-t-2xl bg-gradient-to-t from-slate-400/20 via-slate-400/10 to-slate-400/5 border-t-2 border-x-2 border-border flex flex-col items-center justify-center shadow-lg p-1.5 sm:p-3">
+                  <span className="text-lg sm:text-2xl mb-0.5 sm:mb-1">🥈</span>
+                  <span className="text-[10px] sm:text-xs font-black text-text-main uppercase tracking-wider">
                     2º Lugar
                   </span>
-                  <span className="text-[10px] text-text-muted mt-0.5">
+                  <span className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 hidden xs:inline-block">
                     SLA: {top2.percentualSla.toFixed(1)}%
                   </span>
                 </div>
@@ -247,59 +248,61 @@ export default function RankingScreen() {
             {top1 && (
               <div 
                 onClick={() => canViewDetails && setSelectedTecnico(top1)}
-                className={`flex flex-col items-center text-center order-1 md:order-2 ${
+                className={`flex flex-col items-center text-center order-2 ${
                   canViewDetails ? 'cursor-pointer group transition-transform hover:-translate-y-1.5' : ''
                 }`}
                 title={canViewDetails ? "Clique para ver o desempenho do líder do ranking" : undefined}
               >
                 {/* Avatar do 1º Colocado com Coroa e Halo Dourado */}
-                <div className="relative mb-3">
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-amber-400 animate-bounce duration-1000">
-                    <Crown size={26} />
+                <div className="relative mb-2 sm:mb-3">
+                  <div className="absolute -top-4 sm:-top-6 left-1/2 -translate-x-1/2 text-amber-400 animate-bounce duration-1000">
+                    <Crown size={18} className="sm:hidden" />
+                    <Crown size={26} className="hidden sm:block" />
                   </div>
-                  <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.35)] flex items-center justify-center bg-surface ${
+                  <div className={`w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 sm:border-4 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.35)] flex items-center justify-center bg-surface ${
                     canViewDetails ? 'group-hover:scale-105 transition-transform' : ''
                   }`}>
                     {top1.fotoPerfil ? (
                       <img src={top1.fotoPerfil} alt={top1.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-amber-300">
-                        <User size={38} />
+                        <User size={26} className="sm:hidden" />
+                        <User size={38} className="hidden sm:block" />
                       </div>
                     )}
                   </div>
-                  <span className="absolute -bottom-2 -right-1 w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-surface shadow-md">
+                  <span className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-1 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-amber-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center border-2 border-surface shadow-md">
                     1º
                   </span>
                 </div>
 
-                <div className="mb-2 w-full px-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Líder da Campanha
+                <div className="mb-1.5 sm:mb-2 w-full px-1 sm:px-2">
+                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-block">
+                    Líder
                   </span>
-                  <p className={`font-black text-base text-light-text-main dark:text-text-main transition-colors truncate mt-1 ${
+                  <p className={`font-black text-xs sm:text-base text-light-text-main dark:text-text-main transition-colors truncate mt-0.5 sm:mt-1 ${
                     canViewDetails ? 'group-hover:text-amber-400' : ''
                   }`}>
                     {toTitleCase(top1.name)}
                   </p>
-                  <p className="text-xs text-amber-400/90 font-medium truncate mt-0.5">
+                  <p className="text-[10px] sm:text-xs text-amber-400/90 font-medium truncate mt-0.5">
                     {top1.base}
                   </p>
-                  <p className="text-xl font-black text-amber-300 mt-1">
-                    {top1.score.toFixed(1)} <span className="text-xs text-text-muted font-normal">pts</span>
+                  <p className="text-sm sm:text-xl font-black text-amber-300 mt-0.5 sm:mt-1">
+                    {top1.score.toFixed(1)} <span className="text-[9px] sm:text-xs text-text-muted font-normal">pts</span>
                   </p>
                 </div>
 
                 {/* Pedestal Ouro */}
-                <div className="w-full h-48 md:h-56 rounded-t-2xl bg-gradient-to-t from-amber-500/25 via-amber-500/15 to-amber-500/5 border-t-2 border-x-2 border-amber-400/60 flex flex-col items-center justify-center shadow-lg p-4">
-                  <span className="text-3xl mb-1 filter drop-shadow-md">🥇</span>
-                  <span className="text-sm font-black text-amber-300 uppercase tracking-widest">
+                <div className="w-full h-32 sm:h-48 md:h-56 rounded-t-xl sm:rounded-t-2xl bg-gradient-to-t from-amber-500/25 via-amber-500/15 to-amber-500/5 border-t-2 border-x-2 border-amber-400/60 flex flex-col items-center justify-center shadow-lg p-2 sm:p-4">
+                  <span className="text-2xl sm:text-3xl mb-0.5 sm:mb-1 filter drop-shadow-md">🥇</span>
+                  <span className="text-[10px] sm:text-sm font-black text-amber-300 uppercase tracking-widest">
                     Campeão
                   </span>
-                  <span className="text-xs text-text-main font-semibold mt-1">
+                  <span className="text-[9px] sm:text-xs text-text-main font-semibold mt-0.5 sm:mt-1 hidden xs:inline-block">
                     SLA: {top1.percentualSla.toFixed(1)}%
                   </span>
-                  <span className="text-[10px] text-emerald-400 font-bold mt-0.5">
+                  <span className="text-[8px] sm:text-[10px] text-emerald-400 font-bold mt-0.5 hidden xs:inline-block">
                     Peças: {top1.percentualEficienciaPecas.toFixed(1)}%
                   </span>
                 </div>
@@ -312,50 +315,51 @@ export default function RankingScreen() {
             {top3 && (
               <div 
                 onClick={() => canViewDetails && setSelectedTecnico(top3)}
-                className={`flex flex-col items-center text-center order-3 md:order-3 ${
+                className={`flex flex-col items-center text-center order-3 ${
                   canViewDetails ? 'cursor-pointer group transition-transform hover:-translate-y-1' : ''
                 }`}
                 title={canViewDetails ? "Clique para ver o desempenho de 3º lugar" : undefined}
               >
-                {/* Avatar do 3º Colocado: Foto ou Bonequinho Vazio */}
-                <div className="relative mb-3">
-                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-orange-400 shadow-xl flex items-center justify-center bg-surface ${
+                {/* Avatar do 3º Colocado */}
+                <div className="relative mb-2 sm:mb-3">
+                  <div className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-orange-400 shadow-lg flex items-center justify-center bg-surface ${
                     canViewDetails ? 'group-hover:scale-105 transition-transform' : ''
                   }`}>
                     {top3.fotoPerfil ? (
                       <img src={top3.fotoPerfil} alt={top3.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-orange-400">
-                        <User size={30} />
+                        <User size={22} className="sm:hidden" />
+                        <User size={30} className="hidden sm:block" />
                       </div>
                     )}
                   </div>
-                  <span className="absolute -bottom-2 -right-1 w-7 h-7 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center border-2 border-surface shadow-md">
+                  <span className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-1 w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-orange-500 text-white font-black text-[10px] sm:text-xs flex items-center justify-center border-2 border-surface shadow-md">
                     3º
                   </span>
                 </div>
 
-                <div className="mb-2 w-full px-2">
-                  <p className={`font-bold text-sm text-light-text-main dark:text-text-main transition-colors truncate ${
+                <div className="mb-1.5 sm:mb-2 w-full px-1 sm:px-2">
+                  <p className={`font-bold text-xs sm:text-sm text-light-text-main dark:text-text-main transition-colors truncate ${
                     canViewDetails ? 'group-hover:text-primary' : ''
                   }`}>
                     {toTitleCase(top3.name)}
                   </p>
-                  <p className="text-[11px] text-primary font-medium truncate mt-0.5">
+                  <p className="text-[10px] sm:text-[11px] text-primary font-medium truncate mt-0.5">
                     {top3.base}
                   </p>
-                  <p className="text-base font-black text-text-main mt-1">
-                    {top3.score.toFixed(1)} <span className="text-[10px] text-text-muted font-normal">pts</span>
+                  <p className="text-xs sm:text-base font-black text-text-main mt-0.5 sm:mt-1">
+                    {top3.score.toFixed(1)} <span className="text-[9px] sm:text-[10px] text-text-muted font-normal">pts</span>
                   </p>
                 </div>
 
                 {/* Pedestal Bronze */}
-                <div className="w-full h-28 md:h-36 rounded-t-2xl bg-gradient-to-t from-orange-500/20 via-orange-500/10 to-orange-500/5 border-t-2 border-x-2 border-orange-500/40 flex flex-col items-center justify-center shadow-lg p-3">
-                  <span className="text-2xl mb-1">🥉</span>
-                  <span className="text-xs font-black text-orange-300 uppercase tracking-wider">
+                <div className="w-full h-18 sm:h-28 md:h-36 rounded-t-xl sm:rounded-t-2xl bg-gradient-to-t from-orange-500/20 via-orange-500/10 to-orange-500/5 border-t-2 border-x-2 border-orange-500/40 flex flex-col items-center justify-center shadow-lg p-1.5 sm:p-3">
+                  <span className="text-lg sm:text-2xl mb-0.5 sm:mb-1">🥉</span>
+                  <span className="text-[10px] sm:text-xs font-black text-orange-300 uppercase tracking-wider">
                     3º Lugar
                   </span>
-                  <span className="text-[10px] text-text-muted mt-0.5">
+                  <span className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 hidden xs:inline-block">
                     SLA: {top3.percentualSla.toFixed(1)}%
                   </span>
                 </div>

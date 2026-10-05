@@ -12,6 +12,10 @@ export interface SlaOperacaoInfo {
   cidade?: string;
   uf?: string;
   ctCodigo?: string;
+  codigoAtp?: string;
+  atpResumidas?: string;
+  supervisor?: string;
+  rotuloCompleto?: string;
 }
 
 export interface SlaSegmentosPayload {
@@ -124,10 +128,10 @@ export function useDashboardCardsData({
     if (selectedMonth && selectedMonth !== 'Campanha Inteira' && selectedMonth !== 'Média Final') {
       params.mesAno = selectedMonth;
     }
-    if (idSupervisor !== undefined && idSupervisor !== null) {
-      params.idSupervisor = idSupervisor;
+    if (idSupervisor !== undefined && idSupervisor !== null && Number(idSupervisor) > 0) {
+      params.idSupervisor = Number(idSupervisor);
     }
-    if (equipe && equipe !== 'TODAS') {
+    if (equipe && equipe !== 'TODAS' && equipe !== 'all') {
       params.equipe = equipe;
     }
     if (segmento && segmento !== 'Total') {

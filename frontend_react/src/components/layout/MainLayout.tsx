@@ -7,8 +7,8 @@ import InteractiveWaterRippleGrid from './InteractiveWaterRippleGrid';
 
 export default function MainLayout() {
   return (
-    <div className="h-screen w-screen overflow-hidden relative font-sans transition-colors flex flex-col lg:flex-row">
-      {/* Background Interativo com Grid e Efeito de Toque na Água (Dark e Light) */}
+    <div className="h-screen w-screen overflow-hidden relative font-sans transition-colors flex flex-col lg:flex-row bg-light-background dark:bg-background">
+      {/* Background Grid Estático (Dark e Light) */}
       <InteractiveWaterRippleGrid />
 
       {/* Mobile TopBar: Exibido apenas em telas menores (< lg) */}
@@ -22,8 +22,8 @@ export default function MainLayout() {
       </aside>
 
       {/* Área de Conteúdo Principal: Único container de rolagem vertical da aplicação */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 lg:pb-0 pt-20 lg:pt-0 relative z-10">
-        <main className="flex-1 w-full max-w-[105rem] mx-auto p-4 md:p-6 lg:p-8">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto overflow-x-hidden scrollbar-hide pb-28 lg:pb-0 pt-20 lg:pt-0 relative z-10">
+        <main className="flex-1 w-full max-w-[105rem] mx-auto p-4 md:p-6 lg:p-8 pb-8 lg:pb-8">
           <Outlet />
         </main>
       </div>

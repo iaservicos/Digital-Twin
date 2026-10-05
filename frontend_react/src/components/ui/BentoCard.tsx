@@ -31,8 +31,8 @@ export const BentoCard: React.FC<BentoCardProps> = ({
         "glass-bento border",
         // Raio de curvatura oficial dos bentos (token do tailwind.config.js)
         "rounded-bento",
-        // Padding interno oficial (restaura o espaçamento perfeito)
-        "p-6",
+        // Padding interno oficial adaptativo em REM
+        "p-[1rem] sm:p-[1.25rem] xl:p-[1.5rem]",
         // Layout e contexto group para micro-interações internas
         "relative overflow-hidden group",
         // Transição suave

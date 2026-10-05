@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore, ThemeMode } from '../store/themeStore';
 import { useCampanhaStore } from '../store/campanhaStore';
@@ -39,8 +40,14 @@ export default function ProfileScreen() {
   const { user, updateUser, logout } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
   const { campanhas, selectedCampanha, setCampanhas, setSelectedCampanha } = useCampanhaStore();
+  const navigate = useNavigate();
 
   const [isAjudaOpen, setIsAjudaOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   // ---------------------------------------------------------------------------
   // 1. ESTADOS DE FOTO DE PERFIL
@@ -1049,7 +1056,7 @@ export default function ProfileScreen() {
                 <button
                   key={option.value}
                   onClick={() => setTheme(option.value)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive
                       ? 'bg-primary text-background shadow-md font-black'
                       : 'text-text-muted hover:text-text-main'
@@ -1063,6 +1070,20 @@ export default function ProfileScreen() {
           </div>
         </div>
       </BentoCard>
+
+      {/* ======================================================================= */}
+      {/* 7. BOTÃO DE LOGOUT MOBILE (Acesso Rápido e Seguro)                      */}
+      {/* ======================================================================= */}
+      <div className="block sm:hidden pt-1">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 font-bold text-sm transition-all duration-200 cursor-pointer shadow-xs active:scale-[0.99]"
+        >
+          <LogOut size={18} />
+          <span>Sair da Minha Conta</span>
+        </button>
+      </div>
 
       {/* Modal de Ajuda */}
       <ModalAjuda isOpen={isAjudaOpen} onClose={() => setIsAjudaOpen(false)} />

@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 import time
+import unicodedata
 from datetime import datetime, date
 from typing import Dict, Any, List, Optional, Tuple
 import psycopg
@@ -20,6 +20,12 @@ class CalculoPontuacaoService:
     # =========================================================================
     # HELPERS
     # =========================================================================
+    @staticmethod
+    def _norm_name(s: str) -> str:
+        if not s:
+            return ""
+        s = str(s).strip().upper()
+        return "".join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
     @staticmethod
     def _safe_ratio(val: Any) -> float:
         if val is None:
@@ -43,12 +49,82 @@ class CalculoPontuacaoService:
     # =========================================================================
     # 1. KPI 1: SLA DA EQUIPE (Peso: 32.5 pts)
     # =========================================================================
-    def _calcular_sla_equipe(self, cur: psycopg.Cursor, ano_mes_str: str) -> Dict[str, Dict[str, float]]:
+    def _calcular_sla_equipe(self, cur: psycopg.Cursor, ano_mes_str: str) -> Dict[str, Dict[str, Any]]:
         """
         Calcula o SLA por Base ATP: Chamados com sla_status = 'DENTRO' / Total de Chamados da Base.
         Meta: >= 100% -> 33.5 pts | >= 90% -> 29.0 pts | < 90% -> 0.0 pts (Gatilho).
-        Fallback inteligente: se tb_chamado não tiver registros com sla_status para o mês, utiliza chamados.
+        Prioridade: se chamados_sla possuir registros para o mês com ct_codigo, calcula diretamente da tabela oficial de SLA.
+        Fallback inteligente: se chamados_sla não tiver registros com ct_codigo para o mês, utiliza tb_chamado/chamados.
         """
+        cur.execute(f"""
+            SELECT COUNT(*) AS total
+            FROM chamados_sla
+            WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}'
+              AND ct_codigo IS NOT NULL;
+        """)
+        row_csla = cur.fetchone()
+        cnt_val = row_csla["total"] if isinstance(row_csla, dict) else (row_csla[0] if row_csla else 0)
+        has_chamados_sla = bool(cnt_val and cnt_val > 0)
+
+        resultado = {}
+        if has_chamados_sla:
+            query = f"""
+                SELECT 
+                    ct_codigo,
+                    atp_nome,
+                    COUNT(*) AS total_chamados_base,
+                    COUNT(*) FILTER (WHERE UPPER(TRIM(sla_status)) IN ('DENTRO', 'NO PRAZO')) AS chamados_dentro,
+                    ROUND((COUNT(*) FILTER (WHERE UPPER(TRIM(sla_status)) IN ('DENTRO', 'NO PRAZO'))::numeric / NULLIF(COUNT(*), 0)::numeric) * 100, 2) AS perc_sla
+                FROM chamados_sla
+                WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}'
+                  AND ct_codigo IS NOT NULL
+                GROUP BY ct_codigo, atp_nome;
+            """
+            cur.execute(query)
+            for row in cur.fetchall():
+                ct = str(row["ct_codigo"] if isinstance(row, dict) else row[0]).strip()
+                atp = str((row["atp_nome"] if isinstance(row, dict) else row[1]) or "").strip().upper()
+                perc = float((row["perc_sla"] if isinstance(row, dict) else row[4]) or 0.0)
+                tot = int((row["total_chamados_base"] if isinstance(row, dict) else row[2]) or 0)
+                if perc >= 100.0:
+                    pontos = 33.5
+                elif perc >= 90.0:
+                    pontos = 29.0
+                else:
+                    pontos = 0.0
+                dados_sla = {
+                    "perc_sla": perc,
+                    "pontos_sla": pontos,
+                    "total_chamados_base": tot
+                }
+                resultado[ct] = dados_sla
+                if atp:
+                    resultado[atp] = dados_sla
+
+            aliases = {
+                "89009100": ["PB"],
+                "89007090": ["PE"],
+                "89007091": ["AL"],
+                "89000940": ["CE"],
+                "89009670": ["SC"],
+                "2791005":  ["PR"],
+                "89009160": ["RN"],
+                "89009511": ["MT"],
+                "89001910": ["RO"],
+                "89001911": ["AC"],
+                "89000650": ["AM"],
+                "89000651": ["AP"],
+                "7812231":  ["RS"],
+                "89009120": ["TO"]
+            }
+            for ct_key, alias_list in aliases.items():
+                if ct_key in resultado:
+                    for al in alias_list:
+                        if al not in resultado:
+                            resultado[al] = resultado[ct_key]
+            return resultado
+
+        # Fallback para bases legadas
         cur.execute(f"""
             SELECT COUNT(*) AS total
             FROM tb_chamado
@@ -56,7 +132,8 @@ class CalculoPontuacaoService:
               AND sla_status IS NOT NULL;
         """)
         row_sla = cur.fetchone()
-        has_tb_chamado_sla = bool(row_sla and (row_sla["total"] or 0) > 0)
+        cnt_sla = row_sla["total"] if isinstance(row_sla, dict) else (row_sla[0] if row_sla else 0)
+        has_tb_chamado_sla = bool(cnt_sla and cnt_sla > 0)
         table_sla = "tb_chamado" if has_tb_chamado_sla else "chamados"
 
         query = f"""
@@ -85,8 +162,9 @@ class CalculoPontuacaoService:
         cur.execute(query)
         resultado = {}
         for row in cur.fetchall():
-            base = row["base_atp"]
-            perc = float(row["perc_sla"] or 0.0)
+            base = row["base_atp"] if isinstance(row, dict) else row[0]
+            perc = float((row["perc_sla"] if isinstance(row, dict) else row[3]) or 0.0)
+            tot = int((row["total_chamados_base"] if isinstance(row, dict) else row[1]) or 0)
             if perc >= 100.0:
                 pontos = 33.5
             elif perc >= 90.0:
@@ -96,7 +174,35 @@ class CalculoPontuacaoService:
             resultado[base] = {
                 "perc_sla": perc,
                 "pontos_sla": pontos,
-                "total_chamados_base": int(row["total_chamados_base"] or 0)
+                "total_chamados_base": tot
+            }
+        return resultado
+
+    def _calcular_sla_individual(self, cur: psycopg.Cursor, ano_mes_str: str) -> Dict[str, Dict[str, Any]]:
+        """
+        Calcula o SLA individual do técnico a partir da Base DL (chamados_sla).
+        """
+        cur.execute(f"""
+            SELECT 
+                UPPER(TRIM(tecnico_nome)) AS tecnico_nome,
+                COUNT(*) AS total_chamados_tec,
+                COUNT(*) FILTER (WHERE UPPER(TRIM(sla_status)) IN ('DENTRO', 'NO PRAZO')) AS chamados_dentro,
+                ROUND((COUNT(*) FILTER (WHERE UPPER(TRIM(sla_status)) IN ('DENTRO', 'NO PRAZO'))::numeric / NULLIF(COUNT(*), 0)::numeric) * 100, 2) AS perc_sla_indiv
+            FROM chamados_sla
+            WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}'
+              AND tecnico_nome IS NOT NULL AND TRIM(tecnico_nome) != ''
+            GROUP BY UPPER(TRIM(tecnico_nome));
+        """)
+        resultado = {}
+        for row in cur.fetchall():
+            tec = row["tecnico_nome"] if isinstance(row, dict) else row[0]
+            tot = row["total_chamados_tec"] if isinstance(row, dict) else row[1]
+            dentro = row["chamados_dentro"] if isinstance(row, dict) else row[2]
+            perc = float((row["perc_sla_indiv"] if isinstance(row, dict) else row[3]) or 0.0)
+            resultado[tec] = {
+                "perc_sla_indiv": perc,
+                "total_chamados_tec": int(tot or 0),
+                "chamados_dentro": int(dentro or 0)
             }
         return resultado
 
@@ -480,7 +586,30 @@ class CalculoPontuacaoService:
 
         conn = self.pg_client._get_connection()
         with conn.cursor(row_factory=dict_row) as cur:
-            # 1. Total de Chamados por Técnico
+            # 1. Total de Chamados por Técnico (alimentado com prioridade por chamados_sla)
+            cur.execute(f"""
+                SELECT 
+                    UPPER(TRIM(tecnico_nome)) AS tecnico_nome,
+                    COUNT(*) AS total_chamados,
+                    COUNT(*) FILTER (WHERE UPPER(COALESCE(equipamento, '')) IN ('DESKTOP', 'NOTEBOOK', 'ALL IN ONE', 'DESKTOP AIO', 'MINIPRO', '')) AS chamados_computacionais
+                FROM chamados_sla
+                WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}'
+                  AND tecnico_nome IS NOT NULL AND TRIM(tecnico_nome) != ''
+                GROUP BY UPPER(TRIM(tecnico_nome));
+            """)
+            tec_chamados = {}
+            tec_chamados_comp = {}
+            for r in cur.fetchall():
+                t_name = r["tecnico_nome"]
+                t_norm = self._norm_name(t_name)
+                cnt = int(r["total_chamados"] or 0)
+                cnt_comp = int(r["chamados_computacionais"] or r["total_chamados"] or 0)
+                tec_chamados[t_name] = cnt
+                tec_chamados[t_norm] = cnt
+                tec_chamados_comp[t_name] = cnt_comp
+                tec_chamados_comp[t_norm] = cnt_comp
+
+            # Complementa com tb_chamado caso haja registros adicionais
             cur.execute(f"""
                 SELECT 
                     UPPER(TRIM(tecnico_nome)) AS tecnico_nome,
@@ -488,16 +617,22 @@ class CalculoPontuacaoService:
                     COUNT(*) FILTER (WHERE UPPER(COALESCE(equipamento, '')) IN ('DESKTOP', 'NOTEBOOK', 'ALL IN ONE', 'DESKTOP AIO', 'MINIPRO', '')) AS chamados_computacionais
                 FROM tb_chamado
                 WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}'
+                  AND tecnico_nome IS NOT NULL AND TRIM(tecnico_nome) != ''
                 GROUP BY UPPER(TRIM(tecnico_nome));
             """)
-            tec_chamados = {}
-            tec_chamados_comp = {}
             for r in cur.fetchall():
-                tec_name = r["tecnico_nome"]
-                tec_chamados[tec_name] = int(r["total_chamados"] or 0)
-                tec_chamados_comp[tec_name] = int(r["chamados_computacionais"] or r["total_chamados"] or 0)
+                t_name = r["tecnico_nome"]
+                t_norm = self._norm_name(t_name)
+                cnt = int(r["total_chamados"] or 0)
+                cnt_comp = int(r["chamados_computacionais"] or r["total_chamados"] or 0)
+                if cnt > tec_chamados.get(t_name, 0):
+                    tec_chamados[t_name] = cnt
+                    tec_chamados[t_norm] = cnt
+                if cnt_comp > tec_chamados_comp.get(t_name, 0):
+                    tec_chamados_comp[t_name] = cnt_comp
+                    tec_chamados_comp[t_norm] = cnt_comp
 
-            # Fallback para chamados (Databricks) caso tb_chamado não possua registros no mês
+            # Fallback para chamados (Databricks) caso necessário
             if not tec_chamados:
                 cur.execute(f"""
                     SELECT 
@@ -511,8 +646,13 @@ class CalculoPontuacaoService:
                 """)
                 for r in cur.fetchall():
                     tec_name = r["tecnico_nome"]
-                    tec_chamados[tec_name] = int(r["total_chamados"] or 0)
-                    tec_chamados_comp[tec_name] = int(r["chamados_computacionais"] or r["total_chamados"] or 0)
+                    tec_norm = self._norm_name(tec_name)
+                    cnt = int(r["total_chamados"] or 0)
+                    cnt_comp = int(r["chamados_computacionais"] or r["total_chamados"] or 0)
+                    tec_chamados[tec_name] = cnt
+                    tec_chamados[tec_norm] = cnt
+                    tec_chamados_comp[tec_name] = cnt_comp
+                    tec_chamados_comp[tec_norm] = cnt_comp
 
             # Complementa chamados com tb_encerrados_rrc se houver registros
             cur.execute(f"""
@@ -526,9 +666,11 @@ class CalculoPontuacaoService:
             """)
             for r in cur.fetchall():
                 t_name = r["tecnico_nome"]
+                t_norm = self._norm_name(t_name)
                 cnt = int(r["total_chamados"] or 0)
                 if cnt > tec_chamados.get(t_name, 0):
                     tec_chamados[t_name] = cnt
+                    tec_chamados[t_norm] = cnt
 
             # 2. Execução Independente de Cada Módulo de KPI
             sla_data = self._calcular_sla_equipe(cur, ano_mes_str)
@@ -542,20 +684,33 @@ class CalculoPontuacaoService:
             row_reinc = cur.fetchone()
             fonte_reincidencia = "DATABRICKS_REINCIDENTES" if (row_reinc and row_reinc["total"] > 0) else "PLANILHA_BI"
 
-            # 3. Lista de Técnicos Ativos e suas Bases Oficiais
-            cur.execute("""
+            # 3. Lista de Técnicos Ativos e suas Bases Oficiais (com resolução por atendimentos no mês)
+            cur.execute(f"""
                 SELECT 
                     t.id_tecnico,
                     t.nome_completo,
                     t.matricula,
-                    b.uf,
-                    b.atp_resumidas
+                    COALESCE(cs.ct_codigo, b.ct_codigo) as ct_codigo,
+                    COALESCE(cs.atp_nome, b.atp_resumidas, b.uf) as atp_resumidas,
+                    COALESCE(cs.atp_nome, b.uf) as uf
                 FROM tb_tecnico t
+                LEFT JOIN (
+                    SELECT DISTINCT ON (UPPER(TRIM(tecnico_nome)))
+                        UPPER(TRIM(tecnico_nome)) as tec_nome,
+                        ct_codigo,
+                        atp_nome
+                    FROM chamados_sla
+                    WHERE TO_CHAR(ft, 'YYYY-MM') = '{ano_mes_str}'
+                      AND ct_codigo IS NOT NULL
+                    GROUP BY UPPER(TRIM(tecnico_nome)), ct_codigo, atp_nome
+                    ORDER BY UPPER(TRIM(tecnico_nome)), COUNT(*) DESC
+                ) cs ON UPPER(TRIM(t.nome_completo)) = cs.tec_nome
                 LEFT JOIN (
                     SELECT DISTINCT ON (tb.id_tecnico) 
                         tb.id_tecnico, 
                         b.uf,
-                        b.atp_resumidas
+                        b.atp_resumidas,
+                        b.ct_codigo
                     FROM tb_tecnico_base tb
                     JOIN tb_base_atp b ON tb.ct_codigo = b.ct_codigo
                     ORDER BY tb.id_tecnico, b.uf
@@ -571,16 +726,17 @@ class CalculoPontuacaoService:
                 tec_id = tec["id_tecnico"]
                 nome_norm = (tec["nome_completo"] or "").strip().upper()
                 base_norm = self._normalizar_base(tec["uf"], tec["atp_resumidas"])
+                ct_cod = str(tec.get("ct_codigo") or "").strip()
 
-                # Valores de Equipe
-                kpi_sla = sla_data.get(base_norm, {"perc_sla": 0.0, "pontos_sla": 0.0})
+                # Valores de Equipe (busca primária por base_norm da operação consolidada, depois por ct_cod)
+                kpi_sla = sla_data.get(base_norm) or sla_data.get(ct_cod, {"perc_sla": 0.0, "pontos_sla": 0.0})
                 kpi_perd = perdas_data.get(base_norm, {"perc_perdas": 0.0, "pontos_perdas": 21.0})
                 kpi_rrc_eq = reinc_eq_data.get(base_norm, {"perc_reinc_equipe": 0.0, "pontos_reinc_equipe": 16.0})
 
                 # Valores Individuais
                 kpi_rrc_ind = reinc_ind_data.get(nome_norm, {"perc_reinc_indiv": 0.0, "pontos_reinc_indiv": 0.0})
                 kpi_pecas = pecas_data.get(nome_norm, {"perc_pecas_indiv": 0.0, "pontos_pecas_indiv": 0.0})
-                total_ch = tec_chamados.get(nome_norm, 0)
+                total_ch = tec_chamados.get(nome_norm) or tec_chamados.get(self._norm_name(nome_norm), 0)
 
                 # Se o técnico teve atendimentos e não teve reincidência / peças, pontua meta máxima
                 if total_ch > 0:

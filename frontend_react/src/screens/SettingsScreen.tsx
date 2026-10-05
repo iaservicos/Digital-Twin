@@ -548,12 +548,12 @@ export default function SettingsScreen() {
           )}
         </div>
 
-        {/* Abas Principais */}
-        <div className="flex items-center gap-2 p-1.5 glass-bento border rounded-2xl w-fit flex-wrap">
+        {/* Abas Principais Roláveis Suavemente no Mobile */}
+        <div className="flex items-center gap-2 p-1.5 glass-bento border rounded-2xl w-full sm:w-fit overflow-x-auto scrollbar-hide flex-nowrap max-w-full">
           {isModerador && (
             <button
               onClick={() => handleTabChange('UPLOADS')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'UPLOADS'
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === 'UPLOADS'
                 ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
                 : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
                 }`}
@@ -564,7 +564,7 @@ export default function SettingsScreen() {
           )}
           <button
             onClick={() => handleTabChange('TECNICOS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'TECNICOS'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === 'TECNICOS'
               ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
               : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}
@@ -575,7 +575,7 @@ export default function SettingsScreen() {
           {isModerador && (
             <button
               onClick={() => handleTabChange('CAMPANHA')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'CAMPANHA'
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === 'CAMPANHA'
                 ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
                 : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
                 }`}
@@ -586,7 +586,7 @@ export default function SettingsScreen() {
           )}
           <button
             onClick={() => handleTabChange('PREFERENCIAS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer ${activeTab === 'PREFERENCIAS'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === 'PREFERENCIAS'
               ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
               : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
               }`}

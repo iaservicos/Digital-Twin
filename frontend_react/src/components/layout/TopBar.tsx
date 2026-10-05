@@ -4,36 +4,24 @@ import {
   Sun, 
   Moon, 
   Bell, 
-  User, 
-  Settings, 
-  LogOut, 
-  Home, 
-  Users, 
-  HelpCircle,
-  ShieldCheck,
-  ChevronRight,
-  DatabaseZap,
-  FileSpreadsheet
+  User
 } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../../services/api';
 import ModalConfiguracoes from './ModalConfiguracoes';
 import ModalAjuda from './ModalAjuda';
-import { toTitleCase, formatLocalEquipe } from '../../utils/stringFormatters';
+import { toTitleCase } from '../../utils/stringFormatters';
 import { useCampanhaStore, Campanha } from '../../store/campanhaStore';
 
 export default function TopBar() {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
   
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [hoverModerador, setHoverModerador] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isAjudaOpen, setIsAjudaOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const { campanhas, selectedCampanha, setCampanhas, setSelectedCampanha } = useCampanhaStore();
 
   useEffect(() => {
@@ -56,22 +44,6 @@ export default function TopBar() {
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Buscar foto de perfil ao montar
   useEffect(() => {
@@ -103,14 +75,14 @@ export default function TopBar() {
   const isViewSupervisao = location.pathname.startsWith('/supervisao');
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-light-surface dark:bg-background shadow-sm border-b border-light-borderStrong dark:border-border z-40 h-20 flex items-center justify-between px-6 pt-safe">
+    <header className="fixed top-0 left-0 right-0 bg-light-surface dark:bg-background shadow-sm border-b border-light-borderStrong dark:border-border z-40 h-20 flex items-center justify-between px-3 sm:px-6 pt-safe">
 
       {/* Esquerda: Logo */}
       <div className="flex items-center">
         <img 
           src="/Logo/positivo_tecnologia.png" 
           alt="Positivo Tecnologia" 
-          className="h-12 md:h-16 w-auto object-contain dark:filter-none filter brightness-0 dark:brightness-100 transition-all duration-200" 
+          className="h-8 sm:h-12 md:h-16 w-auto max-w-[100px] sm:max-w-none object-contain dark:filter-none filter brightness-0 dark:brightness-100 transition-all duration-200" 
         />
       </div>
 
@@ -121,173 +93,58 @@ export default function TopBar() {
         style={{ fontFamily: "'Montserrat', 'Montserrat Black', sans-serif", fontWeight: 900, letterSpacing: "-0.05em" }}
         title="Voltar para o Início"
       >
-        <h1 className="text-2xl font-black text-light-text-main dark:text-text-main uppercase transition-all duration-300 group-hover:text-primary group-hover:drop-shadow-glow-primary">
-          Brilha<span className="text-3xl text-primary ml-[1px] leading-none">+</span>
+        <h1 className="text-xl sm:text-2xl font-black text-light-text-main dark:text-text-main uppercase transition-all duration-300 group-hover:text-primary group-hover:drop-shadow-glow-primary">
+          Brilha<span className="text-2xl sm:text-3xl text-primary ml-[1px] leading-none">+</span>
         </h1>
       </div>
 
       {/* Direita: Ações e Perfil */}
-      <div className="flex items-center space-x-4 md:space-x-6">
+      <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
 
-        {/* Toggle de Tema */}
+        {/* Toggle de Tema (Acessível em Mobile e Desktop) */}
         <button
+          type="button"
           onClick={toggleTheme}
-          className="hidden md:block p-2 rounded-full text-light-text-muted hover:text-light-text-secondary dark:text-text-muted dark:hover:text-text-main transition-colors"
+          className="p-2 rounded-full text-light-text-muted hover:text-light-text-secondary dark:text-text-muted dark:hover:text-text-main transition-colors cursor-pointer"
+          title="Alternar Tema Claro / Escuro"
         >
           {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
         {/* Notificações */}
-        <button className="relative p-2 rounded-full text-light-text-muted hover:text-light-text-secondary dark:text-text-muted dark:hover:text-text-main transition-colors">
+        <button 
+          type="button"
+          className="relative p-2 rounded-full text-light-text-muted hover:text-light-text-secondary dark:text-text-muted dark:hover:text-text-main transition-colors cursor-pointer"
+        >
           <Bell size={20} />
           {/* Badge vermelho de notificação */}
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
         </button>
 
         {/* Separador */}
-        <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-border"></div>
+        <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-border"></div>
 
-        {/* Perfil do Usuário com Dropdown */}
-        <div className="relative" ref={menuRef}>
-          <div 
-            className="flex items-center space-x-3 cursor-pointer select-none"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-sm font-bold text-light-text-main dark:text-text-main leading-tight">
-                {user?.nomeCompleto ? toTitleCase(user.nomeCompleto) : 'Usuário'}
-              </span>
-              <span className="text-xs text-accent-teal font-medium">
-                {user?.cargo || (isModerador ? 'Moderador' : isSupervisor ? 'Supervisor' : 'Técnico')}
-              </span>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-surface border border-light-borderStrong dark:border-border flex items-center justify-center text-light-text-muted dark:text-text-muted hover:bg-slate-200 transition-colors overflow-hidden">
-              {user?.fotoPerfil ? (
-                <img src={user.fotoPerfil} alt="Perfil" className="w-full h-full object-cover" />
-              ) : (
-                <User size={20} />
-              )}
-            </div>
+        {/* Perfil do Usuário: Navega diretamente para a tela de Perfil */}
+        <div 
+          className="flex items-center space-x-2 sm:space-x-3 cursor-pointer select-none group"
+          onClick={() => navigate('/profile')}
+          title="Ver Meu Perfil"
+        >
+          <div className="hidden md:flex flex-col items-end">
+            <span className="text-sm font-bold text-light-text-main dark:text-text-main leading-tight group-hover:text-primary transition-colors">
+              {user?.nomeCompleto ? toTitleCase(user.nomeCompleto) : 'Usuário'}
+            </span>
+            <span className="text-xs text-accent-teal font-medium">
+              {user?.cargo || (isModerador ? 'Moderador' : isSupervisor ? 'Supervisor' : 'Técnico')}
+            </span>
           </div>
-
-          {/* Menu Dropdown */}
-          {isMenuOpen && (
-            <div className="hidden md:block absolute right-0 mt-2 w-56 bg-light-surface dark:bg-surface rounded-xl shadow-2xl py-1.5 border border-light-borderStrong dark:border-border z-50 animate-in fade-in slide-in-from-top-2">
-              <div className="px-4 py-2.5 border-b border-light-borderStrong dark:border-border mb-1">
-                <p className="text-sm font-bold text-light-text-main dark:text-text-main truncate" title={user?.nomeCompleto}>{toTitleCase(user?.nomeCompleto)}</p>
-                <p className="text-xs text-light-text-muted dark:text-text-muted truncate" title={user?.localEquipe}>{formatLocalEquipe(user?.localEquipe) || 'Localidade não informada'}</p>
-              </div>
-
-              {/* Opção: Painel de Supervisão (Exibido quando na View de Moderador ou fora da Supervisão) */}
-              {(isAdmin || isModerador || isSupervisor) && !isViewSupervisao && (
-                <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    navigate('/supervisao');
-                  }}
-                  className={`flex items-center w-full px-4 py-2 text-xs font-semibold transition-colors duration-200 ${
-                    location.pathname === '/supervisao'
-                      ? 'text-accent-teal bg-accent-teal/10'
-                      : 'text-light-text-secondary dark:text-text-main hover:text-accent-teal hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Users size={16} className="mr-2.5 text-accent-teal" />
-                  Painel de Supervisão
-                </button>
-              )}
-
-              {/* Opção: Painel do Moderador com Hover Submenu (Exibido quando na View de Supervisão ou fora da Moderação) */}
-              {(isAdmin || isModerador) && !isViewModerador && (
-                <div 
-                  className="relative group"
-                  onMouseEnter={() => setHoverModerador(true)}
-                  onMouseLeave={() => setHoverModerador(false)}
-                >
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      navigate('/configuracoes');
-                    }}
-                    className={`flex items-center justify-between w-full px-4 py-2 text-xs font-semibold transition-colors duration-200 ${
-                      location.pathname === '/configuracoes'
-                        ? 'text-accent-teal bg-accent-teal/10'
-                        : 'text-light-text-secondary dark:text-text-main hover:text-accent-teal hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                    }`}
-                  >
-                    <span className="flex items-center">
-                      <ShieldCheck size={16} className="mr-2.5 text-accent-teal" />
-                      Painel do Moderador
-                    </span>
-                    <ChevronRight size={14} className="text-light-text-muted dark:text-text-muted group-hover:text-accent-teal transition-transform group-hover:translate-x-0.5" />
-                  </button>
-
-                  {/* Submenu Flutuante no Hover */}
-                  <div className={`absolute right-full top-0 mr-1 w-52 bg-light-surface dark:bg-surface rounded-xl shadow-2xl py-1.5 border border-light-borderStrong dark:border-border z-50 transition-all duration-200 ${
-                    hoverModerador ? 'opacity-100 visible translate-x-0' : 'opacity-0 invisible translate-x-2 pointer-events-none'
-                  }`}>
-                    <div className="px-3 py-1.5 text-[10px] font-bold text-accent-teal uppercase tracking-wider border-b border-light-borderStrong dark:border-border mb-1">
-                      Opções de Ingestão
-                    </div>
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setHoverModerador(false);
-                        navigate('/configuracoes?tab=UPLOADS&mode=databricks');
-                      }}
-                      className="flex items-center w-full px-3.5 py-2 text-xs font-medium text-light-text-main dark:text-slate-200 hover:text-accent-teal hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
-                    >
-                      <DatabaseZap size={15} className="mr-2 text-accent-teal shrink-0" />
-                      Sincronia Databricks
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setHoverModerador(false);
-                        navigate('/configuracoes?tab=UPLOADS&mode=planilhas');
-                      }}
-                      className="flex items-center w-full px-3.5 py-2 text-xs font-medium text-light-text-main dark:text-slate-200 hover:text-accent-teal hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
-                    >
-                      <FileSpreadsheet size={15} className="mr-2 text-emerald-400 shrink-0" />
-                      Adicionar Planilhas
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Separador */}
-              <div className="h-px bg-light-borderStrong dark:bg-border my-1 mx-2"></div>
-
-              <button
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  setIsConfigOpen(true);
-                }}
-                className="flex items-center w-full px-4 py-2 text-xs font-semibold text-light-text-secondary dark:text-text-main hover:text-accent-teal hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors duration-200"
-              >
-                <Settings size={16} className="mr-2.5 text-slate-400" />
-                Configurações da Conta
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  setIsAjudaOpen(true);
-                }}
-                className="flex items-center w-full px-4 py-2 text-xs font-semibold text-light-text-secondary dark:text-text-main hover:text-accent-teal hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors duration-200"
-              >
-                <HelpCircle size={16} className="mr-2.5 text-slate-400" />
-                Ajuda
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="flex items-center w-full px-4 py-2 text-xs font-semibold text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors duration-200 mt-1"
-              >
-                <LogOut size={16} className="mr-2.5" />
-                Sair
-              </button>
-            </div>
-          )}
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-surface border border-light-borderStrong dark:border-border flex items-center justify-center text-light-text-muted dark:text-text-muted hover:bg-slate-200 group-hover:border-primary transition-all overflow-hidden shadow-xs">
+            {user?.fotoPerfil ? (
+              <img src={user.fotoPerfil} alt="Perfil" className="w-full h-full object-cover" />
+            ) : (
+              <User size={18} />
+            )}
+          </div>
         </div>
       </div>
 

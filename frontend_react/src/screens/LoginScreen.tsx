@@ -3,9 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import { jwtDecode } from 'jwt-decode';
-import { User, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import IntroSplashOverlay from '../components/common/IntroSplashOverlay';
 import MatrixBackground from '../components/common/MatrixBackground';
+
+interface PrimeiroAcessoData {
+  accessToken: string;
+  matricula: string;
+  nome: string;
+  cargo?: string;
+  localEquipe?: string;
+  role?: string;
+}
 
 export default function LoginScreen() {
   const navigate = useNavigate();
@@ -14,10 +23,26 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Estados do fluxo de Primeiro Acesso
+  const [primeiroAcessoData, setPrimeiroAcessoData] = useState<PrimeiroAcessoData | null>(null);
+  const [novaSenha, setNovaSenha] = useState('');
+  const [confirmaSenha, setConfirmaSenha] = useState('');
+  const [showNovaSenha, setShowNovaSenha] = useState(false);
+  const [trocaLoading, setTrocaLoading] = useState(false);
+  const [trocaError, setTrocaError] = useState('');
+
   // Controle de reprodução da intro do vídeo BrilhaMaisV7.mp4 na abertura do site
   const [showIntro, setShowIntro] = useState(() => {
     return sessionStorage.getItem('brilha_intro_seen') !== 'true';
   });
+
+  const redirecionarPorPerfil = (role?: string, cargo?: string) => {
+    if (role === 'MODERADOR' || role === 'ADMINISTRADOR' || role === 'SUPERVISOR' || cargo === 'Administrador' || cargo === 'Super Administrador' || cargo === 'Supervisor de Campo') {
+      navigate('/supervisao');
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,25 +59,35 @@ export default function LoginScreen() {
         senha: passwordInput
       });
 
-      const { accessToken, nome, cargo, localEquipe, role } = response.data;
+      const { accessToken, nome, cargo, localEquipe, role, primeiroAcesso } = response.data;
       const decoded: any = jwtDecode(accessToken);
+      const nomeFinal = nome || decoded.nome || decoded.sub || userIdInput;
+
+      // Se for primeiro acesso, exibe o modal obrigatório de troca de senha
+      if (primeiroAcesso) {
+        setPrimeiroAcessoData({
+          accessToken,
+          matricula: userIdInput,
+          nome: nomeFinal,
+          cargo,
+          localEquipe,
+          role
+        });
+        setLoading(false);
+        return;
+      }
 
       await setAuth(accessToken, {
         matricula: userIdInput,
         primeiroAcesso: false,
-        nomeCompleto: nome || decoded.nome || decoded.sub || userIdInput,
+        nomeCompleto: nomeFinal,
         cargo: cargo,
         localEquipe: localEquipe,
         role: role
       });
 
       setLoading(false);
-
-      if (role === 'MODERADOR' || role === 'ADMINISTRADOR' || role === 'SUPERVISOR' || cargo === 'Administrador' || cargo === 'Super Administrador' || cargo === 'Supervisor de Campo') {
-        navigate('/supervisao');
-      } else {
-        navigate('/dashboard');
-      }
+      redirecionarPorPerfil(role, cargo);
     } catch (err: any) {
       setLoading(false);
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
@@ -67,6 +102,57 @@ export default function LoginScreen() {
         setError(err.response?.data?.message || 'Erro ao realizar login. Verifique suas credenciais.');
       }
       console.error('Erro de login:', err);
+    }
+  };
+
+  const handleTrocaSenhaPrimeiroAcesso = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!primeiroAcessoData) return;
+
+    setTrocaError('');
+    if (novaSenha.length < 6) {
+      setTrocaError('A nova senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+    if (novaSenha === 'Brilha123') {
+      setTrocaError('Por segurança, sua nova senha não pode ser igual à senha provisória Brilha123.');
+      return;
+    }
+    if (novaSenha !== confirmaSenha) {
+      setTrocaError('As senhas digitadas não coincidem.');
+      return;
+    }
+
+    setTrocaLoading(true);
+    try {
+      await api.post(
+        '/auth/change-password',
+        {
+          novaSenha: novaSenha,
+          matricula: primeiroAcessoData.matricula
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${primeiroAcessoData.accessToken}`
+          }
+        }
+      );
+
+      // Conclui o login na aplicação
+      await setAuth(primeiroAcessoData.accessToken, {
+        matricula: primeiroAcessoData.matricula,
+        primeiroAcesso: false,
+        nomeCompleto: primeiroAcessoData.nome,
+        cargo: primeiroAcessoData.cargo,
+        localEquipe: primeiroAcessoData.localEquipe,
+        role: primeiroAcessoData.role
+      });
+
+      setTrocaLoading(false);
+      redirecionarPorPerfil(primeiroAcessoData.role, primeiroAcessoData.cargo);
+    } catch (err: any) {
+      setTrocaLoading(false);
+      setTrocaError(err.response?.data?.detail || err.response?.data?.message || 'Falha ao alterar senha.');
     }
   };
 
@@ -158,6 +244,119 @@ export default function LoginScreen() {
           </form>
         </div>
       </div>
+
+      {/* Modal Obrigatório de Primeiro Acesso: Troca de Senha */}
+      {primeiroAcessoData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="glass-bento border border-primary/40 rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 relative overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Glow decorativo de fundo */}
+            <div className="absolute -top-16 -right-16 w-36 h-36 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary mb-3 shadow-inner">
+                <ShieldCheck size={28} />
+              </div>
+              <h2 className="text-xl font-bold text-light-text-main dark:text-text-main">
+                Primeiro Acesso ao Brilha+
+              </h2>
+              <p className="text-xs text-light-text-muted dark:text-text-muted mt-1 max-w-xs leading-relaxed">
+                Olá, <strong className="text-light-text-main dark:text-text-main">{primeiroAcessoData.nome}</strong>! Por segurança operacional, cadastre sua nova senha pessoal antes de continuar.
+              </p>
+            </div>
+
+            {trocaError && (
+              <div className="bg-red-500/10 border border-red-500/40 text-red-300 p-3 rounded-xl text-xs font-medium text-center mb-4">
+                {trocaError}
+              </div>
+            )}
+
+            <form onSubmit={handleTrocaSenhaPrimeiroAcesso} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[0.6875rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider pl-1">
+                  Nova Senha Pessoal
+                </label>
+                <div className="relative">
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
+                  <input
+                    type={showNovaSenha ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={novaSenha}
+                    onChange={(e) => setNovaSenha(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    autoComplete="new-password"
+                    className="w-full glass-bento border border-light-border dark:border-white/10 text-light-text-main dark:text-text-main rounded-xl pl-10 pr-10 py-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all placeholder:text-light-text-muted/60 dark:placeholder:text-text-muted/60 shadow-inner"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNovaSenha(!showNovaSenha)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted hover:text-primary transition-colors cursor-pointer"
+                  >
+                    {showNovaSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[0.6875rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider pl-1">
+                  Confirmação da Nova Senha
+                </label>
+                <div className="relative">
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" />
+                  <input
+                    type={showNovaSenha ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={confirmaSenha}
+                    onChange={(e) => setConfirmaSenha(e.target.value)}
+                    placeholder="Repita a nova senha"
+                    autoComplete="new-password"
+                    className="w-full glass-bento border border-light-border dark:border-white/10 text-light-text-main dark:text-text-main rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all placeholder:text-light-text-muted/60 dark:placeholder:text-text-muted/60 shadow-inner"
+                  />
+                </div>
+              </div>
+
+              {/* Dicas de validação */}
+              <div className="bg-light-surface-elevated/40 dark:bg-white/5 rounded-xl p-3 border border-light-border/40 dark:border-white/5 text-[0.6875rem] space-y-1.5 text-light-text-muted dark:text-text-muted">
+                <div className={`flex items-center gap-1.5 ${novaSenha.length >= 6 ? 'text-emerald-500 font-semibold' : ''}`}>
+                  <CheckCircle2 size={13} className={novaSenha.length >= 6 ? 'text-emerald-500' : 'opacity-40'} />
+                  <span>Pelo menos 6 caracteres</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${novaSenha && novaSenha !== 'Brilha123' ? 'text-emerald-500 font-semibold' : ''}`}>
+                  <CheckCircle2 size={13} className={novaSenha && novaSenha !== 'Brilha123' ? 'text-emerald-500' : 'opacity-40'} />
+                  <span>Diferente da senha inicial (Brilha123)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${novaSenha && novaSenha === confirmaSenha ? 'text-emerald-500 font-semibold' : ''}`}>
+                  <CheckCircle2 size={13} className={novaSenha && novaSenha === confirmaSenha ? 'text-emerald-500' : 'opacity-40'} />
+                  <span>Senhas idênticas</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-col gap-2">
+                <button
+                  type="submit"
+                  disabled={trocaLoading}
+                  className="w-full flex items-center justify-center py-3.5 px-6 rounded-xl font-bold text-sm bg-primary text-slate-950 hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer tracking-wider"
+                >
+                  {trocaLoading ? 'Salvando...' : 'Salvar Nova Senha & Entrar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPrimeiroAcessoData(null);
+                    setNovaSenha('');
+                    setConfirmaSenha('');
+                    setTrocaError('');
+                  }}
+                  className="text-xs text-light-text-muted dark:text-text-muted hover:text-light-text-main dark:hover:text-text-main py-1 transition-colors cursor-pointer text-center"
+                >
+                  Cancelar e voltar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

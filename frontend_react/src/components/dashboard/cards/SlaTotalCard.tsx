@@ -81,41 +81,35 @@ export const SlaTotalCard: React.FC<SlaTotalCardProps> = ({
 
   return (
     <BentoCard
-      hoverable
-      onClick={onOpenDetailsModal}
-      className={`min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-primary/50 hover:shadow-glow-primary-sm ${className}`}
-      title="Clique para ver o detalhamento completo dos KPIs (SLA Máx: 33,5 pts)"
+      hoverable={false}
+      className={`min-h-[19.5rem] sm:min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
+      title="SLA da Operação & Individual"
     >
-      {/* Cabeçalho Padronizado: Pílula 'SLA da Operação/Individual' + Badge Pontuação + Seletor Bimodal + Botão Ação */}
+      {/* Cabeçalho Padronizado: Pílula 'SLA da Operação/Individual' + Seletor Bimodal + Botão Ação ↗ */}
       <div className="flex flex-col gap-[0.375rem]">
-        <div className="flex items-center justify-between gap-[0.5rem]">
-          <div className="flex items-center gap-[0.5rem]">
-            <div className="inline-flex items-center px-[0.75rem] py-[0.25rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
+        <div className="flex items-center justify-between gap-[0.375rem] flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-[0.375rem]">
+            <div className="inline-flex items-center px-[0.625rem] py-[0.1875rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.6875rem] sm:text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
               {slaMode === 'equipe' ? 'SLA da Operação' : 'SLA Individual'}
             </div>
             {selectedSegmento !== 'Total' && (
-              <span className="text-[0.625rem] font-black uppercase tracking-wider px-[0.5rem] py-[0.125rem] rounded-full bg-primary/15 text-primary border border-primary/30">
+              <span className="text-[0.5625rem] font-black uppercase tracking-wider px-[0.375rem] py-[0.0625rem] rounded-full bg-primary/15 text-primary border border-primary/30">
                 {selectedSegmento}
               </span>
             )}
-            {/* Badge de Pontuação Oficial do Indicador (Máx 33,5 pts) */}
-            <div className="inline-flex items-center gap-[0.25rem] px-[0.625rem] py-[0.25rem] rounded-full bg-primary/10 border border-primary/25 text-primary text-[0.75rem] font-black shadow-xs">
-              <span>{pontosCalculados.toFixed(1)}</span>
-              <span className="text-[0.625rem] text-light-text-muted dark:text-text-muted font-normal">/ 33,5 pts</span>
-            </div>
           </div>
 
-          <div className="flex items-center gap-[0.5rem]">
+          <div className="flex items-center gap-[0.375rem] shrink-0">
             {/* Seletor Bimodal Individual | Equipe idêntico ao Card 5 */}
             {canToggleMode && onToggleMode && (
               <div
                 onClick={(e) => e.stopPropagation()}
-                className="flex items-center p-[0.125rem] rounded-[0.5rem] bg-light-surface-elevated dark:bg-surface border border-light-border dark:border-border text-[0.625rem] font-bold"
+                className="flex items-center p-[0.125rem] rounded-[0.5rem] bg-light-surface-elevated dark:bg-surface border border-light-border dark:border-border text-[0.5625rem] sm:text-[0.625rem] font-bold"
               >
                 <button
                   type="button"
                   onClick={() => onToggleMode('individual')}
-                  className={`px-[0.5rem] py-[0.125rem] rounded-[0.375rem] border transition-all cursor-pointer ${
+                  className={`px-[0.375rem] sm:px-[0.5rem] py-[0.125rem] rounded-[0.375rem] border transition-all cursor-pointer ${
                     slaMode === 'individual'
                       ? 'bg-primary text-background border-primary shadow-xs'
                       : 'bg-transparent border-transparent text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover'
@@ -126,7 +120,7 @@ export const SlaTotalCard: React.FC<SlaTotalCardProps> = ({
                 <button
                   type="button"
                   onClick={() => onToggleMode('equipe')}
-                  className={`px-[0.5rem] py-[0.125rem] rounded-[0.375rem] border transition-all cursor-pointer ${
+                  className={`px-[0.375rem] sm:px-[0.5rem] py-[0.125rem] rounded-[0.375rem] border transition-all cursor-pointer ${
                     slaMode === 'equipe'
                       ? 'bg-primary text-background border-primary shadow-xs'
                       : 'bg-transparent border-transparent text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover'
@@ -143,35 +137,18 @@ export const SlaTotalCard: React.FC<SlaTotalCardProps> = ({
                 e.stopPropagation();
                 onOpenDetailsModal();
               }}
-              className="w-[2rem] h-[2rem] rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
-              title="Ver detalhamento completo dos chamados SLA"
+              className="w-[1.75rem] h-[1.75rem] sm:w-[2rem] sm:h-[2rem] rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
+              title="Ver explicação conceitual e faixas de pontuação do SLA"
             >
-              <ArrowUpRight size={16} />
+              <ArrowUpRight size={15} />
             </button>
           </div>
         </div>
-
-        {/* Subtítulo Contextual da Base ou Atendimento Próprio */}
-        {slaMode === 'equipe' && operacaoNome ? (
-          <div className="flex items-center gap-[0.375rem] px-[0.25rem]">
-            <span className="w-[0.375rem] h-[0.375rem] rounded-full bg-primary animate-pulse" />
-            <span className="text-[0.6875rem] font-medium text-light-text-muted dark:text-text-muted truncate">
-              {operacaoNome}
-            </span>
-          </div>
-        ) : slaMode === 'individual' ? (
-          <div className="flex items-center gap-[0.375rem] px-[0.25rem]">
-            <span className="w-[0.375rem] h-[0.375rem] rounded-full bg-primary/60" />
-            <span className="text-[0.6875rem] font-medium text-light-text-muted dark:text-text-muted">
-              Atendimentos Próprios do Colaborador
-            </span>
-          </div>
-        ) : null}
       </div>
 
       {/* Gauge Circular Central Calibrado em REM com Porcentagem e Status */}
-      <div className="flex flex-col items-center justify-center my-auto py-[0.5rem]">
-        <div className="relative w-[11.5rem] h-[11.5rem] 2xl:w-[13rem] 2xl:h-[13rem] flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center my-auto py-[0.375rem]">
+        <div className="relative w-[9rem] h-[9rem] sm:w-[10.5rem] sm:h-[10.5rem] xl:w-[11.5rem] xl:h-[11.5rem] 2xl:w-[12.5rem] 2xl:h-[12.5rem] flex items-center justify-center">
           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
             {/* Trilha Inativa (Restante com gap nas pontas) */}
             <circle
@@ -205,11 +182,11 @@ export const SlaTotalCard: React.FC<SlaTotalCardProps> = ({
             />
           </svg>
           <div className="absolute flex flex-col items-center justify-center text-center">
-            <span className="text-[1.875rem] 2xl:text-[2.25rem] font-black text-light-text-main dark:text-text-main tracking-tight leading-none">
-              {slaExibicao.toFixed(1)}%
+            <span className="text-[1.625rem] sm:text-[1.875rem] 2xl:text-[2.25rem] font-black text-light-text-main dark:text-text-main tracking-tight leading-none">
+              {slaExibicao.toFixed(2)}%
             </span>
             <span
-              className={`text-[0.6875rem] 2xl:text-[0.75rem] font-bold uppercase tracking-wider mt-[0.375rem] leading-none ${
+              className={`text-[0.625rem] sm:text-[0.6875rem] 2xl:text-[0.75rem] font-bold uppercase tracking-wider mt-[0.375rem] leading-none ${
                 slaExibicao >= 90.0
                   ? 'text-emerald-500 dark:text-emerald-400'
                   : 'text-amber-500 dark:text-amber-400'
@@ -223,15 +200,15 @@ export const SlaTotalCard: React.FC<SlaTotalCardProps> = ({
 
       {/* Rodapé: Exibição da Meta de SLA, Status e Pontuação Oficial */}
       <div className="space-y-[0.375rem] pt-[0.5rem] border-t border-light-border dark:border-border/60">
-        <div className="flex items-center justify-between text-[0.75rem]">
-          <div className="flex items-center gap-[0.5rem]">
+        <div className="flex items-center justify-between text-[0.6875rem] sm:text-[0.75rem]">
+          <div className="flex items-center gap-[0.375rem]">
             <span className="w-[0.5rem] h-[0.5rem] rounded-full bg-primary shadow-glow-primary-sm"></span>
             <span className="text-light-text-muted dark:text-text-muted font-medium">Meta Oficial</span>
           </div>
-          <span className="font-bold text-light-text-main dark:text-text-main">≥ 90.0% (Gatilho)</span>
+          <span className="font-bold text-light-text-main dark:text-text-main shrink-0">≥ 90.0% (Gatilho)</span>
         </div>
-        <div className="flex items-center justify-between text-[0.75rem]">
-          <div className="flex items-center gap-[0.5rem]">
+        <div className="flex items-center justify-between text-[0.6875rem] sm:text-[0.75rem]">
+          <div className="flex items-center gap-[0.375rem]">
             <span
               className={`w-[0.5rem] h-[0.5rem] rounded-full ${
                 pontosCalculados > 0
@@ -244,7 +221,7 @@ export const SlaTotalCard: React.FC<SlaTotalCardProps> = ({
             </span>
           </div>
           <span
-            className={`font-black ${
+            className={`font-black shrink-0 ${
               pontosCalculados > 0
                 ? 'text-primary'
                 : 'text-amber-500 dark:text-amber-400'

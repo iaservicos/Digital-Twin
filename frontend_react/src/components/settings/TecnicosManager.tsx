@@ -2,10 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
-import { Pencil, Trash2, KeyRound, Plus, X, Search, Loader2, Users, UserPlus, ChevronDown, Check } from 'lucide-react';
+import { Pencil, Trash2, KeyRound, Plus, X, Search, Loader2, Users, UserPlus, ChevronDown, Check, ArrowRightLeft, Building2 } from 'lucide-react';
 import { toTitleCase } from '../../utils/stringFormatters';
 import { BentoCard } from '../ui/BentoCard';
 import { Button } from '../ui/Button';
+
+interface SupervisorOption {
+  idSupervisor: number;
+  matricula?: string;
+  nomeCompleto: string;
+}
 
 interface Tecnico {
   idTecnico: number;
@@ -17,12 +23,21 @@ interface Tecnico {
   cargo: string;
   ativo: boolean;
   role: string;
+  statusColaborador?: string;
+  centroCusto?: string;
+  codigoBaseAtp?: string;
+  idSupervisor?: number;
+  nomeSupervisor?: string;
+  idSupervisorEmprestimo?: number;
+  nomeSupervisorEmprestimo?: string;
+  codigoBaseAtpEmprestimo?: string;
 }
 
 export default function TecnicosManager() {
   const { token, user } = useAuthStore();
   const isModerador = user?.role === 'MODERADOR' || user?.cargo === 'Moderador';
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
+  const [supervisores, setSupervisores] = useState<SupervisorOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -40,6 +55,13 @@ export default function TecnicosManager() {
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [ativo, setAtivo] = useState(true);
   
+  // Novos campos cadastrais homologados
+  const [statusColaborador, setStatusColaborador] = useState('Ativo');
+  const [centroCusto, setCentroCusto] = useState('');
+  const [codigoBaseAtp, setCodigoBaseAtp] = useState('');
+  const [idSupervisorEmprestimo, setIdSupervisorEmprestimo] = useState<number | ''>('');
+  const [codigoBaseAtpEmprestimo, setCodigoBaseAtpEmprestimo] = useState('');
+  
   const [newPassword, setNewPassword] = useState('');
   const [autoPassword, setAutoPassword] = useState(true);
   const [createPassword, setCreatePassword] = useState('');
@@ -48,17 +70,27 @@ export default function TecnicosManager() {
 
   useEffect(() => {
     fetchTecnicos();
+    fetchSupervisores();
   }, []);
 
   const fetchTecnicos = async () => {
     try {
       setLoading(true);
-            const response = await api.get('/tecnicos');
+      const response = await api.get('/tecnicos');
       setTecnicos(response.data);
     } catch (err) {
       console.error('Erro ao buscar usuários', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSupervisores = async () => {
+    try {
+      const response = await api.get('/supervisores');
+      setSupervisores(response.data || []);
+    } catch (err) {
+      console.warn('Erro ao carregar supervisores para empréstimo:', err);
     }
   };
 
@@ -70,6 +102,13 @@ export default function TecnicosManager() {
       setMatricula(tecnico.matricula || '');
       setRole(tecnico.role || 'PADRAO');
       setAtivo(tecnico.ativo ?? true);
+      
+      const st = tecnico.statusColaborador || (tecnico.ativo ? 'Ativo' : 'Inativo');
+      setStatusColaborador(st);
+      setCentroCusto(tecnico.centroCusto || '');
+      setCodigoBaseAtp(tecnico.codigoBaseAtp || '');
+      setIdSupervisorEmprestimo(tecnico.idSupervisorEmprestimo || '');
+      setCodigoBaseAtpEmprestimo(tecnico.codigoBaseAtpEmprestimo || '');
       
       // Separar Primeiro Nome e Sobrenome
       if (tecnico.primeiroNome) {
@@ -98,6 +137,11 @@ export default function TecnicosManager() {
       setCtBasesList(['']);
       setRole('PADRAO');
       setAtivo(true);
+      setStatusColaborador('Ativo');
+      setCentroCusto('');
+      setCodigoBaseAtp('');
+      setIdSupervisorEmprestimo('');
+      setCodigoBaseAtpEmprestimo('');
       setAutoPassword(true);
       setCreatePassword('');
     }
@@ -161,6 +205,8 @@ export default function TecnicosManager() {
     const nomeCompletoFormatted = `${primeiroNome.trim()} ${sobrenome.trim()}`.trim();
     const cleanCtBases = ctBasesList.map(b => b.trim()).filter(b => b.length > 0);
 
+    const isAtivoVal = ['Ativo', 'Férias', 'Emprestado'].includes(statusColaborador);
+
     const payload = {
       primeiroNome: primeiroNome.trim(),
       sobrenome: sobrenome.trim(),
@@ -168,11 +214,15 @@ export default function TecnicosManager() {
       matricula: matricula.trim(),
       ctBases: cleanCtBases,
       role: isModerador ? role : 'PADRAO',
-      ativo
+      ativo: isAtivoVal,
+      statusColaborador,
+      centroCusto: centroCusto.trim() || null,
+      codigoBaseAtp: codigoBaseAtp.trim() || null,
+      idSupervisorEmprestimo: statusColaborador === 'Emprestado' && idSupervisorEmprestimo ? Number(idSupervisorEmprestimo) : null,
+      codigoBaseAtpEmprestimo: statusColaborador === 'Emprestado' && codigoBaseAtpEmprestimo.trim() ? codigoBaseAtpEmprestimo.trim() : null
     };
 
     try {
-            
       if (selectedTecnico) {
         // Update
         await api.put(`/tecnicos/${selectedTecnico.idTecnico}`, payload);
@@ -216,11 +266,58 @@ export default function TecnicosManager() {
     }
   };
 
+  const renderStatusBadge = (t: Tecnico) => {
+    const st = t.statusColaborador || (t.ativo ? 'Ativo' : 'Inativo');
+    switch (st) {
+      case 'Ativo':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+            Ativo
+          </span>
+        );
+      case 'Férias':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400" />
+            Férias
+          </span>
+        );
+      case 'Emprestado':
+        return (
+          <span 
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20"
+            title={t.nomeSupervisorEmprestimo ? `Emprestado para: ${t.nomeSupervisorEmprestimo}` : 'Emprestado para outra regional'}
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-sky-500 dark:bg-sky-400 animate-pulse" />
+            Emprestado
+          </span>
+        );
+      case 'Afastado':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 dark:bg-orange-400" />
+            Afastado
+          </span>
+        );
+      case 'Inativo':
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 dark:bg-rose-400" />
+            Inativo
+          </span>
+        );
+    }
+  };
+
   const filteredTecnicos = tecnicos.filter(t => 
     t.nomeCompleto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.matricula?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.primeiroNome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.sobrenome?.toLowerCase().includes(searchTerm.toLowerCase())
+    t.sobrenome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.centroCusto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.codigoBaseAtp?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -237,7 +334,7 @@ export default function TecnicosManager() {
               Gestão de Usuários e Técnicos
             </h3>
             <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5">
-              Consulte, crie e administre os acessos e bases dos colaboradores
+              Consulte, crie e administre os acessos, centros de custo, bases ATP e status dos colaboradores
             </p>
           </div>
         </div>
@@ -247,7 +344,7 @@ export default function TecnicosManager() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" size={15} />
             <input 
               type="text" 
-              placeholder="Buscar por nome, matrícula..."
+              placeholder="Buscar por nome, matrícula, CC..."
               className="w-full glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-10 pr-4 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner placeholder:text-light-text-muted dark:placeholder:text-text-muted/60"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -268,48 +365,59 @@ export default function TecnicosManager() {
 
       {/* Tabela de Usuários */}
       <div className="overflow-x-auto scrollbar-hide rounded-2xl border border-light-border dark:border-white/10">
-        <table className="w-full text-left text-xs border-collapse min-w-[750px]">
+        <table className="w-full text-left text-xs border-collapse min-w-[850px]">
           <thead className="bg-light-surface/60 dark:bg-surface-elevated/40 text-light-text-muted dark:text-text-muted text-xs uppercase font-semibold border-b border-light-border dark:border-white/10">
             <tr>
-              <th className="px-5 py-3.5">Matrícula</th>
-              <th className="px-5 py-3.5">Nome Completo</th>
-              <th className="px-5 py-3.5">Bases ATP</th>
-              <th className="px-5 py-3.5 text-center">Perfil</th>
-              <th className="px-5 py-3.5 text-center">Status</th>
-              <th className="px-5 py-3.5 text-right">Ações</th>
+              <th className="px-4 py-3.5">Matrícula</th>
+              <th className="px-4 py-3.5">Nome Completo</th>
+              <th className="px-4 py-3.5">Centro Custo / Base ATP</th>
+              <th className="px-4 py-3.5">Supervisão</th>
+              <th className="px-4 py-3.5 text-center">Perfil</th>
+              <th className="px-4 py-3.5 text-center">Status</th>
+              <th className="px-4 py-3.5 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-light-border dark:divide-white/5">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-light-text-muted dark:text-text-muted">
+                <td colSpan={7} className="px-6 py-12 text-center text-light-text-muted dark:text-text-muted">
                   <Loader2 className="animate-spin mx-auto mb-2 text-primary" size={24} />
                   Carregando usuários...
                 </td>
               </tr>
             ) : filteredTecnicos.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-light-text-muted dark:text-text-muted">
+                <td colSpan={7} className="px-6 py-12 text-center text-light-text-muted dark:text-text-muted">
                   Nenhum usuário encontrado.
                 </td>
               </tr>
             ) : (
               filteredTecnicos.map(t => (
                 <tr key={t.idTecnico} className="hover:bg-primary/5 transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-light-text-main dark:text-text-main font-mono">{t.matricula || '-'}</td>
-                  <td className="px-5 py-3.5 font-bold text-light-text-main dark:text-text-main">{toTitleCase(t.nomeCompleto)}</td>
-                  <td className="px-5 py-3.5 text-light-text-secondary dark:text-text-muted">
-                    {t.ctBases && t.ctBases.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {t.ctBases.map((b, idx) => (
-                          <span key={idx} className="bg-primary/10 border border-primary/20 text-primary text-[11px] px-2.5 py-0.5 rounded-lg font-mono font-bold">
-                            {b}
-                          </span>
-                        ))}
+                  <td className="px-4 py-3.5 font-medium text-light-text-main dark:text-text-main font-mono">{t.matricula || '-'}</td>
+                  <td className="px-4 py-3.5 font-bold text-light-text-main dark:text-text-main">
+                    <div>{toTitleCase(t.nomeCompleto)}</div>
+                    {t.statusColaborador === 'Emprestado' && t.nomeSupervisorEmprestimo && (
+                      <div className="flex items-center gap-1 text-[10px] text-sky-500 font-normal mt-0.5">
+                        <ArrowRightLeft size={10} /> Emprestado p/ {t.nomeSupervisorEmprestimo}
                       </div>
-                    ) : '-'}
+                    )}
                   </td>
-                  <td className="px-5 py-3.5 text-center">
+                  <td className="px-4 py-3.5 font-mono text-[11px] text-light-text-secondary dark:text-text-muted">
+                    <div className="flex items-center gap-1.5">
+                      <span className="bg-light-surface-elevated dark:bg-white/5 px-2 py-0.5 rounded border border-light-border dark:border-white/10" title="Centro de Custo">
+                        CC: {t.centroCusto || '-'}
+                      </span>
+                      <span className="text-light-text-muted dark:text-text-muted">/</span>
+                      <span className="bg-primary/10 text-primary font-bold px-2 py-0.5 rounded border border-primary/20" title="Código Base ATP (CT)">
+                        Base: {t.codigoBaseAtp || (t.ctBases && t.ctBases[0]) || '-'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5 text-light-text-secondary dark:text-text-muted text-[11px]">
+                    {t.nomeSupervisor || '-'}
+                  </td>
+                  <td className="px-4 py-3.5 text-center">
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${
                       t.role === 'MODERADOR' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 
                       t.role === 'ADMINISTRADOR' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 
@@ -318,17 +426,10 @@ export default function TecnicosManager() {
                       {t.role}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-center">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                      t.ativo 
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
-                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                    }`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${t.ativo ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-rose-500 dark:bg-rose-400'}`} />
-                      {t.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
+                  <td className="px-4 py-3.5 text-center">
+                    {renderStatusBadge(t)}
                   </td>
-                  <td className="px-5 py-3.5 text-right">
+                  <td className="px-4 py-3.5 text-right">
                     {(!isModerador && t.role !== 'PADRAO') ? (
                       <span className="text-[11px] text-light-text-muted dark:text-text-muted italic px-2">Acesso restrito</span>
                     ) : (
@@ -369,25 +470,25 @@ export default function TecnicosManager() {
     {/* MODAL CRIAR / EDITAR USUÁRIO */}
     {isEditModalOpen && typeof document !== 'undefined' && createPortal(
       <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-        <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-white/10 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-white/10 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
           {/* Header com Ícone e Título */}
-          <div className="flex justify-between items-center p-6 border-b border-light-border dark:border-white/10 bg-light-surface/40 dark:bg-surface-elevated/40">
+          <div className="flex justify-between items-center p-6 border-b border-light-border dark:border-white/10 bg-light-surface/40 dark:bg-surface-elevated/40 sticky top-0 z-10 backdrop-blur-md">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-primary/10 border border-primary/20 rounded-xl text-primary">
                 <UserPlus size={22} />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-light-text-main dark:text-text-main">
-                  {selectedTecnico ? 'Editar Usuário' : 'Criar Novo Usuário'}
+                  {selectedTecnico ? 'Editar Colaborador' : 'Novo Colaborador'}
                 </h3>
-                <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5">
-                  {selectedTecnico ? 'Atualize as informações cadastrais e bases' : 'Cadastre um novo colaborador no sistema Brilha+'}
+                <p className="text-xs text-light-text-muted dark:text-text-muted">
+                  {selectedTecnico ? 'Atualize as informações cadastrais e alocação' : 'Preencha os dados do novo usuário'}
                 </p>
               </div>
             </div>
             <button 
-              onClick={() => { setIsEditModalOpen(false); setIsRoleDropdownOpen(false); }} 
-              className="p-2 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main transition-all cursor-pointer"
+              onClick={() => { setIsEditModalOpen(false); setIsRoleDropdownOpen(false); }}
+              className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-light-borderStrong dark:hover:border-white/20 hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-text-main dark:hover:text-text-main transition-all cursor-pointer"
               title="Fechar"
             >
               <X size={18} />
@@ -395,75 +496,167 @@ export default function TecnicosManager() {
           </div>
           
           <form onSubmit={handleSave}>
-            <div className="p-6 space-y-4 max-h-[72vh] overflow-y-auto scrollbar-hide">
+            <div className="p-6 space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* PRIMEIRO NOME */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Primeiro Nome</label>
                   <input 
                     required
                     type="text" 
-                    placeholder="Ex: João"
                     className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
                     value={primeiroNome}
                     onChange={e => setPrimeiroNome(e.target.value)}
+                    placeholder="Ex: João"
                   />
                 </div>
-
-                {/* SOBRENOME */}
+                
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Sobrenome</label>
                   <input 
                     required
                     type="text" 
-                    placeholder="Ex: Silva Ramos"
                     className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
                     value={sobrenome}
                     onChange={e => setSobrenome(e.target.value)}
+                    placeholder="Ex: da Silva"
                   />
                 </div>
+              </div>
 
-                {/* MATRÍCULA */}
-                <div className="space-y-1.5 col-span-1 sm:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Matrícula</label>
                   <input 
+                    required
+                    disabled={selectedTecnico?.matricula === '72916'}
                     type="text" 
-                    placeholder="Ex: 74233"
-                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm font-mono text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
                     value={matricula}
                     onChange={e => setMatricula(e.target.value)}
+                    placeholder="Ex: 85421"
                   />
                 </div>
 
-                {/* CT BASES DINÂMICAS COM BOTÃO + */}
-                <div className="space-y-2.5 col-span-1 sm:col-span-2 bg-light-surface/40 dark:bg-surface-elevated/40 p-4 rounded-2xl border border-light-borderStrong/40 dark:border-white/5">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Bases ATP (CT Base)</label>
-                    <button
-                      type="button"
-                      onClick={handleAddCtBase}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-light bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-full transition-colors cursor-pointer"
-                    >
-                      <Plus size={14} />
-                      Adicionar mais uma base
-                    </button>
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
+                    Status do Colaborador
+                  </label>
+                  <select
+                    value={statusColaborador}
+                    onChange={e => setStatusColaborador(e.target.value)}
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2.5 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+                  >
+                    <option value="Ativo" className="bg-light-surface dark:bg-surface text-emerald-500 font-bold">🟢 Ativo (Em operação regular)</option>
+                    <option value="Férias" className="bg-light-surface dark:bg-surface text-amber-500 font-bold">🟡 Férias (Descanso regulamentar)</option>
+                    <option value="Emprestado" className="bg-light-surface dark:bg-surface text-sky-500 font-bold">🔵 Emprestado (Outra Supervisão/Base)</option>
+                    <option value="Afastado" className="bg-light-surface dark:bg-surface text-orange-500 font-bold">🟠 Afastado (Saúde / Licença / INSS)</option>
+                    <option value="Inativo" className="bg-light-surface dark:bg-surface text-rose-500 font-bold">🔴 Inativo (Desligado da empresa)</option>
+                  </select>
+                </div>
+              </div>
 
-                  {ctBasesList.map((ctCode, index) => (
-                    <div key={index} className="flex items-center gap-2 animate-in fade-in duration-150">
+              {/* Localização Dupla: Centro de Custo + Código Base ATP */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-light-surface-elevated/40 dark:bg-white/5 border border-light-border dark:border-white/10">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider flex items-center gap-1.5">
+                    <Building2 size={13} className="text-primary" /> Centro de Custo (Contábil)
+                  </label>
+                  <input 
+                    type="text" 
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2 text-sm font-mono text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 transition-all"
+                    value={centroCusto}
+                    onChange={e => setCentroCusto(e.target.value)}
+                    placeholder="Ex: 1145920"
+                  />
+                  <p className="text-[10px] text-light-text-muted dark:text-text-muted">Código financeiro oficial da filial/RH</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider flex items-center gap-1.5">
+                    <Building2 size={13} className="text-primary" /> Código Base ATP (CT Chamados)
+                  </label>
+                  <input 
+                    type="text" 
+                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2 text-sm font-mono text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 transition-all"
+                    value={codigoBaseAtp}
+                    onChange={e => setCodigoBaseAtp(e.target.value)}
+                    placeholder="Ex: 2791040"
+                  />
+                  <p className="text-[10px] text-light-text-muted dark:text-text-muted">Código do CT encontrado nos chamados</p>
+                </div>
+              </div>
+
+              {/* Bloco Condicional para Colaborador EMPRESTADO */}
+              {statusColaborador === 'Emprestado' && (
+                <div className="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/30 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center gap-2 text-sky-500 font-bold text-xs uppercase tracking-wider">
+                    <ArrowRightLeft size={16} /> Destino do Empréstimo Operacional
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-sky-600 dark:text-sky-300">Supervisor de Destino</label>
+                      <select
+                        value={idSupervisorEmprestimo}
+                        onChange={e => setIdSupervisorEmprestimo(e.target.value ? Number(e.target.value) : '')}
+                        className="w-full bg-light-surface dark:bg-surface border border-sky-500/30 rounded-xl px-3 py-2 text-xs text-light-text-main dark:text-text-main focus:outline-none focus:border-sky-500"
+                      >
+                        <option value="">Selecione o supervisor...</option>
+                        {supervisores.map(s => (
+                          <option key={s.idSupervisor} value={s.idSupervisor}>
+                            {s.nomeCompleto}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-sky-600 dark:text-sky-300">Base ATP de Destino (CT)</label>
                       <input 
                         type="text" 
-                        placeholder="Ex: 8788711"
-                        className="flex-grow glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
-                        value={ctCode}
+                        value={codigoBaseAtpEmprestimo}
+                        onChange={e => setCodigoBaseAtpEmprestimo(e.target.value)}
+                        placeholder="Ex: 2791007 (RJ)"
+                        className="w-full bg-light-surface dark:bg-surface border border-sky-500/30 rounded-xl px-3 py-2 text-xs font-mono text-light-text-main dark:text-text-main focus:outline-none focus:border-sky-500"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-sky-600/80 dark:text-sky-300/80">
+                    O colaborador manterá sua supervisão de origem no cadastro mestre, mas pontuará operacionalmente na base de destino.
+                  </p>
+                </div>
+              )}
+
+              {/* CT Bases Dinâmicas */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
+                    Centros de Trabalho Vinculados (CTs)
+                  </label>
+                  <button 
+                    type="button" 
+                    onClick={handleAddCtBase}
+                    className="text-xs text-primary hover:text-primary/80 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Plus size={14} /> Adicionar CT
+                  </button>
+                </div>
+                
+                <div className="space-y-2 max-h-32 overflow-y-auto p-1 pr-2">
+                  {ctBasesList.map((ctBase, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <input 
+                        type="text" 
+                        className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2 text-sm font-mono text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+                        value={ctBase}
                         onChange={e => handleCtBaseChange(index, e.target.value)}
+                        placeholder={`Código do CT (ex: 2791001)`}
                       />
                       {ctBasesList.length > 1 && (
-                        <button
-                          type="button"
+                        <button 
+                          type="button" 
                           onClick={() => handleRemoveCtBase(index)}
-                          className="p-2.5 rounded-full bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all cursor-pointer"
-                          title="Remover Base"
+                          className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-full transition-colors cursor-pointer shrink-0"
+                          title="Remover CT"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -471,10 +664,13 @@ export default function TecnicosManager() {
                     </div>
                   ))}
                 </div>
+              </div>
 
+              {/* Criação de Senha e Role */}
+              <div className="pt-2 border-t border-light-border dark:border-white/10 space-y-4">
                 {!selectedTecnico && (
-                  <div className="col-span-1 sm:col-span-2 p-4 bg-light-surface/40 dark:bg-surface-elevated/40 border border-light-borderStrong/40 dark:border-white/5 rounded-2xl space-y-3">
-                    <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="space-y-2 p-4 bg-light-surface/40 dark:bg-surface-elevated/40 border border-light-border dark:border-white/10 rounded-2xl">
+                    <label className="flex items-center gap-2.5 cursor-pointer">
                       <input 
                         type="checkbox" 
                         checked={autoPassword}
@@ -512,7 +708,6 @@ export default function TecnicosManager() {
                     )}
                   </div>
 
-                  {/* Backdrop para fechar dropdown ao clicar fora */}
                   {isRoleDropdownOpen && (
                     <div 
                       className="fixed inset-0 z-40" 
@@ -520,7 +715,6 @@ export default function TecnicosManager() {
                     />
                   )}
 
-                  {/* Botão Pílula Customizado */}
                   <div className="relative z-40">
                     <button 
                       type="button"
@@ -541,7 +735,6 @@ export default function TecnicosManager() {
                       />
                     </button>
 
-                    {/* Menu Flutuante Customizado (Abre para cima com fundo sólido de superfície para legibilidade total) */}
                     {isRoleDropdownOpen && isModerador && (
                       <div className="absolute left-0 right-0 bottom-full mb-2 z-50 bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-white/15 rounded-2xl p-1.5 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-150 space-y-1">
                         {[
@@ -573,23 +766,12 @@ export default function TecnicosManager() {
                     )}
                   </div>
                 </div>
-
-                <div className="space-y-1.5 flex items-center mt-6">
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 rounded bg-light-background dark:bg-surface-elevated border-light-border dark:border-border text-primary accent-primary focus:ring-primary/30 cursor-pointer"
-                      checked={ativo}
-                      onChange={e => setAtivo(e.target.checked)}
-                    />
-                    <span className="text-sm font-semibold text-light-text-main dark:text-text-main">Usuário Ativo no Sistema</span>
-                  </label>
-                </div>
               </div>
+
               {error && <p className="text-sm text-rose-400 font-semibold">{error}</p>}
             </div>
 
-            <div className="p-5 border-t border-light-border dark:border-white/10 bg-light-surface/40 dark:bg-surface-elevated/40 flex justify-end gap-3">
+            <div className="p-5 border-t border-light-border dark:border-white/10 bg-light-surface/40 dark:bg-surface-elevated/40 flex justify-end gap-3 sticky bottom-0 z-10 backdrop-blur-md">
               <Button 
                 variant="secondary"
                 size="md"

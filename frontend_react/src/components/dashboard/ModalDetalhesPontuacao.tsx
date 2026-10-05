@@ -12,6 +12,21 @@ export const ModalDetalhesPontuacao: React.FC<ModalDetalhesPontuacaoProps> = ({
   onClose,
   metricas
 }) => {
+  const mesesIndividuais = React.useMemo(() => {
+    return (metricas?.historico || []).filter(
+      (h: any) => h.mes && h.mes !== 'Média Final'
+    );
+  }, [metricas?.historico]);
+
+  const linhasExibicao = React.useMemo(() => {
+    // Quando a campanha tiver apenas 1 mês (campanha de 30 dias), exibe apenas a linha do mês sem a linha duplicada de 'Média Final'
+    if (mesesIndividuais.length <= 1) {
+      return mesesIndividuais.length === 1 ? mesesIndividuais : (metricas?.historico || []);
+    }
+    // Quando forem múltiplos meses, exibe cada mês individual + Média Final
+    return metricas?.historico || [];
+  }, [mesesIndividuais, metricas?.historico]);
+
   if (!isOpen) return null;
 
   return (
@@ -55,7 +70,7 @@ export const ModalDetalhesPontuacao: React.FC<ModalDetalhesPontuacaoProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-light-border dark:divide-border/40 bg-light-surface/40 dark:bg-surface/40">
-              {metricas?.historico?.map((h: any, index: number) => {
+              {linhasExibicao.map((h: any, index: number) => {
                 const isMedia = h.mes === 'Média Final';
                 return (
                   <tr key={index} className={`hover:bg-light-background/80 dark:hover:bg-surface-elevated/80 transition-colors ${isMedia ? 'bg-light-background/90 dark:bg-input-bg font-semibold' : ''}`}>

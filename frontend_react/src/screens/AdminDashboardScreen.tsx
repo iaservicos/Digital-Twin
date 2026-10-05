@@ -21,6 +21,7 @@ import ModalChamadosPerdas from '../components/dashboard/ModalChamadosPerdas';
 import ModalChamadosReincidentes from '../components/dashboard/ModalChamadosReincidentes';
 import ModalChamadosPecas from '../components/dashboard/ModalChamadosPecas';
 import { ModalChamadosSemTecnico } from '../components/dashboard/ModalChamadosSemTecnico';
+import { ModalExplicacaoSla } from '../components/dashboard/ModalExplicacaoSla';
 import { useTecnicoMetrics } from '../hooks/useTecnicoMetrics';
 import { toTitleCase } from '../utils/stringFormatters';
 import { BentoCard } from '../components/ui/BentoCard';
@@ -41,6 +42,7 @@ export default function AdminDashboardScreen() {
 
   // Estados dos Modais Interativos da Operação
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isSlaExplicacaoModalOpen, setIsSlaExplicacaoModalOpen] = useState(false);
   const [isSlaModalOpen, setIsSlaModalOpen] = useState(false);
   const [isHistoricoModalOpen, setIsHistoricoModalOpen] = useState(false);
   const [historicoInitialDate, setHistoricoInitialDate] = useState<string>('');
@@ -105,7 +107,7 @@ export default function AdminDashboardScreen() {
 
         const [rankingResp, tecnicosResp, basesResp] = await Promise.all([
           api.get('/dashboard/ranking'),
-          api.get('/tecnicos', { params: { idSupervisor: queryIdSupervisor } }),
+          api.get('/tecnicos', { params: { idSupervisor: queryIdSupervisor, apenasValidados: true } }),
           api.get('/bases', { params: { idSupervisor: queryIdSupervisor } })
         ]);
         
@@ -216,7 +218,8 @@ export default function AdminDashboardScreen() {
   const tecnicosVisiveis = useMemo(() => {
     let lista = todosTecnicos.filter(t => {
       const r = (t.role || '').toUpperCase();
-      return r.includes('PADRAO') || r.includes('TECNICO') || r === '';
+      const isValidado = t.flValidado === true || Boolean(t.centroCusto || t.codigoBaseAtp);
+      return (r.includes('PADRAO') || r.includes('TECNICO') || r === '') && isValidado;
     });
     
     // Filtra pelas bases permitidas
@@ -407,18 +410,19 @@ export default function AdminDashboardScreen() {
     : (supervisorLogado?.nomeCompleto || 'Equipe');
 
   return (
-    <div className="w-full space-y-6 pb-8">
-      <BentoCard className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 p-5 md:p-6 shadow-xl relative z-30 overflow-visible">
+    <div className="w-full space-y-4 sm:space-y-6 pb-8">
+      <BentoCard className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-5 p-3.5 sm:p-5 md:p-6 shadow-xl relative z-30 overflow-visible">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
-              <Users size={22} />
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shadow-inner">
+              <Users size={20} className="sm:hidden" />
+              <Users size={22} className="hidden sm:block" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-black text-light-text-main dark:text-text-main tracking-tight">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-black text-light-text-main dark:text-text-main tracking-tight leading-tight">
                 Painel de Supervisão
               </h1>
-              <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5 font-medium">
+              <p className="text-[11px] sm:text-xs text-light-text-muted dark:text-text-muted mt-0.5 font-medium">
                 {isModerador 
                   ? 'Visão Global • Moderação da Operação' 
                   : `Gestão de Operação • ${supervisorLogado?.nomeCompleto ? toTitleCase(supervisorLogado.nomeCompleto) : (user?.nomeCompleto || 'Supervisor')}`}
@@ -427,14 +431,14 @@ export default function AdminDashboardScreen() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-[0.75rem] w-full xl:w-auto">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-2 sm:gap-3 w-full xl:w-auto">
           
           {/* SELETOR GLOBAL DE SEGMENTO [ Total | Gov | Corp ] conforme dashboard5.excalidraw */}
           <div className="w-full sm:w-auto">
-            <label className="block text-[0.6875rem] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider mb-[0.25rem] ml-[0.25rem]">
+            <label className="block text-[10px] sm:text-[11px] font-bold text-light-text-muted dark:text-text-muted uppercase tracking-wider mb-1 ml-0.5">
               Segmento
             </label>
-            <div className="h-[2.5rem] flex items-center">
+            <div className="h-[2.25rem] sm:h-[2.5rem] flex items-center">
               <SegmentoFilterPill
                 value={selectedSegmento}
                 onChange={setSelectedSegmento}
@@ -649,6 +653,7 @@ export default function AdminDashboardScreen() {
             selectedSegmento={selectedSegmento}
             setSelectedSegmento={setSelectedSegmento}
             onOpenDetailsModal={() => setIsDetailsModalOpen(true)}
+            onOpenSlaExplicacaoModal={() => setIsSlaExplicacaoModalOpen(true)}
             onOpenSlaModal={() => setIsSlaModalOpen(true)}
             onOpenHistoricoModal={(date?: string) => {
               setHistoricoInitialDate(date || '');
@@ -740,15 +745,23 @@ export default function AdminDashboardScreen() {
         />
       )}
 
+      {/* Modal Explicativo de Conceito e Faixas de SLA */}
+      <ModalExplicacaoSla
+        isOpen={isSlaExplicacaoModalOpen}
+        onClose={() => setIsSlaExplicacaoModalOpen(false)}
+      />
+
       <ModalChamadosSlaPerdidos
         isOpen={isSlaModalOpen}
         onClose={() => setIsSlaModalOpen(false)}
-        tecnicoId={primeiroTecnicoId}
+        tecnicoId={selectedTecnicoIdentifier !== 'all' ? Number(selectedTecnicoIdentifier) : 0}
         tecnicoNome={escopoNomeOperacao}
         selectedMonth={selectedMonth}
         percentualSla={teamSummary?.slaMedia || 0}
         pontosSla={(teamSummary?.slaMedia || 0) >= 100 ? 33.5 : (teamSummary?.slaMedia || 0) >= 90 ? 29.0 : 0}
-        initialTipo="equipe"
+        initialTipo={selectedTecnicoIdentifier !== 'all' ? 'individual' : 'equipe'}
+        equipe={selectedEquipe !== 'all' ? selectedEquipe : undefined}
+        idSupervisor={supervisorEfetivoId !== 'all' ? Number(supervisorEfetivoId) : undefined}
       />
 
       <ModalHistoricoChamados

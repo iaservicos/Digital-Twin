@@ -34,6 +34,7 @@ interface AdminDashboardBentoProps {
   selectedSegmento?: SegmentoType;
   setSelectedSegmento?: (seg: SegmentoType) => void;
   onOpenDetailsModal: () => void;
+  onOpenSlaExplicacaoModal?: () => void;
   onOpenSlaModal: () => void;
   onOpenHistoricoModal: (date?: string) => void;
   onOpenPerdasModal: () => void;
@@ -50,6 +51,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
   selectedSegmento = 'Total',
   setSelectedSegmento,
   onOpenDetailsModal,
+  onOpenSlaExplicacaoModal,
   onOpenSlaModal,
   onOpenHistoricoModal,
   onOpenPerdasModal,
@@ -94,13 +96,13 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
     if (campanhaInfo?.dataInicio && campanhaInfo?.dataFim) {
       try {
         const ini = format(parseISO(campanhaInfo.dataInicio), 'dd/MM');
-        const fim = format(parseISO(campanhaInfo.dataFim), 'dd/MM/yyyy');
+        const fim = format(parseISO(campanhaInfo.dataFim), 'dd/MM');
         return `${ini} a ${fim}`;
       } catch {
-        return '01/09 a 30/09/2026';
+        return '01/09 a 30/09';
       }
     }
-    return '01/09 a 30/09/2026';
+    return '01/09 a 30/09';
   }, [campanhaInfo]);
 
   // Hook unificado para os dados dos 6 cards da Supervisão
@@ -122,9 +124,14 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
   const operacaoNome = useMemo(() => {
     const op = slaSegmentosData.operacao || slaSegmentosData.equipe?.operacao;
     if (!op) return '';
+    if (op.rotuloCompleto) return op.rotuloCompleto;
     const partes = [];
+    if (op.codigoAtp || op.ctCodigo) {
+      const ufPrefix = op.uf ? `${op.uf} - ` : '';
+      partes.push(`${ufPrefix}${op.codigoAtp || op.ctCodigo}`);
+    }
     if (op.nomeBase) partes.push(op.nomeBase);
-    if (op.cidade && op.uf) partes.push(`${op.cidade} (${op.uf})`);
+    else if (op.cidade && op.uf) partes.push(`${op.cidade} (${op.uf})`);
     else if (op.uf) partes.push(op.uf);
     return partes.join(' • ');
   }, [slaSegmentosData]);
@@ -145,9 +152,9 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
   }, [selectedDate]);
 
   return (
-    <div className="w-full space-y-[1rem]">
-      {/* GRID BENTO 3 COLUNAS x 2 LINHAS REUTILIZÁVEL */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1.5rem]">
+    <div className="w-full space-y-4 sm:space-y-6">
+      {/* GRID BENTO: 2 COLUNAS EM TELAS INTERMEDIÁRIAS (1024px-1279px) E 3 COLUNAS EM TELAS GRANDES (≥ 1280px) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-[1rem] sm:gap-[1.25rem] xl:gap-[1.5rem]">
         {/* CARD 1: SLA total / Operação */}
         <SlaTotalCard
           slaTotal={slaSegmentosData.equipe?.total?.sla ?? slaSegmentosData.total?.sla ?? percentualSla}
@@ -163,7 +170,7 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
           slaMode={slaMode}
           onToggleMode={setSlaMode}
           operacaoNome={operacaoNome}
-          onOpenDetailsModal={onOpenDetailsModal}
+          onOpenDetailsModal={onOpenSlaExplicacaoModal || onOpenDetailsModal}
         />
 
         {/* CARD 2: Campanha ativa */}
@@ -173,7 +180,8 @@ export const AdminDashboardBento: React.FC<AdminDashboardBentoProps> = ({
           selectedMonth={selectedMonth}
           onSelectMonth={setSelectedMonth}
           percentualSla={percentualSla}
-          onOpenSlaModal={onOpenSlaModal}
+          onOpenDetailsModal={onOpenDetailsModal}
+          onOpenSlaModal={onOpenDetailsModal}
         />
 
         {/* CARD 3: Chamados encerrados & Mini Calendário */}

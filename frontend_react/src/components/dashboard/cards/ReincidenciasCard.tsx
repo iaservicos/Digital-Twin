@@ -49,31 +49,31 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
     <BentoCard
       hoverable
       onClick={onOpenReincidentesModal}
-      className={`min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
+      className={`min-h-[19.5rem] sm:min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
       title="Clique para ver a análise detalhada de reincidências (Máx: 16,0 pts)"
     >
-      <div className="flex items-center justify-between gap-[0.5rem]">
-        <div className="flex items-center gap-[0.5rem]">
-          <div className="inline-flex items-center px-[0.75rem] py-[0.25rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
+      <div className="flex items-center justify-between gap-[0.375rem] flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-[0.375rem]">
+          <div className="inline-flex items-center px-[0.625rem] py-[0.1875rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.6875rem] sm:text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
             Reincidências
           </div>
           {/* Badge de Pontuação Oficial */}
-          <div className="inline-flex items-center gap-[0.25rem] px-[0.625rem] py-[0.25rem] rounded-full bg-primary/10 border border-primary/25 text-primary text-[0.75rem] font-black shadow-xs">
+          <div className="inline-flex items-center gap-[0.25rem] px-[0.5rem] py-[0.1875rem] rounded-full bg-primary/10 border border-primary/25 text-primary text-[0.6875rem] sm:text-[0.75rem] font-black shadow-xs">
             <span>{pontosAtivos.toFixed(1)}</span>
-            <span className="text-[0.625rem] text-light-text-muted dark:text-text-muted font-normal">/ 16,0 pts</span>
+            <span className="text-[0.5625rem] sm:text-[0.625rem] text-light-text-muted dark:text-text-muted font-normal">/ 16,0 pts</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-[0.5rem]">
+        <div className="flex items-center gap-[0.375rem] shrink-0">
           {canToggleEquipe && onToggleMode && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center p-[0.125rem] rounded-[0.5rem] bg-light-surface-elevated dark:bg-surface border border-light-border dark:border-border text-[0.625rem] font-bold"
+              className="flex items-center p-[0.125rem] rounded-[0.5rem] bg-light-surface-elevated dark:bg-surface border border-light-border dark:border-border text-[0.5625rem] sm:text-[0.625rem] font-bold"
             >
               <button
                 type="button"
                 onClick={() => onToggleMode('individual')}
-                className={`px-[0.5rem] py-[0.125rem] rounded-[0.375rem] border transition-all cursor-pointer ${
+                className={`px-[0.375rem] sm:px-[0.5rem] py-[0.125rem] rounded-[0.375rem] border transition-all cursor-pointer ${
                   reincidenciaMode === 'individual'
                     ? 'bg-primary text-background border-primary shadow-xs'
                     : 'bg-transparent border-transparent text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover'
@@ -84,7 +84,7 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
               <button
                 type="button"
                 onClick={() => onToggleMode('equipe')}
-                className={`px-[0.5rem] py-[0.125rem] rounded-[0.375rem] border transition-all cursor-pointer ${
+                className={`px-[0.375rem] sm:px-[0.5rem] py-[0.125rem] rounded-[0.375rem] border transition-all cursor-pointer ${
                   reincidenciaMode === 'equipe'
                     ? 'bg-primary text-background border-primary shadow-xs'
                     : 'bg-transparent border-transparent text-light-text-muted dark:text-text-muted hover:text-light-textHover dark:hover:text-textHover'
@@ -100,26 +100,26 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
               e.stopPropagation();
               onOpenReincidentesModal();
             }}
-            className="w-[2rem] h-[2rem] rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
+            className="w-[1.75rem] h-[1.75rem] sm:w-[2rem] sm:h-[2rem] rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
             title="Ver análise detalhada de reincidências"
           >
-            <ArrowUpRight size={16} />
+            <ArrowUpRight size={15} />
           </button>
         </div>
       </div>
 
-      <div className="pt-[0.5rem]">
-        <div className="flex items-baseline gap-[0.5rem]">
-          <p className="text-[1.875rem] 2xl:text-[2.25rem] font-black text-light-text-main dark:text-text-main tracking-tight leading-none">
+      <div className="pt-[0.375rem]">
+        <div className="flex items-baseline gap-[0.375rem] sm:gap-[0.5rem] flex-wrap">
+          <p className="text-[1.625rem] sm:text-[1.875rem] 2xl:text-[2.25rem] font-black text-light-text-main dark:text-text-main tracking-tight leading-none">
             {percentualReincidencia.toFixed(1)}%
           </p>
           {reincidenciaQtd !== undefined && (
-            <span className="text-[0.75rem] text-light-text-muted dark:text-text-muted font-semibold">
+            <span className="text-[0.6875rem] sm:text-[0.75rem] text-light-text-muted dark:text-text-muted font-semibold">
               ({reincidenciaQtd} retornos)
             </span>
           )}
         </div>
-        <p className="text-[0.6875rem] text-light-text-muted dark:text-text-muted font-medium mt-[0.25rem]">
+        <p className="text-[0.625rem] sm:text-[0.6875rem] text-light-text-muted dark:text-text-muted font-medium mt-[0.25rem] leading-snug">
           {reincidenciaMode === 'equipe'
             ? 'Retornos da Equipe em 30 Dias (Meta: ≤ 7.0% • Gatilho)'
             : 'Taxa de Retorno Individual (Meta: ≤ 7.0%)'}
@@ -127,25 +127,25 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
       </div>
 
       {/* Gráfico Cartesiano com Curva Neon (Altura calibrada em REM) */}
-      <div className="w-full pt-[0.5rem]">
+      <div className="w-full pt-[0.375rem]">
         <CartesianWaveChart
           data={chartData}
           gradientId="reincidenciasWaveGrad"
-          height="7.5rem"
+          height="6.75rem"
         />
       </div>
 
-      <div className="pt-[0.5rem] border-t border-light-border dark:border-border/60 flex items-center justify-between text-[0.75rem]">
-        <div className="flex items-center gap-[0.375rem]">
+      <div className="pt-[0.5rem] border-t border-light-border dark:border-border/60 flex items-center justify-between text-[0.6875rem] sm:text-[0.75rem] gap-[0.5rem]">
+        <div className="flex items-center gap-[0.375rem] min-w-0">
           <span
-            className={`w-[0.5rem] h-[0.5rem] rounded-full ${
+            className={`w-[0.5rem] h-[0.5rem] rounded-full shrink-0 ${
               pontosAtivos > 0
                 ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]'
                 : 'bg-amber-400 shadow-[0_0_6px_#fbbf24]'
             }`}
           ></span>
           <span
-            className={`font-semibold text-[0.6875rem] ${
+            className={`font-semibold truncate ${
               percentualReincidencia <= 7.0
                 ? 'text-emerald-500 dark:text-emerald-400'
                 : percentualReincidencia <= 10.0
@@ -161,7 +161,7 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
           </span>
         </div>
         <span
-          className={`font-black text-[0.75rem] ${
+          className={`font-black shrink-0 ${
             pontosAtivos > 0 ? 'text-primary' : 'text-amber-500 dark:text-amber-400'
           }`}
         >

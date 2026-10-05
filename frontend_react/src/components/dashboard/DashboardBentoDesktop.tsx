@@ -23,6 +23,7 @@ interface DashboardBentoDesktopProps {
   selectedSegmento?: SegmentoType;
   setSelectedSegmento?: (seg: SegmentoType) => void;
   onOpenDetailsModal: () => void;
+  onOpenSlaExplicacaoModal?: () => void;
   onOpenSlaModal: () => void;
   onOpenReincidentesModal: () => void;
   onOpenPecasModal: () => void;
@@ -40,6 +41,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
   selectedSegmento = 'Total',
   setSelectedSegmento,
   onOpenDetailsModal,
+  onOpenSlaExplicacaoModal,
   onOpenSlaModal,
   onOpenReincidentesModal,
   onOpenPecasModal,
@@ -137,9 +139,14 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
   const operacaoNome = useMemo(() => {
     const op = slaSegmentosData.operacao || slaSegmentosData.equipe?.operacao;
     if (!op) return '';
+    if (op.rotuloCompleto) return op.rotuloCompleto;
     const partes = [];
+    if (op.codigoAtp || op.ctCodigo) {
+      const ufPrefix = op.uf ? `${op.uf} - ` : '';
+      partes.push(`${ufPrefix}${op.codigoAtp || op.ctCodigo}`);
+    }
     if (op.nomeBase) partes.push(op.nomeBase);
-    if (op.cidade && op.uf) partes.push(`${op.cidade} (${op.uf})`);
+    else if (op.cidade && op.uf) partes.push(`${op.cidade} (${op.uf})`);
     else if (op.uf) partes.push(op.uf);
     return partes.join(' • ');
   }, [slaSegmentosData]);
@@ -226,8 +233,8 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
         </div>
       </header>
 
-      {/* 2. GRID BENTO 3 COLUNAS x 2 LINHAS REUTILIZÁVEL */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1.5rem]">
+      {/* 2. GRID BENTO: 2 COLUNAS EM TELAS INTERMEDIÁRIAS (1024px-1279px) E 3 COLUNAS EM TELAS GRANDES (≥ 1280px) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-[1rem] sm:gap-[1.25rem] xl:gap-[1.5rem]">
         {/* CARD 1: SLA total / Operação */}
         <SlaTotalCard
           slaTotal={slaSegmentosData.equipe?.total?.sla ?? slaSegmentosData.total?.sla ?? percentualSla}
@@ -243,7 +250,7 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           slaMode={slaMode}
           onToggleMode={setSlaMode}
           operacaoNome={operacaoNome}
-          onOpenDetailsModal={onOpenDetailsModal}
+          onOpenDetailsModal={onOpenSlaExplicacaoModal || onOpenDetailsModal}
         />
 
         {/* CARD 2: Campanha ativa */}
@@ -254,7 +261,8 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
           onSelectMonth={setSelectedMonth}
           historicoMeses={metricas?.historico}
           percentualSla={percentualSla}
-          onOpenSlaModal={onOpenSlaModal}
+          onOpenDetailsModal={onOpenDetailsModal}
+          onOpenSlaModal={onOpenDetailsModal}
         />
 
         {/* CARD 3: Chamados encerrados & Mini Calendário */}

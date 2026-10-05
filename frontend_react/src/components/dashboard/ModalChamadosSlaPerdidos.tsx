@@ -28,6 +28,8 @@ interface ModalChamadosSlaPerdidosProps {
   percentualSla: number;
   pontosSla: number;
   initialTipo?: 'individual' | 'equipe';
+  equipe?: string;
+  idSupervisor?: number;
 }
 
 // Helper de formatação de data e hora no padrão 'DD/MM/AAAA HH:mm' (sem segundos)
@@ -118,7 +120,9 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
   selectedMonth,
   percentualSla,
   pontosSla,
-  initialTipo = 'equipe'
+  initialTipo = 'equipe',
+  equipe,
+  idSupervisor
 }) => {
   const [tipo, setTipo] = useState<'individual' | 'equipe'>(initialTipo);
   const [chamados, setChamados] = useState<ChamadoSlaPerdido[]>([]);
@@ -135,7 +139,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
   }, [initialTipo, isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !tecnicoId) return;
+    if (!isOpen || tecnicoId === null || tecnicoId === undefined) return;
 
     let isMounted = true;
     const fetchChamadosSla = async () => {
@@ -144,6 +148,12 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
         let url = `/dashboard/tecnico/${tecnicoId}/sla-perdidos?tipo=${tipo}`;
         if (selectedMonth && selectedMonth !== 'Campanha Inteira' && selectedMonth !== 'Média Final') {
           url += `&mesAno=${encodeURIComponent(selectedMonth)}`;
+        }
+        if (equipe && equipe !== 'all' && equipe !== 'TODAS') {
+          url += `&equipe=${encodeURIComponent(equipe)}`;
+        }
+        if (idSupervisor && Number(idSupervisor) > 0) {
+          url += `&idSupervisor=${Number(idSupervisor)}`;
         }
         const res = await api.get(url);
         if (isMounted && res.data) {
@@ -162,7 +172,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
     return () => {
       isMounted = false;
     };
-  }, [isOpen, tecnicoId, selectedMonth, tipo]);
+  }, [isOpen, tecnicoId, selectedMonth, tipo, equipe, idSupervisor]);
 
   // Lista de causas distintas para os filtros
   const causasDisponiveis = useMemo(() => {
@@ -292,7 +302,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
             <span className="text-[10px] font-medium text-light-text-muted dark:text-text-muted uppercase tracking-wider">Atingimento SLA</span>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className={`text-2xl font-black ${percentualSla >= 90 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                {percentualSla.toFixed(1)}%
+                {percentualSla.toFixed(2)}%
               </span>
               <span className="text-xs text-light-text-muted dark:text-text-muted font-semibold">/ Meta ≥ 90%</span>
             </div>
@@ -465,7 +475,7 @@ export const ModalChamadosSlaPerdidos: React.FC<ModalChamadosSlaPerdidosProps> =
                       <span className="text-light-text-muted dark:text-text-muted font-medium block text-[10px] uppercase">Base ATP</span>
                       <span className="text-light-text-main dark:text-text-main font-semibold flex items-center gap-1 mt-0.5">
                         <Building2 size={13} className="text-light-text-muted dark:text-text-muted shrink-0" />
-                        <span className="truncate">{formatCidadeBase(item.assistenciaNome, item.ctCodigo)}</span>
+                        <span className="truncate">{item.ctCodigo ? `${item.ctCodigo} • ${formatCidadeBase(item.assistenciaNome, item.ctCodigo)}` : formatCidadeBase(item.assistenciaNome, item.ctCodigo)}</span>
                       </span>
                     </div>
                   </div>

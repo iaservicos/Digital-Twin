@@ -15,6 +15,17 @@
 }
 
 /* ==========================================================================
+   SAFE AREA UTILITIES (iOS / Android Notch & Home Indicator)
+   ========================================================================== */
+.pb-safe {
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem));
+}
+
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem));
+}
+
+/* ==========================================================================
    OCULTAÇÃO GLOBAL E DEFINITIVA DE BARRAS DE ROLAGEM (HORIZONTAL E VERTICAL)
    - Mantém 100% da rolagem ativa via mousewheel, trackpad, touch e teclado
    - Remove trilhos, polegares e botões visuais em todos os navegadores

@@ -30,6 +30,7 @@ class AuthResponse(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     novaSenha: str
+    matricula: Optional[str] = None
 
 class VerificarTecnicoRequest(BaseModel):
     nome: str
@@ -92,9 +93,9 @@ def login(request: AuthRequest):
             SELECT t.id_tecnico, t.matricula, t.nome_completo, t.cargo, t.role, t.senha, t.is_primeiro_acesso, t.ativo,
                    COALESCE((SELECT ARRAY_AGG(tb.ct_codigo) FROM tb_tecnico_base tb WHERE tb.id_tecnico = t.id_tecnico), '{}') AS ct_bases
             FROM tb_tecnico t
-            WHERE UPPER(t.matricula) = %s
+            WHERE UPPER(t.matricula) = %s OR UPPER(COALESCE(t.email, '')) = %s
             LIMIT 1;
-        """, (matricula.upper(),))
+        """, (matricula.upper(), matricula.upper()))
         tecnico = cur.fetchone()
 
         if tecnico:
@@ -132,9 +133,9 @@ def login(request: AuthRequest):
         cur.execute("""
             SELECT id_supervisor, matricula, nome_completo, role, senha, is_primeiro_acesso, ativo
             FROM tb_supervisor
-            WHERE UPPER(matricula) = %s
+            WHERE UPPER(matricula) = %s OR UPPER(COALESCE(email, '')) = %s
             LIMIT 1;
-        """, (matricula.upper(),))
+        """, (matricula.upper(), matricula.upper()))
         supervisor = cur.fetchone()
 
         if supervisor:
@@ -176,7 +177,7 @@ def change_password(request: ChangePasswordRequest, current_user: Dict[str, Any]
     if len(nova_senha) < 4:
         raise HTTPException(status_code=400, detail="A nova senha deve ter no mínimo 4 caracteres.")
 
-    matricula = current_user.get("sub")
+    matricula = (request.matricula or current_user.get("sub") or "").strip()
     if not matricula:
         raise HTTPException(status_code=400, detail="Identificação do usuário não encontrada no token.")
 
@@ -185,16 +186,16 @@ def change_password(request: ChangePasswordRequest, current_user: Dict[str, Any]
         cur.execute("""
             UPDATE tb_tecnico
             SET senha = %s, is_primeiro_acesso = false
-            WHERE UPPER(matricula) = %s;
-        """, (senha_hash, matricula.upper()))
+            WHERE UPPER(matricula) = %s OR UPPER(COALESCE(email, '')) = %s;
+        """, (senha_hash, matricula.upper(), matricula.upper()))
         if cur.rowcount > 0:
             return {"message": "Senha alterada com sucesso."}
 
         cur.execute("""
             UPDATE tb_supervisor
             SET senha = %s, is_primeiro_acesso = false
-            WHERE UPPER(matricula) = %s;
-        """, (senha_hash, matricula.upper()))
+            WHERE UPPER(matricula) = %s OR UPPER(COALESCE(email, '')) = %s;
+        """, (senha_hash, matricula.upper(), matricula.upper()))
         if cur.rowcount > 0:
             return {"message": "Senha alterada com sucesso."}
 

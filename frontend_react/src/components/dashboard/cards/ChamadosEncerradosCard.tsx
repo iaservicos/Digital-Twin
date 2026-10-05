@@ -28,6 +28,8 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
   const [showMonthCalendar, setShowMonthCalendar] = useState(false);
   const [currentCalendarMonth, setCurrentCalendarMonth] = useState<Date>(new Date());
 
+  const DIAS_SEMANA_ABREV = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+
   // Últimos 7 dias móveis baseados na data selecionada ou hoje
   const dayPills = useMemo(() => {
     const baseDate = selectedDate ? new Date(`${selectedDate}T12:00:00`) : new Date();
@@ -36,7 +38,7 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
       const d = new Date(baseDate);
       d.setDate(baseDate.getDate() - i);
       const dStr = format(d, 'yyyy-MM-dd');
-      const diaSemana = format(d, 'eee', { locale: ptBR }).replace('.', '').toUpperCase();
+      const diaSemana = DIAS_SEMANA_ABREV[getDay(d)] || 'DIA';
       const diaNum = format(d, 'd');
       const count = chamadosData.atendimentosPorDia[dStr] || 0;
       const isSelected = dStr === selectedDate;
@@ -71,15 +73,15 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
   return (
     <BentoCard
       hoverable
-      className={`min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
+      className={`min-h-[19.5rem] sm:min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
     >
       {/* Cabeçalho do Card 3: Pílula 'Chamados encerrados' + Ações */}
-      <div className="flex items-center justify-between relative z-10">
-        <div className="inline-flex items-center px-[0.75rem] py-[0.25rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
+      <div className="flex items-center justify-between relative z-10 gap-[0.5rem]">
+        <div className="inline-flex items-center px-[0.625rem] py-[0.1875rem] rounded-full bg-light-surface-elevated/90 dark:bg-surface-elevated/80 border border-light-border dark:border-white/10 text-[0.6875rem] sm:text-[0.75rem] font-bold text-light-text-main dark:text-text-main shadow-xs">
           Chamados encerrados
         </div>
         <div className="flex items-center gap-[0.375rem]">
-          <span className="text-[0.6875rem] font-bold px-[0.625rem] py-[0.125rem] rounded-full bg-light-surface-elevated dark:bg-surface text-light-text-secondary dark:text-text-muted border border-light-border dark:border-border capitalize">
+          <span className="text-[0.625rem] sm:text-[0.6875rem] font-bold px-[0.5rem] py-[0.125rem] rounded-full bg-light-surface-elevated dark:bg-surface text-light-text-secondary dark:text-text-muted border border-light-border dark:border-border capitalize">
             {mesAnoLabel}
           </span>
           <button
@@ -88,10 +90,10 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
               e.stopPropagation();
               onOpenHistoricoModal(selectedDate);
             }}
-            className="w-[2rem] h-[2rem] rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
+            className="w-[1.75rem] h-[1.75rem] sm:w-[2rem] sm:h-[2rem] rounded-full bg-light-surface-elevated dark:bg-surface-elevated hover:bg-primary/20 text-light-text-muted dark:text-text-muted hover:text-primary flex items-center justify-center transition-colors cursor-pointer border border-light-border dark:border-border"
             title="Ver lista de chamados"
           >
-            <ArrowUpRight size={16} />
+            <ArrowUpRight size={15} />
           </button>
         </div>
       </div>
@@ -100,7 +102,7 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
       <div className="my-auto py-[0.5rem] relative z-10 w-full">
         {!showMonthCalendar ? (
           /* Modo 1: Pílulas Horizontais dos Dias com data do último atendimento */
-          <div className="space-y-[0.75rem]">
+          <div className="space-y-[0.625rem]">
             <div className="flex items-center justify-between">
               <span className="text-[0.6875rem] font-semibold text-light-text-muted dark:text-text-muted">
                 Atendimentos por dia
@@ -116,20 +118,20 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center justify-between gap-[0.375rem] overflow-x-auto scrollbar-hide py-[0.25rem]">
+            <div className="flex items-center justify-between gap-[0.25rem] sm:gap-[0.375rem] py-[0.25rem]">
               {dayPills.map((pill) => (
                 <button
                   key={pill.dStr}
                   type="button"
                   onClick={() => onSelectDate(pill.dStr)}
-                  className={`flex-1 flex flex-col items-center justify-center py-[0.5rem] px-[0.375rem] rounded-[1rem] border transition-all cursor-pointer select-none group/btn ${
+                  className={`flex-1 flex flex-col items-center justify-center py-[0.375rem] px-[0.125rem] sm:px-[0.25rem] rounded-[0.625rem] sm:rounded-[0.875rem] border transition-all cursor-pointer select-none group/btn ${
                     pill.isSelected
-                      ? 'bg-primary text-slate-950 font-black shadow-lg shadow-primary/25 scale-[1.03] border-primary'
+                      ? 'bg-primary text-slate-950 font-black shadow-lg shadow-primary/25 scale-[1.02] border-primary'
                       : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
                   }`}
                 >
                   <span
-                    className={`text-[0.625rem] uppercase font-bold tracking-wider opacity-85 transition-colors ${
+                    className={`text-[0.5625rem] sm:text-[0.625rem] uppercase font-bold tracking-tight opacity-85 transition-colors ${
                       pill.isSelected
                         ? 'text-slate-950'
                         : 'text-light-text-muted dark:text-text-muted group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
@@ -138,7 +140,7 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
                     {pill.diaSemana}
                   </span>
                   <span
-                    className={`text-[1rem] font-black leading-tight mt-[0.125rem] transition-colors ${
+                    className={`text-[0.875rem] sm:text-[1rem] font-black leading-tight mt-[0.125rem] transition-colors ${
                       pill.isSelected
                         ? 'text-slate-950'
                         : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'
@@ -148,12 +150,12 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
                   </span>
                   {pill.count > 0 ? (
                     <span
-                      className={`w-[0.375rem] h-[0.375rem] rounded-full mt-[0.25rem] ${
+                      className={`w-[0.3125rem] h-[0.3125rem] rounded-full mt-[0.1875rem] ${
                         pill.isSelected ? 'bg-slate-950' : 'bg-primary'
                       }`}
                     />
                   ) : (
-                    <span className="w-[0.375rem] h-[0.375rem] mt-[0.25rem]" />
+                    <span className="w-[0.3125rem] h-[0.3125rem] mt-[0.1875rem]" />
                   )}
                 </button>
               ))}
@@ -235,24 +237,24 @@ export const ChamadosEncerradosCard: React.FC<ChamadosEncerradosCardProps> = ({
       {/* Rodapé: Quantidade de chamados atendidos no dia selecionado */}
       <div
         onClick={() => onOpenHistoricoModal(selectedDate)}
-        className="pt-[0.75rem] border-t border-light-border dark:border-border/60 flex items-center justify-between cursor-pointer hover:opacity-90 transition-opacity relative z-10"
+        className="pt-[0.5rem] sm:pt-[0.75rem] border-t border-light-border dark:border-border/60 flex items-center justify-between cursor-pointer hover:opacity-90 transition-opacity relative z-10 gap-[0.5rem]"
         title="Clique para abrir a lista detalhada de chamados desta data"
       >
-        <div>
-          <div className="flex items-baseline gap-[0.375rem]">
-            <span className="text-[1.875rem] 2xl:text-[2.25rem] font-black text-light-text-main dark:text-text-main tracking-tight leading-none">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-[0.25rem] sm:gap-[0.375rem] flex-wrap">
+            <span className="text-[1.5rem] sm:text-[1.875rem] 2xl:text-[2.25rem] font-black text-light-text-main dark:text-text-main tracking-tight leading-none">
               {chamadosNoDia}
             </span>
-            <span className="text-[0.75rem] font-bold text-light-text-muted dark:text-text-muted ml-[0.25rem]">
+            <span className="text-[0.6875rem] sm:text-[0.75rem] font-bold text-light-text-muted dark:text-text-muted truncate">
               {chamadosNoDia === 1 ? 'chamado atendido' : 'chamados atendidos'}
             </span>
           </div>
-          <p className="text-[0.6875rem] text-light-text-muted dark:text-text-muted font-medium mt-[0.125rem]">
+          <p className="text-[0.625rem] sm:text-[0.6875rem] text-light-text-muted dark:text-text-muted font-medium mt-[0.125rem] truncate">
             {dataExtenso}
           </p>
         </div>
 
-        <div className="flex items-center gap-[0.25rem] text-[0.75rem] font-bold text-primary group-hover:translate-x-0.5 transition-transform">
+        <div className="flex items-center gap-[0.25rem] text-[0.6875rem] sm:text-[0.75rem] font-bold text-primary group-hover:translate-x-0.5 transition-transform shrink-0">
           <span>Ver lista</span>
           <ArrowUpRight size={14} />
         </div>
