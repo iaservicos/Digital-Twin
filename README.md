@@ -32,13 +32,13 @@ A plataforma consolida dados brutos de ordens de serviço, reincidências e cons
                                ┌───────────────────────────┐
                                │    PostgreSQL Database    │
                                │   (Supabase / AWS Pooler) │
-                               └───────┬───────────▲───────┘
-                                       │           │ (Queries JPA/Flyway)
-        (REST API / JWT Auth)          ▼           │
+                                └───────┬───────────▲───────┘
+                                        │           │ (Queries SQL / Views)
+         (REST API / JWT Auth)          ▼           │
 ┌──────────────────────────┐    ┌──────────────────────────┐
 │      Frontend Web        │◄───┤    Backend de Negócio    │
-│  (React / Vite / TS PWA) │    │  (Java 21 / Spring Boot) │
-│   Porta: 3000 (Vercel)   │───►│   Porta: 8080 (Render)   │
+│  (React / Vite / TS PWA) │    │  (Python 3.12 / FastAPI) │
+│   Porta: 3000 (Vercel)   │───►│   Porta: 8080 (Docker)   │
 └────────────┬─────────────┘    └──────────────────────────┘
              │
              └──────── (Trigger Sync / Polling) ────────► [DataIngest]
@@ -49,9 +49,9 @@ O ecossistema é dividido em 3 pilares desacoplados:
 1. **`DataIngest` (Engine de Ingestão e Processamento Analítico):**
    - **Tecnologias:** Python 3.12, FastAPI, Polars, PyArrow, Psycopg 3, APScheduler.
    - **Função:** Extração em lote de alto desempenho via streaming (*zero-copy*), sincronização idempotente com PostgreSQL e motor analítico para apuração de notas e metas.
-2. **`backend_java` (API de Domínio e Regras de Negócio):**
-   - **Tecnologias:** Java 21, Spring Boot 3/4, Spring Security, JWT, Spring Data JPA, Flyway, Bucket4j, Swagger / OpenAPI 3.
-   - **Função:** Gestão de usuários e permissões RBAC, campanhas de incentivo, elegibilidade, histórico de chamados, supervisão regional e auditoria.
+2. **`backend_python` (API de Domínio e Regras de Negócio):**
+   - **Tecnologias:** Python 3.12, FastAPI, Uvicorn, PostgreSQL, JWT (HS384), CORS.
+   - **Função:** Gestão de usuários e autenticação JWT, painéis analíticos, campanhas de incentivo, elegibilidade de técnicos e supervisores.
 3. **`frontend_react` (Interface Web & PWA):**
    - **Tecnologias:** React 18, TypeScript, Vite, Tailwind CSS, Lucide React, Recharts, Zustand.
    - **Função:** Experiência do técnico (painel de notas, detalhamento de chamados, elegibilidade), ranking nacional/regional, widget de *Live Sync* do Databricks e painel administrativo para supervisores.
@@ -80,7 +80,6 @@ O programa apura mensalmente uma pontuação máxima de **100 pontos** distribu�
 ### Pré-requisitos
 - [Docker](https://www.docker.com/) e Docker Compose instalados.
 - [Node.js](https://nodejs.org/) (v18+) *(opcional para rodar localmente fora de containers)*.
-- [Java JDK 21](https://adoptium.net/) & Maven 3.9+ *(opcional para rodar localmente)*.
 - [Python 3.12](https://www.python.org/) *(opcional para rodar localmente)*.
 
 ---
@@ -111,8 +110,8 @@ O programa apura mensalmente uma pontuação máxima de **100 pontos** distribu�
 | Serviço | Porta Local | Descrição |
 | :--- | :---: | :--- |
 | **Frontend Web** | `http://localhost:3000` | Interface do usuário e PWA |
-| **Backend Spring Boot** | `http://localhost:8080` | API REST e Swagger Docs (`/swagger-ui.html`) |
-| **DataIngest FastAPI** | `http://localhost:8000` | Sincronização Databricks e Docs (`/docs`) |
+| **Backend FastAPI** | `http://localhost:8080` | API REST e Documentação Interativa (`/docs`) |
+| **DataIngest FastAPI** | `http://localhost:8000` | Sincronização Databricks e Documentação (`/docs`) |
 
 ---
 
@@ -129,15 +128,13 @@ DigitalTwin/
 │   │   └── scheduler.py  # Agendamento diário de cargas
 │   ├── Dockerfile
 │   └── requirements.txt
-├── backend_java/         # Backend de Negócio (Spring Boot 3/4 + Java 21)
-│   ├── src/main/java/br/com/positivo/digitaltwin/
-│   │   ├── core/         # Configurações de segurança, JWT, CORS, Handler
-│   │   └── modules/brilhamais/ # Controllers, Services, Repositories, DTOs
-│   ├── src/main/resources/
-│   │   ├── application.yml
-│   │   └── db/migration/ # Scripts Flyway versionados (V1 a V63)
-│   ├── Dockerfile
-│   └── pom.xml
+├── backend_python/       # Backend de Negócio Oficial (Python 3.12 + FastAPI)
+│   ├── core/             # Configurações de banco, autenticação JWT e segurança
+│   ├── routes/           # Rotas da API (auth, dashboard, campanhas, técnicos, perfil)
+│   ├── main.py           # Ponto de entrada FastAPI com prefixos /api/v1
+│   ├── Dockerfile        # Container de produção
+│   ├── Dockerfile.dev    # Container de desenvolvimento com hot-reload
+│   └── requirements.txt
 ├── frontend_react/       # Aplicação Web SPA / PWA (React 18 + Vite + TS)
 │   ├── src/
 │   │   ├── components/   # Modais de detalhes, métricas, layout e live sync
@@ -148,6 +145,7 @@ DigitalTwin/
 │   └── tailwind.config.js
 ├── db_scripts/           # Views auxiliares e DDLs complementares
 ├── docs/                 # Documentação técnica detalhada, mapeamentos e guias
+├── LEGADO/               # Backups de código histórico (backend Java Spring Boot)
 ├── docker-compose.yml     # Orquestrador de produção multi-container
 ├── docker-compose.dev.yml # Orquestrador de desenvolvimento com live reload
 └── render.yaml           # Configuração de infraestrutura como código (Render)
@@ -157,11 +155,11 @@ DigitalTwin/
 
 ## 🔒 Segurança e Boas Práticas
 
-- **Autenticação Stateless:** Tokens JWT com refresh token e expiração segura.
-- **Proteção de Endpoints:** Spring Security com controle de acesso por papéis (RBAC).
+- **Autenticação Stateless:** Tokens JWT com tempo de expiração seguro e assinatura criptográfica.
+- **Proteção de Endpoints:** Middleware de autenticação e controle de rotas por perfis.
 - **Proteção Inter-Serviços:** `DATA_INGEST_API_KEY` para chamadas entre Backend/Frontend e a engine Python.
-- **Rate Limiting:** Implementado via Bucket4j para prevenir ataques de negação de serviço e *brute-force*.
-- **Migrações Seguras:** Esquemas versionados via Flyway garantindo consistência estrutural no PostgreSQL.
+- **CORS e Headers Seguros:** Middleware de CORS configurado estritamente para origens autorizadas.
+- **Transações Atômicas:** Operações críticas no PostgreSQL executadas sob isolamento transacional.
 
 ---
 

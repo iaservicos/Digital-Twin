@@ -20,25 +20,29 @@ services:
         value: https://digitaltwin-dataingest.onrender.com
 
   # -------------------------------------------------------------
-  # 2. BACKEND JAVA (Spring Boot 3 / Java 21)
+  # 2. BACKEND PYTHON (FastAPI / Python 3.12)
   # -------------------------------------------------------------
   - type: web
     name: digitaltwin-backend
     runtime: docker
-    rootDir: backend_java
-    dockerfilePath: dockerfile
+    rootDir: backend_python
+    dockerfilePath: Dockerfile
     plan: free
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: prod
       - key: PORT
         value: 8080
-      - key: SPRING_DATASOURCE_URL
+      - key: POSTGRES_HOST
         sync: false
-      - key: SPRING_DATASOURCE_USERNAME
+      - key: POSTGRES_PORT
+        value: 5432
+      - key: POSTGRES_DB
         sync: false
-      - key: SPRING_DATASOURCE_PASSWORD
+      - key: POSTGRES_USER
         sync: false
+      - key: POSTGRES_PASSWORD
+        sync: false
+      - key: POSTGRES_SCHEMA
+        value: public
       - key: JWT_SECRET
         generateValue: true
       - key: DATA_INGEST_URL

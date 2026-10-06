@@ -6,7 +6,7 @@ export const getBaseURL = () => {
   const envUrl = (import.meta.env.VITE_BACKEND_API_URL || import.meta.env.VITE_API_URL || '').trim();
   
   // Se houver uma URL externa explícita em produção (ex: backend dedicado fora da Vercel)
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1') && !envUrl.includes('onrender.com') && !envUrl.includes('brilhamais-api-java')) {
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1') && !envUrl.includes('onrender.com')) {
     let cleanUrl = envUrl.replace(/\/+$/, '');
     if (!cleanUrl.endsWith('/api/v1')) cleanUrl += '/api/v1';
     return cleanUrl;
