@@ -15,6 +15,7 @@ import {
   Clock, 
   AlertTriangle, 
   Award,
+  Package,
   Layers,
   ChevronLeft
 } from 'lucide-react';
@@ -402,17 +403,17 @@ export default function OnboardingScreen() {
                 </div>
               </div>
 
-              {/* Card Bônus de Peças & Qualidade */}
+              {/* Card Uso Consciente de Peças */}
               <div className="bg-light-surface-elevated/40 dark:bg-white/5 border border-light-border/50 dark:border-white/5 p-4 rounded-2xl flex items-start gap-3.5">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <Award size={20} />
+                  <Package size={20} />
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-bold text-light-text-main dark:text-text-main">
-                    Bônus de Peças &amp; Eficiência
+                    Uso Consciente de Peças
                   </h3>
                   <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5 leading-relaxed">
-                    Uso consciente e assertivo de peças sobressalentes e avaliações positivas de clientes adicionam pontuações bônus cruciais à sua média.
+                    O técnico não recebe pontos a mais por economizar peças: o diagnóstico assertivo e a aplicação correta de sobressalentes evitam desperdícios e deduções, preservando também a sua pontuação intacta.
                   </p>
                 </div>
               </div>
