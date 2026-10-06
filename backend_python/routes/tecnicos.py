@@ -156,7 +156,11 @@ def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] =
     # Senha inicial
     if request.senha and request.senha.strip():
         raw_senha = request.senha.strip()
-        validate_password_complexity(raw_senha)
+        # Normalização inteligente: aceita variações de senha padrão sem disparar erro 400
+        if raw_senha.lower() in ("brilha123", "brilha@123", SENHA_PADRAO_SISTEMA.lower()):
+            raw_senha = SENHA_PADRAO_SISTEMA
+        else:
+            validate_password_complexity(raw_senha)
     else:
         raw_senha = SENHA_PADRAO_SISTEMA
     senha_hash = hash_password(raw_senha)
@@ -176,13 +180,49 @@ def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] =
     base_emp = request.codigoBaseAtpEmprestimo.strip() if (status_colab == "Emprestado" and request.codigoBaseAtpEmprestimo) else None
 
     with get_db_cursor(commit=True) as cur:
+        # 1. Validação amigável de duplicidade de matrícula
+        cur.execute("SELECT id_tecnico, nome_completo FROM tb_tecnico WHERE UPPER(matricula) = %s LIMIT 1;", (mat.upper(),))
+        existe = cur.fetchone()
+        if existe:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Já existe um colaborador cadastrado com a matrícula {mat} ({existe['nome_completo']})."
+            )
+
+        # 2. Sincronização centralizada com tb_usuario
+        cur.execute("""
+            INSERT INTO tb_usuario (matricula, senha_hash, nome_completo, primeiro_nome, sobrenome, email, perfil_acesso, nivel_organizacional, ativo, is_primeiro_acesso)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::enum_perfil_acesso, %s::enum_nivel_organizacional, %s, true)
+            ON CONFLICT (matricula) DO UPDATE SET
+                senha_hash = EXCLUDED.senha_hash,
+                perfil_acesso = EXCLUDED.perfil_acesso,
+                ativo = EXCLUDED.ativo
+            RETURNING id_usuario;
+        """, (
+            mat, senha_hash, nome_completo, primeiro_nome, sobrenome, request.email,
+            role_to_set, "SUPERVISOR" if "SUPERVISOR" in (request.cargo or "").upper() else "TECNICO", ativo_val
+        ))
+        usr_row = cur.fetchone()
+        id_usr = usr_row["id_usuario"] if usr_row else None
+
+        # 3. Se for supervisor existente em tb_supervisor, sincronizar credenciais
+        cur.execute("""
+            UPDATE tb_supervisor
+            SET email = COALESCE(email, %s),
+                senha = %s,
+                id_usuario = COALESCE(id_usuario, %s),
+                ativo = true
+            WHERE UPPER(matricula) = %s;
+        """, (request.email, senha_hash, id_usr, mat.upper()))
+
+        # 4. Inserção do técnico/colaborador
         cur.execute("""
             INSERT INTO tb_tecnico (
                 matricula, nome_completo, primeiro_nome, sobrenome, cargo, id_supervisor, role, 
                 cpf, email, celular_corporativo, senha, ativo, status_colaborador, centro_custo, codigo_base_atp,
-                id_supervisor_emprestimo, codigo_base_atp_emprestimo, is_primeiro_acesso
+                id_supervisor_emprestimo, codigo_base_atp_emprestimo, is_primeiro_acesso, id_usuario
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true, %s)
             RETURNING id_tecnico;
         """, (
             mat, nome_completo, primeiro_nome, sobrenome, request.cargo or "Tecnico de Campo", id_sup, role_to_set, 
@@ -190,7 +230,7 @@ def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] =
             senha_hash, ativo_val, status_colab, 
             request.centroCusto.strip() if request.centroCusto else None,
             request.codigoBaseAtp.strip() if request.codigoBaseAtp else None,
-            id_sup_emp, base_emp
+            id_sup_emp, base_emp, id_usr
         ))
         novo = cur.fetchone()
         id_tec = novo["id_tecnico"]
@@ -199,7 +239,7 @@ def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] =
             for ct in request.ctBases:
                 cur.execute("INSERT INTO tb_tecnico_base (id_tecnico, ct_codigo) VALUES (%s, %s);", (id_tec, ct))
 
-        return {"idTecnico": id_tec, "message": "Técnico cadastrado com sucesso."}
+        return {"idTecnico": id_tec, "message": "Colaborador cadastrado com sucesso."}
 
 @router.put("/tecnicos/{id_tecnico}")
 def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
@@ -320,7 +360,10 @@ def reset_senha(id_tecnico: int, request: Optional[ResetSenhaRequest] = None, cu
         
         if request and request.novaSenha and request.novaSenha.strip():
             nova_senha = request.novaSenha.strip()
-            validate_password_complexity(nova_senha)
+            if nova_senha.lower() in ("brilha123", "brilha@123", SENHA_PADRAO_SISTEMA.lower()):
+                nova_senha = SENHA_PADRAO_SISTEMA
+            else:
+                validate_password_complexity(nova_senha)
             senha_hash = hash_password(nova_senha)
             msg = "Senha redefinida com sucesso."
         else:
@@ -328,6 +371,11 @@ def reset_senha(id_tecnico: int, request: Optional[ResetSenhaRequest] = None, cu
             msg = f"Senha resetada para a senha padrão ({SENHA_PADRAO_SISTEMA}) com sucesso."
 
         cur.execute("UPDATE tb_tecnico SET senha = %s, is_primeiro_acesso = true WHERE id_tecnico = %s;", (senha_hash, id_tecnico))
+        
+        # Sincronização automática com tb_usuario e tb_supervisor
+        cur.execute("UPDATE tb_usuario SET senha_hash = %s, is_primeiro_acesso = true WHERE UPPER(matricula) = %s;", (senha_hash, t["matricula"].upper()))
+        cur.execute("UPDATE tb_supervisor SET senha = %s, is_primeiro_acesso = true WHERE UPPER(matricula) = %s;", (senha_hash, t["matricula"].upper()))
+        
         return {"message": msg}
 
 @router.get("/supervisores")

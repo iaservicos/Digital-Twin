@@ -171,7 +171,7 @@ export default function TecnicosManager() {
       setTecnicos(tecnicos.filter(t => t.idTecnico !== id));
     } catch (err: any) {
       console.error('Erro ao deletar', err);
-      alert(err.response?.data?.message || 'Erro ao excluir usuário.');
+      alert(err.response?.data?.detail || err.response?.data?.message || 'Erro ao excluir usuário.');
     }
   };
 
@@ -249,7 +249,8 @@ export default function TecnicosManager() {
       await fetchTecnicos();
       setIsEditModalOpen(false);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao salvar os dados.');
+      const msg = err.response?.data?.detail || err.response?.data?.message || 'Erro ao salvar os dados.';
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -276,7 +277,8 @@ export default function TecnicosManager() {
       setIsPasswordModalOpen(false);
       alert('Senha redefinida com sucesso!');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao redefinir a senha.');
+      const msg = err.response?.data?.detail || err.response?.data?.message || 'Erro ao redefinir a senha.';
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }
