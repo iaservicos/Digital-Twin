@@ -2,6 +2,7 @@ import time
 import base64
 import bcrypt
 import jwt
+import re
 from typing import Optional, Dict, Any
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -12,6 +13,44 @@ except ImportError:
         from api.core import config
     except ImportError:
         import config
+
+SENHA_PADRAO_SISTEMA = "Brilha@123"
+
+def validate_password_complexity(password: str) -> None:
+    """
+    Valida a complexidade da senha:
+    - Mínimo de 8 caracteres
+    - Pelo menos uma letra maiúscula [A-Z]
+    - Pelo menos uma letra minúscula [a-z]
+    - Pelo menos um número [0-9]
+    - Pelo menos um caractere especial
+    """
+    pwd = password or ""
+    if len(pwd) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve ter no mínimo 8 caracteres."
+        )
+    if not re.search(r"[A-Z]", pwd):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve conter pelo menos uma letra maiúscula."
+        )
+    if not re.search(r"[a-z]", pwd):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve conter pelo menos uma letra minúscula."
+        )
+    if not re.search(r"\d", pwd):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve conter pelo menos um número."
+        )
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?~`]", pwd):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve conter pelo menos um caractere especial."
+        )
 
 security_scheme = HTTPBearer(auto_error=False)
 
