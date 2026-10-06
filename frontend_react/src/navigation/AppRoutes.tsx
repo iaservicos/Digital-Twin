@@ -10,15 +10,17 @@ import RankingScreen from '../screens/RankingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import { useAuthStore } from '../store/authStore';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
+  allowFirstAccess?: boolean;
 }
 
-const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  const { token, isLoading } = useAuthStore();
+const ProtectedRoute = ({ children, allowedRoles, allowFirstAccess = false }: ProtectedRouteProps) => {
+  const { token, user, isLoading } = useAuthStore();
 
   if (isLoading) {
     return (
@@ -32,9 +34,19 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Se o usuário possui primeiro acesso pendente e a rota atual não permite primeiro acesso, força o onboarding
+  if (user?.primeiroAcesso && !allowFirstAccess) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  // Se o usuário já concluiu o primeiro acesso e tenta acessar o onboarding diretamente, redireciona ao painel
+  if (!user?.primeiroAcesso && allowFirstAccess) {
+    const isElevated = user?.role === 'MODERADOR' || user?.role === 'ADMINISTRADOR' || user?.role === 'SUPERVISOR' || user?.cargo === 'Administrador' || user?.cargo === 'Super Administrador' || user?.cargo === 'Supervisor de Campo';
+    return <Navigate to={isElevated ? "/supervisao" : "/dashboard"} replace />;
+  }
+
   // Verifica as roles se `allowedRoles` for fornecido
   if (allowedRoles && allowedRoles.length > 0) {
-    const user = useAuthStore.getState().user;
     const userRole = (user?.role || 'PADRAO').toUpperCase();
     const userCargo = (user?.cargo || '').toLowerCase();
 
@@ -57,6 +69,11 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
 const RootRedirect = () => {
   const { user } = useAuthStore();
+
+  if (user?.primeiroAcesso) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   const isElevated = user?.role === 'MODERADOR' || user?.role === 'ADMINISTRADOR' || user?.role === 'SUPERVISOR' || user?.cargo === 'Administrador' || user?.cargo === 'Super Administrador' || user?.cargo === 'Supervisor de Campo';
   
   if (isElevated) {
@@ -70,6 +87,9 @@ export default function AppRoutes() {
     <Routes>
       {/* Rotas Públicas */}
       <Route path="/login" element={<LoginScreen />} />
+
+      {/* Rota Privada sem Layout (Tela de Boas-Vindas e Primeiro Acesso) */}
+      <Route path="/onboarding" element={<ProtectedRoute allowFirstAccess><OnboardingScreen /></ProtectedRoute>} />
 
       {/* Rotas Privadas (Com o MainLayout) */}
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
