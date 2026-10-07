@@ -152,39 +152,45 @@ def login(request: AuthRequest, request_http: Request):
 
         if tecnico:
             if not tecnico.get("ativo", True):
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário inativo no sistema.")
+                # Se o registro de técnico estiver inativo, verifica se o usuário é um supervisor ativo
+                cur.execute("SELECT id_supervisor FROM tb_supervisor WHERE UPPER(matricula) = %s AND ativo = true LIMIT 1;", (matricula.upper(),))
+                if cur.fetchone():
+                    tecnico = None
+                else:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário inativo no sistema.")
             
-            senha_hash = tecnico.get("senha")
-            if not senha_hash or not verify_password(senha, senha_hash):
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Matrícula ou senha inválidos.")
+            if tecnico:
+                senha_hash = tecnico.get("senha")
+                if not senha_hash or not verify_password(senha, senha_hash):
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Matrícula ou senha inválidos.")
 
-            ct_bases = tecnico.get("ct_bases") or []
-            local_equipe = resolver_cidade_regiao(ct_bases)
-            user_cargo = tecnico.get("cargo") or "Técnico de Campo"
-            user_role = tecnico.get("role") or "PADRAO"
+                ct_bases = tecnico.get("ct_bases") or []
+                local_equipe = resolver_cidade_regiao(ct_bases)
+                user_cargo = tecnico.get("cargo") or "Técnico de Campo"
+                user_role = tecnico.get("role") or "PADRAO"
 
-            claims = {
-                "sub": tecnico["matricula"],
-                "id": tecnico["id_tecnico"],
-                "nome": tecnico["nome_completo"],
-                "cargo": user_cargo,
-                "role": user_role,
-                "localEquipe": local_equipe
-            }
+                claims = {
+                    "sub": tecnico["matricula"],
+                    "id": tecnico["id_tecnico"],
+                    "nome": tecnico["nome_completo"],
+                    "cargo": user_cargo,
+                    "role": user_role,
+                    "localEquipe": local_equipe
+                }
 
-            token = create_access_token(claims)
-            id_sessao = registrar_sessao(tecnico["matricula"], tecnico["nome_completo"], user_cargo, user_role)
+                token = create_access_token(claims)
+                id_sessao = registrar_sessao(tecnico["matricula"], tecnico["nome_completo"], user_cargo, user_role)
 
-            return AuthResponse(
-                accessToken=token,
-                refreshToken=token,
-                primeiroAcesso=bool(tecnico.get("is_primeiro_acesso")),
-                nome=tecnico["nome_completo"],
-                cargo=user_cargo,
-                localEquipe=local_equipe,
-                role=user_role,
-                idSessao=id_sessao
-            )
+                return AuthResponse(
+                    accessToken=token,
+                    refreshToken=token,
+                    primeiroAcesso=bool(tecnico.get("is_primeiro_acesso")),
+                    nome=tecnico["nome_completo"],
+                    cargo=user_cargo,
+                    localEquipe=local_equipe,
+                    role=user_role,
+                    idSessao=id_sessao
+                )
 
         # 2. Busca por Supervisor
         cur.execute("""
