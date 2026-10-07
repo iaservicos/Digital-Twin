@@ -247,6 +247,78 @@ class ETLService:
         logger.info("Recalculando apuração analítica da campanha ativa...")
         return calc.calcular_campanha_ativa()
 
+    def get_campanha_ativa(self) -> dict:
+        """
+        Obtém a campanha oficial ativa no banco de dados PostgreSQL.
+        """
+        from datetime import date
+        with self.postgres._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id_campanha, data_inicio, data_fim, duracao_meses, ativa
+                    FROM public.tb_campanha 
+                    WHERE ativa = true 
+                    ORDER BY id_campanha DESC 
+                    LIMIT 1;
+                """)
+                row = cur.fetchone()
+                if not row:
+                    today = date.today()
+                    start = today.replace(day=1)
+                    return {"id_campanha": None, "data_inicio": start.strftime("%Y-%m-%d"), "data_fim": today.strftime("%Y-%m-%d")}
+                
+                is_dict = isinstance(row, dict)
+                return {
+                    "id_campanha": row.get("id_campanha") if is_dict else row[0],
+                    "data_inicio": str(row.get("data_inicio") if is_dict else row[1]),
+                    "data_fim": str(row.get("data_fim") if is_dict else row[2]),
+                }
+
+    def sync_campanha_incremental(self, dias_retroativos: int = 3) -> dict:
+        """
+        Rotina DIÁRIA: Sincronização incremental dos chamados e peças recentes da campanha ativa.
+        Calcula os últimos dias_retroativos (D-3 a hoje) dentro da campanha ativa e sincroniza,
+        executando o recálculo automático de pontuações e KPIs ao final.
+        """
+        from datetime import date, timedelta
+        camp = self.get_campanha_ativa()
+        today = date.today()
+        d_inicio_dt = today - timedelta(days=dias_retroativos)
+        
+        # Não voltar antes do início oficial da campanha
+        try:
+            camp_ini = date.fromisoformat(camp["data_inicio"])
+            if d_inicio_dt < camp_ini:
+                d_inicio_dt = camp_ini
+        except Exception:
+            pass
+            
+        data_inicio = d_inicio_dt.strftime("%Y-%m-%d")
+        data_fim = today.strftime("%Y-%m-%d")
+        
+        logger.info(f"Iniciando rotina DIÁRIA incremental da campanha ativa ({data_inicio} até {data_fim})...")
+        return self.sync_all_tables(data_inicio=data_inicio, data_fim=data_fim)
+
+    def sync_campanha_completa(self) -> dict:
+        """
+        Rotina SEMANAL: Reingestão completa de todo o período da campanha ativa no Postgres.
+        Sobrescreve e atualiza todos os chamados da campanha desde o início oficial até a data atual,
+        e recalcula todo o período da campanha de ponta a ponta.
+        """
+        from datetime import date
+        camp = self.get_campanha_ativa()
+        today = date.today()
+        data_inicio = camp["data_inicio"]
+        
+        try:
+            camp_fim = date.fromisoformat(camp["data_fim"])
+            data_fim = today.strftime("%Y-%m-%d") if today < camp_fim else camp["data_fim"]
+        except Exception:
+            data_fim = today.strftime("%Y-%m-%d")
+            
+        logger.info(f"Iniciando rotina SEMANAL completa da campanha ativa ({data_inicio} até {data_fim})...")
+        return self.sync_all_tables(data_inicio=data_inicio, data_fim=data_fim)
+
     def sync_all_tables(
         self, 
         data_inicio: str = None, 

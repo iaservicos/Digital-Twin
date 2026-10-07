@@ -37,6 +37,8 @@ interface SyncStore {
   fetchStatus: () => Promise<void>;
   triggerSync: (data_inicio: string, data_fim: string) => Promise<void>;
   triggerCampaignRecalculation: (apiToken: string | null) => Promise<void>;
+  triggerIncrementalCampaignSync: () => Promise<void>;
+  triggerFullCampaignSync: () => Promise<void>;
   tickSeconds: () => void;
 }
 
@@ -140,6 +142,72 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       );
     } catch (error: any) {
       console.error('Erro ao disparar sincronização:', error);
+      set({
+        tracker: {
+          ...initialTracker,
+          status: 'failed',
+          progress: 0,
+          step: 'Erro ao conectar ao microserviço DataIngest.',
+          error: error.response?.data?.detail || error.message || 'Servidor offline'
+        }
+      });
+    }
+  },
+
+  triggerIncrementalCampaignSync: async () => {
+    set({
+      isWidgetDismissed: false,
+      tracker: {
+        ...initialTracker,
+        status: 'processing',
+        progress: 5,
+        step: 'Rotina Diária: Sincronizando novos atendimentos da campanha...',
+        estimated_seconds_remaining: 15,
+      }
+    });
+
+    try {
+      const pythonApiUrl = getPythonApiUrl();
+      await axios.post(
+        `${pythonApiUrl}/api/v1/sync/campanha/incremental`,
+        {},
+        { headers: getPythonHeaders() }
+      );
+    } catch (error: any) {
+      console.error('Erro ao disparar atualização incremental diária:', error);
+      set({
+        tracker: {
+          ...initialTracker,
+          status: 'failed',
+          progress: 0,
+          step: 'Erro ao conectar ao microserviço DataIngest.',
+          error: error.response?.data?.detail || error.message || 'Servidor offline'
+        }
+      });
+    }
+  },
+
+  triggerFullCampaignSync: async () => {
+    set({
+      isWidgetDismissed: false,
+      tracker: {
+        ...initialTracker,
+        status: 'processing',
+        progress: 5,
+        step: 'Rotina Semanal: Reingestão completa de toda a campanha no Postgres...',
+        estimated_seconds_remaining: 45,
+      }
+    });
+
+    try {
+      const pythonApiUrl = getPythonApiUrl();
+      await axios.post(
+        `${pythonApiUrl}/api/v1/sync/campanha/completa`,
+        {},
+        { headers: getPythonHeaders() }
+      );
+    } catch (error: any) {
+      console.error('Erro ao disparar sincronização completa semanal:', error);
       set({
         tracker: {
           ...initialTracker,

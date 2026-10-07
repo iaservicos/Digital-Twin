@@ -276,7 +276,12 @@ const UploadCard: React.FC<UploadCardProps> = ({
 // =============================================================================
 export default function SettingsScreen() {
   const { token, user } = useAuthStore();
-  const { tracker, triggerSync } = useSyncStore();
+  const { 
+    tracker, 
+    triggerSync, 
+    triggerIncrementalCampaignSync, 
+    triggerFullCampaignSync 
+  } = useSyncStore();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const isModerador = user?.role === 'MODERADOR' || user?.cargo === 'Moderador';
@@ -333,34 +338,16 @@ export default function SettingsScreen() {
     EncerradosRRC: { status: 'idle', progress: 0 }
   });
 
-  // Controle de Período Databricks
-  const [periodMode, setPeriodMode] = useState<PeriodMode>('BIMESTRE');
-  const [selectedBimestre, setSelectedBimestre] = useState<string>('4');
-  const [customDataInicio, setCustomDataInicio] = useState('2026-07-01');
-  const [customDataFim, setCustomDataFim] = useState('2026-08-31');
+  // Controle de Período Databricks (Ingestão por Data Oficial)
+  const [customDataInicio, setCustomDataInicio] = useState('2026-10-01');
+  const [customDataFim, setCustomDataFim] = useState('2026-10-31');
 
-  const bimestreDates: Record<string, { data_inicio: string; data_fim: string; label: string; period: string }> = {
-    '1': { data_inicio: '2026-01-01', data_fim: '2026-02-28', label: '1º Bimestre', period: 'Jan / Fev' },
-    '2': { data_inicio: '2026-03-01', data_fim: '2026-04-30', label: '2º Bimestre', period: 'Mar / Abr' },
-    '3': { data_inicio: '2026-05-01', data_fim: '2026-06-30', label: '3º Bimestre', period: 'Mai / Jun' },
-    '4': { data_inicio: '2026-07-01', data_fim: '2026-08-31', label: '4º Bimestre', period: 'Jul / Ago' },
-    '5': { data_inicio: '2026-09-01', data_fim: '2026-10-31', label: '5º Bimestre', period: 'Set / Out' },
-    '6': { data_inicio: '2026-11-01', data_fim: '2026-12-31', label: '6º Bimestre', period: 'Nov / Dez' },
+  const activeDates = {
+    data_inicio: customDataInicio,
+    data_fim: customDataFim,
+    label: 'Personalizado',
+    period: 'Custom'
   };
-
-  const getActivePeriodDates = () => {
-    if (periodMode === 'BIMESTRE') {
-      return bimestreDates[selectedBimestre] || bimestreDates['4'];
-    }
-    return {
-      data_inicio: customDataInicio,
-      data_fim: customDataFim,
-      label: 'Personalizado',
-      period: 'Custom'
-    };
-  };
-
-  const activeDates = getActivePeriodDates();
 
   // Handler de Upload de Planilha Individual
   const handleSpreadsheetUpload = async (type: SpreadSheetType, file: File) => {
@@ -500,12 +487,25 @@ export default function SettingsScreen() {
     }
   };
 
-  // Disparar Sincronização Databricks
-  const handleDatabricksSync = async () => {
+  // Disparar Sincronização Databricks (Semanal / Completa)
+  const handleSincronizarSemanal = async () => {
     try {
-      await triggerSync(activeDates.data_inicio, activeDates.data_fim);
+      if (customDataInicio && customDataFim && (customDataInicio !== '2026-10-01' || customDataFim !== '2026-10-31')) {
+        await triggerSync(customDataInicio, customDataFim);
+      } else {
+        await triggerFullCampaignSync();
+      }
     } catch (e) {
-      console.error('Erro ao acionar sincronização:', e);
+      console.error('Erro ao acionar sincronização semanal:', e);
+    }
+  };
+
+  // Disparar Atualização Incremental (Diária)
+  const handleAtualizarCampanhaDiaria = async () => {
+    try {
+      await triggerIncrementalCampaignSync();
+    } catch (e) {
+      console.error('Erro ao acionar atualização diária:', e);
     }
   };
 
@@ -728,122 +728,87 @@ export default function SettingsScreen() {
 
                 {/* Header Databricks */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                  <div className="space-y-1.5 max-w-3xl">
+                  <div className="space-y-1.5 max-w-2xl">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
                       <Server size={14} />
                       Databricks SQL Warehouse
                     </div>
                     <h2 className="text-xl sm:text-2xl font-black text-light-text-main dark:text-text-main tracking-tight flex items-center gap-2.5">
                       <Cpu className="text-primary shrink-0" size={26} />
-                      Sincronização por Período
+                      Sincronização de dados
                     </h2>
                     <p className="text-light-text-muted dark:text-text-muted text-xs sm:text-sm">
-                      Extrai dados de chamados, reincidências e peças diretamente do Datalake corporativo.
+                      Extrai dados de chamados, reincidências e peças diretamente do Datalake corporativo e recalcula indicadores.
                     </p>
                   </div>
 
-                  <div className="flex items-center shrink-0">
+                  <div className="flex flex-wrap items-center gap-3 shrink-0">
+                    {/* Botão 1: Atualizar Campanha (Diária) */}
                     <Button
                       variant="neon"
                       size="md"
-                      onClick={handleDatabricksSync}
+                      onClick={handleAtualizarCampanhaDiaria}
+                      disabled={tracker.status === 'processing'}
+                      icon={<BarChart3 size={16} className={tracker.status === 'processing' ? 'animate-pulse' : ''} />}
+                      className="text-xs sm:text-sm px-5 py-2.5 shadow-lg shadow-primary/20"
+                      title="Rotina Diária: Carga incremental rápida dos dados recentes + recálculo de KPIs"
+                    >
+                      {tracker.status === 'processing' ? 'Processando...' : 'Atualizar Campanha'}
+                    </Button>
+
+                    {/* Botão 2: Sincronizar (Semanal / Completa) */}
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={handleSincronizarSemanal}
                       disabled={tracker.status === 'processing'}
                       icon={<RefreshCw size={16} className={tracker.status === 'processing' ? 'animate-spin' : ''} />}
-                      className="text-xs sm:text-sm px-6 py-2.5"
+                      className="text-xs sm:text-sm px-5 py-2.5 border border-light-border dark:border-white/10"
+                      title="Rotina Semanal: Reingesta a campanha inteira no Postgres e recalcula todas as pontuações"
                     >
-                      {tracker.status === 'processing' ? 'Sincronizando...' : 'Sincronizar Agora'}
+                      {tracker.status === 'processing' ? 'Sincronizando...' : 'Sincronizar'}
                     </Button>
                   </div>
                 </div>
 
-                {/* Filtro de Período */}
+                {/* Filtro de Período por Data */}
                 <div className="p-5 bg-light-surface-elevated/40 dark:bg-surface-elevated/40 rounded-2xl border border-light-border dark:border-border space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex items-center gap-2 font-bold text-light-text-main dark:text-text-main text-xs">
                       <Filter className="text-primary" size={16} />
-                      Filtro Temporal
+                      Intervalo de Ingestão por Data
                     </div>
-
-                    <div className="flex items-center gap-1 bg-light-surface dark:bg-surface border border-light-border dark:border-border p-1 rounded-xl">
-                      <button
-                        onClick={() => setPeriodMode('BIMESTRE')}
-                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${periodMode === 'BIMESTRE'
-                          ? 'bg-primary text-slate-950 border-primary shadow-sm'
-                          : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
-                          }`}
-                      >
-                        Seleção Bimestral
-                      </button>
-                      <button
-                        onClick={() => setPeriodMode('CUSTOM')}
-                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${periodMode === 'CUSTOM'
-                          ? 'bg-primary text-slate-950 border-primary shadow-sm'
-                          : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
-                          }`}
-                      >
-                        Data Personalizada
-                      </button>
+                    <div className="text-xs text-primary font-medium flex items-center gap-2">
+                      <span className="text-light-text-muted dark:text-text-muted">Período ativo:</span>
+                      <span className="bg-primary/10 border border-primary/30 text-primary px-2.5 py-0.5 rounded-md font-mono font-bold text-xs">
+                        {formatDateBR(customDataInicio)} até {formatDateBR(customDataFim)}
+                      </span>
                     </div>
                   </div>
 
-                  {periodMode === 'BIMESTRE' ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
-                      {[
-                        { id: '1', label: '1º Bimestre', period: 'Jan / Fev' },
-                        { id: '2', label: '2º Bimestre', period: 'Mar / Abr' },
-                        { id: '3', label: '3º Bimestre', period: 'Mai / Jun' },
-                        { id: '4', label: '4º Bimestre', period: 'Jul / Ago' },
-                        { id: '5', label: '5º Bimestre', period: 'Set / Out' },
-                        { id: '6', label: '6º Bimestre', period: 'Nov / Dez' },
-                      ].map(bim => {
-                        const isSelected = selectedBimestre === bim.id;
-                        return (
-                          <button
-                            key={bim.id}
-                            onClick={() => setSelectedBimestre(bim.id)}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer group/btn ${isSelected
-                              ? 'bg-primary/10 border-primary text-primary ring-1 ring-primary/40 shadow-sm'
-                              : 'bg-light-buttonBg dark:bg-buttonBg border-light-border dark:border-border text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover'
-                              }`}
-                          >
-                            <div className={`text-xs font-bold transition-colors ${isSelected ? 'text-primary' : 'text-light-text-main dark:text-text-main group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>{bim.label}</div>
-                            <div className={`text-[10px] opacity-75 mt-0.5 transition-colors ${isSelected ? 'text-primary' : 'group-hover/btn:opacity-100 group-hover/btn:text-light-textHover dark:group-hover/btn:text-textHover'}`}>{bim.period}</div>
-                          </button>
-                        );
-                      })}
+                  <div className="flex flex-wrap items-center gap-4 pt-1">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1">
+                        <Calendar size={14} className="text-primary" /> Início:
+                      </label>
+                      <input
+                        type="date"
+                        value={customDataInicio}
+                        onChange={(e) => setCustomDataInicio(e.target.value)}
+                        className="px-3 py-1.5 bg-light-surface dark:bg-input-bg border border-light-border dark:border-border rounded-xl text-xs font-semibold text-light-text-main dark:text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                      />
                     </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1">
-                          <Calendar size={14} className="text-primary" /> Início:
-                        </label>
-                        <input
-                          type="date"
-                          value={customDataInicio}
-                          onChange={(e) => setCustomDataInicio(e.target.value)}
-                          className="px-3 py-1.5 bg-light-surface dark:bg-input-bg border border-light-border dark:border-border rounded-xl text-xs font-semibold text-light-text-main dark:text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1">
-                          <Calendar size={14} className="text-primary" /> Fim:
-                        </label>
-                        <input
-                          type="date"
-                          value={customDataFim}
-                          onChange={(e) => setCustomDataFim(e.target.value)}
-                          className="px-3 py-1.5 bg-light-surface dark:bg-input-bg border border-light-border dark:border-border rounded-xl text-xs font-semibold text-light-text-main dark:text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                        />
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1">
+                        <Calendar size={14} className="text-primary" /> Fim:
+                      </label>
+                      <input
+                        type="date"
+                        value={customDataFim}
+                        onChange={(e) => setCustomDataFim(e.target.value)}
+                        className="px-3 py-1.5 bg-light-surface dark:bg-input-bg border border-light-border dark:border-border rounded-xl text-xs font-semibold text-light-text-main dark:text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                      />
                     </div>
-                  )}
-
-                  <div className="text-xs text-primary font-medium flex items-center gap-2 pt-2 border-t border-light-border dark:border-border">
-                    <span className="text-light-text-muted dark:text-text-muted">Intervalo:</span>
-                    <span className="bg-primary/10 border border-primary/30 text-primary px-2.5 py-0.5 rounded-md font-mono font-bold text-xs">
-                      {formatDateBR(activeDates.data_inicio)} até {formatDateBR(activeDates.data_fim)}
-                    </span>
                   </div>
                 </div>
 

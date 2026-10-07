@@ -74,6 +74,62 @@ def trigger_sync(
         )
 
 
+@router.post("/sync/campanha/incremental", response_model=Dict[str, Any], tags=["Sincronização"])
+def trigger_sync_campanha_incremental(
+    background_tasks: BackgroundTasks = BackgroundTasks()
+) -> Dict[str, Any]:
+    """
+    Rotina DIÁRIA: Sincronização incremental dos chamados e peças recentes da campanha ativa.
+    Ao final da ingestão, recalcula automaticamente os KPIs e pontuações da campanha.
+    """
+    try:
+        def run_async_incremental():
+            etl = ETLService()
+            etl.sync_campanha_incremental()
+
+        background_tasks.add_task(run_async_incremental)
+        return {
+            "status": "success",
+            "tipo": "DIARIA_INCREMENTAL",
+            "message": "Rotina diária de atualização da campanha iniciada em segundo plano.",
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        }
+    except Exception as e:
+        logger.error(f"Erro ao disparar atualização incremental diária: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao iniciar rotina diária: {str(e)}"
+        )
+
+
+@router.post("/sync/campanha/completa", response_model=Dict[str, Any], tags=["Sincronização"])
+def trigger_sync_campanha_completa(
+    background_tasks: BackgroundTasks = BackgroundTasks()
+) -> Dict[str, Any]:
+    """
+    Rotina SEMANAL: Reingestão completa de todo o período da campanha ativa no Postgres.
+    Sobrescreve e atualiza toda a base da campanha e recalcula todas as pontuações de ponta a ponta.
+    """
+    try:
+        def run_async_completa():
+            etl = ETLService()
+            etl.sync_campanha_completa()
+
+        background_tasks.add_task(run_async_completa)
+        return {
+            "status": "success",
+            "tipo": "SEMANAL_COMPLETA",
+            "message": "Rotina semanal de sincronização completa da campanha iniciada em segundo plano.",
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        }
+    except Exception as e:
+        logger.error(f"Erro ao disparar sincronização completa semanal: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao iniciar rotina semanal: {str(e)}"
+        )
+
+
 @router.get("/chamados", response_model=Dict[str, Any], tags=["Chamados"])
 def get_chamados(
     data_inicio: str = Query(
