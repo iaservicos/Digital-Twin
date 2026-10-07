@@ -311,7 +311,7 @@ export default function ControleAcessoManager() {
             <div className="relative">
               {isStatusDropdownOpen && (
                 <div 
-                  className="fixed inset-0 z-30" 
+                  className="fixed inset-0 z-40" 
                   onClick={() => setIsStatusDropdownOpen(false)} 
                 />
               )}
@@ -319,7 +319,7 @@ export default function ControleAcessoManager() {
               <button
                 type="button"
                 onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                className="flex items-center gap-2.5 glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full px-4 py-2 hover:border-primary/60 focus:outline-none transition-all cursor-pointer shadow-sm min-w-[155px] justify-between select-none"
+                className="flex items-center gap-2.5 bg-light-surface/80 dark:bg-surface-elevated/60 border border-light-border dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full px-4 py-2 hover:border-primary/60 focus:outline-none transition-all cursor-pointer shadow-sm min-w-[165px] justify-between select-none"
               >
                 <div className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${statusOptions.find(o => o.value === statusFiltro)?.dot || 'bg-primary'}`} />
@@ -334,7 +334,7 @@ export default function ControleAcessoManager() {
               </button>
 
               {isStatusDropdownOpen && (
-                <div className="absolute left-0 mt-2 z-40 min-w-[195px] bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-white/15 rounded-2xl p-1.5 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 slide-in-from-top-2 duration-150 space-y-1">
+                <div className="absolute left-0 mt-2 z-50 min-w-[205px] bg-light-surface/95 dark:bg-surface/95 border border-light-borderStrong dark:border-white/15 rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10 animate-in zoom-in-95 slide-in-from-top-2 duration-150 space-y-1">
                   {statusOptions.map(opt => (
                     <button
                       key={opt.value}
@@ -347,7 +347,7 @@ export default function ControleAcessoManager() {
                       className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs transition-all cursor-pointer ${
                         statusFiltro === opt.value
                           ? 'bg-primary/20 text-primary font-bold shadow-xs'
-                          : 'text-light-text-main dark:text-text-main hover:bg-light-surface-elevated dark:hover:bg-white/5 hover:text-primary'
+                          : 'text-light-text-main dark:text-text-main hover:bg-light-surface-elevated dark:hover:bg-white/10 hover:text-primary'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
