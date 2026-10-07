@@ -17,7 +17,9 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Loader2, 
-  AlertTriangle 
+  AlertTriangle,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { BentoCard } from '../ui/BentoCard';
 import { Button } from '../ui/Button';
@@ -63,9 +65,17 @@ export default function ControleAcessoManager() {
   const [data, setData] = useState<AuditoriaResponse | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('TODOS');
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [periodoFiltro, setPeriodoFiltro] = useState<'HOJE' | '7DIAS' | 'MES' | 'TODOS'>('HOJE');
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 15;
+
+  const statusOptions = [
+    { value: 'TODOS', label: 'Todos os Status', dot: 'bg-primary' },
+    { value: 'ONLINE', label: 'Apenas Online', dot: 'bg-emerald-400 animate-pulse' },
+    { value: 'ENCERRADA', label: 'Finalizadas', dot: 'bg-slate-400' },
+    { value: 'EXPIRADA', label: 'Expiradas / Inativas', dot: 'bg-amber-400' },
+  ];
 
   // Carrega os dados de auditoria
   const fetchAuditoria = async () => {
@@ -297,20 +307,59 @@ export default function ControleAcessoManager() {
               </button>
             </div>
 
-            {/* Filtro de Status */}
-            <select
-              value={statusFiltro}
-              onChange={(e) => {
-                setStatusFiltro(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full px-4 py-2 focus:outline-none focus:border-primary/60"
-            >
-              <option value="TODOS">Todos os Status</option>
-              <option value="ONLINE">Apenas Online</option>
-              <option value="ENCERRADA">Finalizadas</option>
-              <option value="EXPIRADA">Expiradas/Inativas</option>
-            </select>
+            {/* Filtro de Status Customizado Bento */}
+            <div className="relative">
+              {isStatusDropdownOpen && (
+                <div 
+                  className="fixed inset-0 z-30" 
+                  onClick={() => setIsStatusDropdownOpen(false)} 
+                />
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                className="flex items-center gap-2.5 glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full px-4 py-2 hover:border-primary/60 focus:outline-none transition-all cursor-pointer shadow-sm min-w-[155px] justify-between select-none"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${statusOptions.find(o => o.value === statusFiltro)?.dot || 'bg-primary'}`} />
+                  <span>{statusOptions.find(o => o.value === statusFiltro)?.label || 'Todos os Status'}</span>
+                </div>
+                <ChevronDown 
+                  size={14} 
+                  className={`text-light-text-muted dark:text-text-muted transition-transform duration-200 ${
+                    isStatusDropdownOpen ? 'rotate-180 text-primary' : ''
+                  }`} 
+                />
+              </button>
+
+              {isStatusDropdownOpen && (
+                <div className="absolute left-0 mt-2 z-40 min-w-[195px] bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-white/15 rounded-2xl p-1.5 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 slide-in-from-top-2 duration-150 space-y-1">
+                  {statusOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setStatusFiltro(opt.value);
+                        setCurrentPage(1);
+                        setIsStatusDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs transition-all cursor-pointer ${
+                        statusFiltro === opt.value
+                          ? 'bg-primary/20 text-primary font-bold shadow-xs'
+                          : 'text-light-text-main dark:text-text-main hover:bg-light-surface-elevated dark:hover:bg-white/5 hover:text-primary'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${opt.dot}`} />
+                        <span>{opt.label}</span>
+                      </div>
+                      {statusFiltro === opt.value && <Check size={14} className="text-primary shrink-0 ml-2" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Busca textual */}
             <div className="relative w-full sm:w-56">

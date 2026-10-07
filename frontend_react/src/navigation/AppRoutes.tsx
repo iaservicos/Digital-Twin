@@ -98,6 +98,7 @@ export default function AppRoutes() {
         <Route path="/ranking" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR', 'SUPERVISOR', 'ADMIN']}><RankingScreen /></ProtectedRoute>} />
         <Route path="/profile" element={<ProfileScreen />} />
         <Route path="/configuracoes" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR', 'SUPERVISOR', 'ADMIN']}><SettingsScreen /></ProtectedRoute>} />
+        <Route path="/settings" element={<Navigate to="/configuracoes" replace />} />
         {/* JSDoc: Administradores, Moderadores e Supervisores têm acesso à Supervisão */}
         <Route path="/supervisao" element={<ProtectedRoute allowedRoles={['MODERADOR', 'ADMINISTRADOR', 'SUPERVISOR', 'ADMIN']}><AdminDashboardScreen /></ProtectedRoute>} />
       </Route>
