@@ -3,9 +3,11 @@ import { useEffect } from 'react';
 import AppRoutes from './navigation/AppRoutes';
 import { useThemeStore } from './store/themeStore';
 import { useAuthStore } from './store/authStore';
+import { useSessionHeartbeat } from './hooks/useSessionHeartbeat';
 import { Toaster } from 'react-hot-toast';
 
 export default function App() {
+  useSessionHeartbeat();
   const { theme, initializeTheme } = useThemeStore();
   const { hydrate } = useAuthStore();
 

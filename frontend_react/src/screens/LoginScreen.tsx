@@ -53,11 +53,11 @@ export default function LoginScreen() {
         senha: passwordInput
       });
 
-      const { accessToken, nome, cargo, localEquipe, role, primeiroAcesso } = response.data;
+      const { accessToken, nome, cargo, localEquipe, role, primeiroAcesso, idSessao } = response.data;
       const decoded: any = jwtDecode(accessToken);
       const nomeFinal = nome || decoded.nome || decoded.sub || userIdInput;
 
-      // Autentica o usuário na store
+      // Autentica o usuário na store com idSessao para controle de acesso
       await setAuth(accessToken, {
         matricula: userIdInput,
         primeiroAcesso: Boolean(primeiroAcesso),
@@ -65,7 +65,7 @@ export default function LoginScreen() {
         cargo: cargo,
         localEquipe: localEquipe,
         role: role
-      });
+      }, idSessao);
 
       setLoading(false);
 

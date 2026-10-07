@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from backend_python.routes import auth, dashboard, campanhas, tecnicos, perfil
+from backend_python.routes import auth, dashboard, campanhas, tecnicos, perfil, auditoria
 
 app = FastAPI(
     title="Brilha+ API (Python Serverless)",
@@ -50,7 +50,7 @@ def healthcheck():
 
 # Inclui os roteadores com prefixo vazio (ex: /auth/login) e prefixo /api/v1 (ex: /api/v1/auth/login)
 # Isso garante que qualquer requisição vinda do frontend (com ou sem /api/v1) funcione perfeitamente!
-for router in [auth.router, dashboard.router, campanhas.router, tecnicos.router, perfil.router]:
+for router in [auth.router, dashboard.router, campanhas.router, tecnicos.router, perfil.router, auditoria.router]:
     app.include_router(router)
     app.include_router(router, prefix="/api/v1")
 

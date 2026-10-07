@@ -22,18 +22,20 @@ import {
   HelpCircle,
   CheckCircle2,
   Layers,
-  BarChart3
+  BarChart3,
+  Activity
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TecnicosManager from '../components/settings/TecnicosManager';
 import CampaignManager from '../components/settings/CampaignManager';
+import ControleAcessoManager from '../components/settings/ControleAcessoManager';
 import { useAuthStore } from '../store/authStore';
 import { useSyncStore, getPythonApiUrl, getPythonHeaders } from '../store/syncStore';
 import { BentoCard } from '../components/ui/BentoCard';
 import { Button } from '../components/ui/Button';
 import { cn } from '../utils/cn';
 
-type TabType = 'UPLOADS' | 'TECNICOS' | 'CAMPANHA';
+type TabType = 'UPLOADS' | 'TECNICOS' | 'CAMPANHA' | 'ACESSO';
 type IngestMode = 'planilhas' | 'databricks';
 type SpreadSheetType = 'BaseDL' | 'Parts' | 'Reincidencia' | 'EncerradosRRC';
 type PeriodMode = 'BIMESTRE' | 'CUSTOM';
@@ -292,8 +294,8 @@ export default function SettingsScreen() {
   useEffect(() => {
     const tab = searchParams.get('tab') as TabType;
     const mode = searchParams.get('mode') as IngestMode;
-    if (tab && ['UPLOADS', 'TECNICOS', 'CAMPANHA'].includes(tab)) {
-      if (!isModerador && (tab === 'UPLOADS' || tab === 'CAMPANHA')) {
+    if (tab && ['UPLOADS', 'TECNICOS', 'CAMPANHA', 'ACESSO'].includes(tab)) {
+      if (!isModerador && (tab === 'UPLOADS' || tab === 'CAMPANHA' || tab === 'ACESSO')) {
         setActiveTab('TECNICOS');
       } else {
         setActiveTab(tab);
@@ -580,6 +582,18 @@ export default function SettingsScreen() {
             >
               <ShieldCheck size={16} />
               Gestão de Campanha
+            </button>
+          )}
+          {isModerador && (
+            <button
+              onClick={() => handleTabChange('ACESSO')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm border transition-all cursor-pointer shrink-0 whitespace-nowrap ${activeTab === 'ACESSO'
+                ? 'bg-primary text-slate-950 border-primary shadow-md shadow-primary/20'
+                : 'border-transparent text-light-text-muted dark:text-text-muted hover:border-light-borderHover dark:hover:border-borderHover hover:bg-light-buttonBgHover dark:hover:bg-buttonBgHover hover:text-light-textHover dark:hover:text-textHover'
+                }`}
+            >
+              <Activity size={16} />
+              Controle de Acessos
             </button>
           )}
         </div>
@@ -941,6 +955,12 @@ export default function SettingsScreen() {
         {activeTab === 'CAMPANHA' && isModerador && (
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
             <CampaignManager />
+          </div>
+        )}
+
+        {activeTab === 'ACESSO' && isModerador && (
+          <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <ControleAcessoManager />
           </div>
         )}
       </div>
