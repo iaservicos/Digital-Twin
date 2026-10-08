@@ -62,6 +62,13 @@ export default function TecnicosManager() {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [selectedTecnico, setSelectedTecnico] = useState<Tecnico | null>(null);
   
+  // Dropdown states (Padrão Bento do sistema)
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+  const [isBaseFilterDropdownOpen, setIsBaseFilterDropdownOpen] = useState(false);
+  const [isStatusColaboradorDropdownOpen, setIsStatusColaboradorDropdownOpen] = useState(false);
+  const [isModalBaseDropdownOpen, setIsModalBaseDropdownOpen] = useState(false);
+  const [isSupervisorEmprestimoDropdownOpen, setIsSupervisorEmprestimoDropdownOpen] = useState(false);
+  
   // Form state
   const [nome, setNome] = useState('');
   const [matricula, setMatricula] = useState('');
@@ -69,7 +76,6 @@ export default function TecnicosManager() {
   const [celularCorporativo, setCelularCorporativo] = useState('');
   const [ctBasesList, setCtBasesList] = useState<string[]>(['']);
   const [role, setRole] = useState('PADRAO');
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [ativo, setAtivo] = useState(true);
   
   // Novos campos cadastrais homologados
@@ -124,6 +130,9 @@ export default function TecnicosManager() {
   const openEditModal = (tecnico?: Tecnico) => {
     setError('');
     setIsRoleDropdownOpen(false);
+    setIsStatusColaboradorDropdownOpen(false);
+    setIsModalBaseDropdownOpen(false);
+    setIsSupervisorEmprestimoDropdownOpen(false);
     if (tecnico) {
       setSelectedTecnico(tecnico);
       setNome(tecnico.nomeCompleto || `${tecnico.primeiroNome || ''} ${tecnico.sobrenome || ''}`.trim());
@@ -478,30 +487,106 @@ export default function TecnicosManager() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          {/* Seletor de Base ATP */}
-          <div className="relative w-full sm:w-60">
-            <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" size={15} />
-            <select
-              value={selectedBaseFilter}
-              onChange={(e) => setSelectedBaseFilter(e.target.value)}
-              className="w-full appearance-none glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-10 pr-8 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner bg-light-surface/90 dark:bg-surface-elevated/90 cursor-pointer"
+          {/* Seletor de Base ATP Customizado Bento */}
+          <div className="relative w-full sm:w-64">
+            {isBaseFilterDropdownOpen && (
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setIsBaseFilterDropdownOpen(false)} 
+              />
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsBaseFilterDropdownOpen(!isBaseFilterDropdownOpen)}
+              className="w-full flex items-center justify-between glass-bento border border-light-border/60 dark:border-white/10 rounded-full pl-3.5 pr-4 py-2.5 text-xs text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer shadow-sm select-none"
             >
-              <option value="all">Todas as Bases ({tecnicos.length})</option>
-              {availableBases.map((b) => {
-                const count = tecnicos.filter(t => t.codigoBaseAtp === b.ctCodigo || t.ctBases?.includes(b.ctCodigo)).length;
-                return (
-                  <option key={b.ctCodigo} value={b.ctCodigo}>
-                    Base {b.ctCodigo} - {b.nomeAtp} ({count})
-                  </option>
-                );
-              })}
-              {tecnicos.some(t => !t.codigoBaseAtp && (!t.ctBases || t.ctBases.length === 0)) && (
-                <option value="none">
-                  Sem Base Vinculada ({tecnicos.filter(t => !t.codigoBaseAtp && (!t.ctBases || t.ctBases.length === 0)).length})
-                </option>
-              )}
-            </select>
-            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" size={14} />
+              <div className="flex items-center gap-2 truncate pr-1">
+                <Building2 size={15} className="text-primary shrink-0" />
+                <span className="truncate font-semibold">
+                  {selectedBaseFilter === 'all' && `Todas as Bases (${tecnicos.length})`}
+                  {selectedBaseFilter === 'none' && `Sem Base Vinculada (${tecnicos.filter(t => !t.codigoBaseAtp && (!t.ctBases || t.ctBases.length === 0)).length})`}
+                  {selectedBaseFilter !== 'all' && selectedBaseFilter !== 'none' && (() => {
+                    const found = availableBases.find(b => b.ctCodigo === selectedBaseFilter);
+                    const count = tecnicos.filter(t => t.codigoBaseAtp === selectedBaseFilter || t.ctBases?.includes(selectedBaseFilter)).length;
+                    return found ? `Base ${found.ctCodigo} - ${found.nomeAtp} (${count})` : `Base: ${selectedBaseFilter} (${count})`;
+                  })()}
+                </span>
+              </div>
+              <ChevronDown 
+                size={14} 
+                className={`text-light-text-muted dark:text-text-muted transition-transform duration-200 shrink-0 ${
+                  isBaseFilterDropdownOpen ? 'rotate-180 text-primary' : ''
+                }`} 
+              />
+            </button>
+
+            {isBaseFilterDropdownOpen && (
+              <div className="absolute left-0 mt-2 z-50 w-full min-w-[280px] max-h-64 overflow-y-auto bg-light-surface/95 dark:bg-surface/95 border border-light-borderStrong dark:border-white/15 rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10 animate-in zoom-in-95 slide-in-from-top-2 duration-150 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedBaseFilter('all');
+                    setIsBaseFilterDropdownOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs transition-all cursor-pointer ${
+                    selectedBaseFilter === 'all'
+                      ? 'bg-primary/20 text-primary font-bold shadow-xs'
+                      : 'text-light-text-main dark:text-text-main hover:bg-light-surface-elevated dark:hover:bg-white/10 hover:text-primary'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Building2 size={14} className="text-primary shrink-0" />
+                    <span>Todas as Bases ({tecnicos.length})</span>
+                  </div>
+                  {selectedBaseFilter === 'all' && <Check size={14} className="text-primary shrink-0" />}
+                </button>
+
+                {availableBases.map((b) => {
+                  const count = tecnicos.filter(t => t.codigoBaseAtp === b.ctCodigo || t.ctBases?.includes(b.ctCodigo)).length;
+                  const isSelected = selectedBaseFilter === b.ctCodigo;
+                  return (
+                    <button
+                      key={b.ctCodigo}
+                      type="button"
+                      onClick={() => {
+                        setSelectedBaseFilter(b.ctCodigo);
+                        setIsBaseFilterDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-primary/20 text-primary font-bold shadow-xs'
+                          : 'text-light-text-main dark:text-text-main hover:bg-light-surface-elevated dark:hover:bg-white/10 hover:text-primary'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate pr-2">
+                        <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold">{b.ctCodigo}</span>
+                        <span className="truncate">{b.nomeAtp} ({count})</span>
+                      </div>
+                      {isSelected && <Check size={14} className="text-primary shrink-0" />}
+                    </button>
+                  );
+                })}
+
+                {tecnicos.some(t => !t.codigoBaseAtp && (!t.ctBases || t.ctBases.length === 0)) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedBaseFilter('none');
+                      setIsBaseFilterDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs transition-all cursor-pointer ${
+                      selectedBaseFilter === 'none'
+                        ? 'bg-primary/20 text-primary font-bold shadow-xs'
+                        : 'text-light-text-main dark:text-text-main hover:bg-light-surface-elevated dark:hover:bg-white/10 hover:text-primary'
+                    }`}
+                  >
+                    <span>Sem Base Vinculada ({tecnicos.filter(t => !t.codigoBaseAtp && (!t.ctBases || t.ctBases.length === 0)).length})</span>
+                    {selectedBaseFilter === 'none' && <Check size={14} className="text-primary shrink-0" />}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="relative w-full sm:w-64">
@@ -752,17 +837,70 @@ export default function TecnicosManager() {
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">
                     Status
                   </label>
-                  <select
-                    value={statusColaborador}
-                    onChange={e => setStatusColaborador(e.target.value)}
-                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2.5 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
-                  >
-                    <option value="Ativo" className="bg-light-surface dark:bg-surface text-emerald-500 font-bold">🟢 Ativo (Em operação regular)</option>
-                    <option value="Férias" className="bg-light-surface dark:bg-surface text-amber-500 font-bold">🟡 Férias (Descanso regulamentar)</option>
-                    <option value="Emprestado" className="bg-light-surface dark:bg-surface text-sky-500 font-bold">🔵 Emprestado (Outra Supervisão/Base)</option>
-                    <option value="Afastado" className="bg-light-surface dark:bg-surface text-orange-500 font-bold">🟠 Afastado (Saúde / Licença / INSS)</option>
-                    <option value="Inativo" className="bg-light-surface dark:bg-surface text-rose-500 font-bold">🔴 Inativo (Desligado da empresa)</option>
-                  </select>
+                  <div className="relative">
+                    {isStatusColaboradorDropdownOpen && (
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setIsStatusColaboradorDropdownOpen(false)} 
+                      />
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setIsStatusColaboradorDropdownOpen(!isStatusColaboradorDropdownOpen)}
+                      className="w-full flex items-center justify-between glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2.5 text-sm text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all cursor-pointer shadow-inner"
+                    >
+                      <div className="flex items-center gap-2">
+                        {statusColaborador === 'Ativo' && <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50" />}
+                        {statusColaborador === 'Férias' && <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs shadow-amber-500/50" />}
+                        {statusColaborador === 'Emprestado' && <span className="w-2 h-2 rounded-full bg-sky-500 shadow-xs shadow-sky-500/50" />}
+                        {statusColaborador === 'Afastado' && <span className="w-2 h-2 rounded-full bg-orange-500 shadow-xs shadow-orange-500/50" />}
+                        {statusColaborador === 'Inativo' && <span className="w-2 h-2 rounded-full bg-rose-500 shadow-xs shadow-rose-500/50" />}
+                        <span className="font-semibold">{statusColaborador}</span>
+                      </div>
+                      <ChevronDown 
+                        size={16} 
+                        className={`text-light-text-muted dark:text-text-muted transition-transform duration-200 shrink-0 ${
+                          isStatusColaboradorDropdownOpen ? 'rotate-180 text-primary' : ''
+                        }`} 
+                      />
+                    </button>
+
+                    {isStatusColaboradorDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-light-surface/95 dark:bg-surface/95 border border-light-borderStrong dark:border-white/15 rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10 animate-in zoom-in-95 slide-in-from-top-2 duration-150 space-y-1">
+                        {[
+                          { value: 'Ativo', label: 'Ativo', desc: 'Em operação regular', dot: 'bg-emerald-500' },
+                          { value: 'Férias', label: 'Férias', desc: 'Descanso regulamentar', dot: 'bg-amber-500' },
+                          { value: 'Emprestado', label: 'Emprestado', desc: 'Outra Supervisão/Base', dot: 'bg-sky-500' },
+                          { value: 'Afastado', label: 'Afastado', desc: 'Saúde / Licença / INSS', dot: 'bg-orange-500' },
+                          { value: 'Inativo', label: 'Inativo', desc: 'Desligado da empresa', dot: 'bg-rose-500' },
+                        ].map(st => (
+                          <button
+                            key={st.value}
+                            type="button"
+                            onClick={() => {
+                              setStatusColaborador(st.value);
+                              setIsStatusColaboradorDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                              statusColaborador === st.value
+                                ? 'bg-primary/20 text-primary font-bold shadow-xs'
+                                : 'text-light-text-main dark:text-text-main hover:bg-light-surface-elevated dark:hover:bg-white/10 hover:text-primary'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
+                              <div>
+                                <p className="text-xs font-bold leading-snug">{st.label}</p>
+                                <p className="text-[10px] text-light-text-muted dark:text-text-muted font-normal mt-0.5">{st.desc}</p>
+                              </div>
+                            </div>
+                            {statusColaborador === st.value && <Check size={16} className="text-primary shrink-0 ml-2" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -814,24 +952,74 @@ export default function TecnicosManager() {
                     )}
                   </label>
                   {!isModerador ? (
-                    <select 
-                      required
-                      value={codigoBaseAtp}
-                      disabled={Boolean(selectedTecnico)}
-                      onChange={e => setCodigoBaseAtp(e.target.value)}
-                      className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2 text-sm font-mono text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 transition-all disabled:opacity-75 disabled:cursor-not-allowed shadow-inner"
-                    >
-                      <option value="">Selecione sua base ATP...</option>
-                      {basesList.map(b => (
-                        <option key={b.ctCodigo} value={b.ctCodigo}>
-                          {b.ctCodigo} - {b.nomeAtp} {b.cidade ? `(${b.cidade}/${b.uf || ''})` : ''}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      {isModalBaseDropdownOpen && !selectedTecnico && (
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setIsModalBaseDropdownOpen(false)} 
+                        />
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={Boolean(selectedTecnico)}
+                        onClick={() => setIsModalBaseDropdownOpen(!isModalBaseDropdownOpen)}
+                        className="w-full flex items-center justify-between glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2.5 text-sm font-mono text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all disabled:opacity-75 disabled:cursor-not-allowed shadow-inner cursor-pointer"
+                      >
+                        <span className="truncate">
+                          {codigoBaseAtp ? (
+                            (() => {
+                              const b = basesList.find(x => x.ctCodigo === codigoBaseAtp);
+                              return b 
+                                ? `${b.ctCodigo} - ${b.nomeAtp} ${b.cidade ? `(${b.cidade}/${b.uf || ''})` : ''}`
+                                : codigoBaseAtp;
+                            })()
+                          ) : (
+                            <span className="text-light-text-muted dark:text-text-muted/60 font-sans text-xs">Selecione sua base ATP...</span>
+                          )}
+                        </span>
+                        {!selectedTecnico && (
+                          <ChevronDown 
+                            size={16} 
+                            className={`text-light-text-muted dark:text-text-muted transition-transform duration-200 shrink-0 ml-2 ${
+                              isModalBaseDropdownOpen ? 'rotate-180 text-primary' : ''
+                            }`} 
+                          />
+                        )}
+                      </button>
+
+                      {isModalBaseDropdownOpen && !selectedTecnico && (
+                        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-56 overflow-y-auto bg-light-surface/95 dark:bg-surface/95 border border-light-borderStrong dark:border-white/15 rounded-2xl p-1.5 shadow-2xl backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10 animate-in zoom-in-95 slide-in-from-top-2 duration-150 space-y-1">
+                          {basesList.map(b => (
+                            <button
+                              key={b.ctCodigo}
+                              type="button"
+                              onClick={() => {
+                                setCodigoBaseAtp(b.ctCodigo);
+                                setIsModalBaseDropdownOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs transition-all cursor-pointer ${
+                                codigoBaseAtp === b.ctCodigo
+                                  ? 'bg-primary/20 text-primary font-bold shadow-xs'
+                                  : 'text-light-text-main dark:text-text-main hover:bg-light-surface-elevated dark:hover:bg-white/10 hover:text-primary'
+                              }`}
+                            >
+                              <div>
+                                <p className="font-mono font-bold leading-snug">{b.ctCodigo} - {b.nomeAtp}</p>
+                                {b.cidade && (
+                                  <p className="text-[10px] text-light-text-muted dark:text-text-muted font-normal mt-0.5">{b.cidade}/{b.uf || ''}</p>
+                                )}
+                              </div>
+                              {codigoBaseAtp === b.ctCodigo && <Check size={16} className="text-primary shrink-0 ml-2" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <input 
                       type="text" 
-                      className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2 text-sm font-mono text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 transition-all shadow-inner"
+                      className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2.5 text-sm font-mono text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
                       value={codigoBaseAtp}
                       onChange={e => setCodigoBaseAtp(e.target.value)}
                       placeholder="Ex: 2791040"
@@ -854,18 +1042,68 @@ export default function TecnicosManager() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-[11px] font-semibold text-sky-600 dark:text-sky-300">Supervisor de Destino</label>
-                      <select
-                        value={idSupervisorEmprestimo}
-                        onChange={e => setIdSupervisorEmprestimo(e.target.value ? Number(e.target.value) : '')}
-                        className="w-full bg-light-surface dark:bg-surface border border-sky-500/30 rounded-xl px-3 py-2 text-xs text-light-text-main dark:text-text-main focus:outline-none focus:border-sky-500"
-                      >
-                        <option value="">Selecione o supervisor...</option>
-                        {supervisores.map(s => (
-                          <option key={s.idSupervisor} value={s.idSupervisor}>
-                            {s.nomeCompleto}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        {isSupervisorEmprestimoDropdownOpen && (
+                          <div 
+                            className="fixed inset-0 z-40" 
+                            onClick={() => setIsSupervisorEmprestimoDropdownOpen(false)} 
+                          />
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setIsSupervisorEmprestimoDropdownOpen(!isSupervisorEmprestimoDropdownOpen)}
+                          className="w-full flex items-center justify-between bg-light-surface dark:bg-surface border border-sky-500/30 rounded-xl px-3.5 py-2 text-xs text-light-text-main dark:text-text-main focus:outline-none focus:border-sky-500 cursor-pointer"
+                        >
+                          <span className="truncate">
+                            {idSupervisorEmprestimo 
+                              ? (supervisores.find(s => s.idSupervisor === idSupervisorEmprestimo)?.nomeCompleto || 'Supervisor selecionado')
+                              : 'Selecione o supervisor...'}
+                          </span>
+                          <ChevronDown 
+                            size={14} 
+                            className={`text-sky-500 transition-transform duration-200 shrink-0 ml-1 ${
+                              isSupervisorEmprestimoDropdownOpen ? 'rotate-180' : ''
+                            }`} 
+                          />
+                        </button>
+
+                        {isSupervisorEmprestimoDropdownOpen && (
+                          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-48 overflow-y-auto bg-light-surface/95 dark:bg-surface/95 border border-sky-500/40 rounded-xl p-1 shadow-2xl backdrop-blur-2xl space-y-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIdSupervisorEmprestimo('');
+                                setIsSupervisorEmprestimoDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 rounded-lg text-xs text-light-text-muted dark:text-text-muted hover:bg-sky-500/10 cursor-pointer"
+                            >
+                              Nenhum (Remover empréstimo)
+                            </button>
+                            {supervisores.map(s => {
+                              const isSelected = idSupervisorEmprestimo === s.idSupervisor;
+                              return (
+                                <button
+                                  key={s.idSupervisor}
+                                  type="button"
+                                  onClick={() => {
+                                    setIdSupervisorEmprestimo(s.idSupervisor);
+                                    setIsSupervisorEmprestimoDropdownOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs transition-all cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-sky-500/20 text-sky-500 font-bold'
+                                      : 'text-light-text-main dark:text-text-main hover:bg-sky-500/10'
+                                  }`}
+                                >
+                                  <span className="truncate">{s.nomeCompleto}</span>
+                                  {isSelected && <Check size={14} className="text-sky-500 shrink-0 ml-1" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-1">
