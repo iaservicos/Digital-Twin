@@ -48,9 +48,8 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
   return (
     <BentoCard
       hoverable
-      onClick={onOpenReincidentesModal}
       className={`min-h-[19.5rem] sm:min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
-      title="Clique para ver a análise detalhada de reincidências (Máx: 16,0 pts)"
+      title="Análise de reincidências técnicas (Meta: ≤ 7.0% • Máx: 16,0 pts)"
     >
       <div className="flex items-center justify-between gap-[0.375rem] flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-[0.375rem]">
@@ -115,14 +114,14 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
           </p>
           {reincidenciaQtd !== undefined && (
             <span className="text-[0.6875rem] sm:text-[0.75rem] text-light-text-muted dark:text-text-muted font-semibold">
-              ({reincidenciaQtd} retornos)
+              ({reincidenciaQtd} {reincidenciaQtd === 1 ? 'reincidência' : 'reincidências'})
             </span>
           )}
         </div>
         <p className="text-[0.625rem] sm:text-[0.6875rem] text-light-text-muted dark:text-text-muted font-medium mt-[0.25rem] leading-snug">
           {reincidenciaMode === 'equipe'
-            ? 'Retornos da Equipe em 30 Dias (Meta: ≤ 7.0% • Gatilho)'
-            : 'Taxa de Retorno Individual (Meta: ≤ 7.0%)'}
+            ? 'Reincidência da Equipe (Meta: ≤ 7.0% • Gatilho ≤ 10.0%)'
+            : 'Taxa de Reincidência Individual (Meta: ≤ 7.0%)'}
         </p>
       </div>
 
@@ -141,7 +140,7 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
             className={`w-[0.5rem] h-[0.5rem] rounded-full shrink-0 ${
               pontosAtivos > 0
                 ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]'
-                : 'bg-amber-400 shadow-[0_0_6px_#fbbf24]'
+                : 'bg-rose-400 shadow-[0_0_6px_#f43f5e]'
             }`}
           ></span>
           <span
@@ -157,7 +156,9 @@ export const ReincidenciasCard: React.FC<ReincidenciasCardProps> = ({
               ? 'Meta Atingida (≤ 7,0%)'
               : percentualReincidencia <= 10.0
               ? 'Faixa Tolerada (≤ 10,0%)'
-              : 'Acima do Limite (> 10,0%)'}
+              : reincidenciaMode === 'equipe'
+              ? 'Gatilho Violado (> 10,0%)'
+              : 'Acima da Tolerância (> 10,0%)'}
           </span>
         </div>
         <span

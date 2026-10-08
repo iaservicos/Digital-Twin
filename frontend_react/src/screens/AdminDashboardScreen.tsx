@@ -873,10 +873,12 @@ export default function AdminDashboardScreen() {
       <ModalChamadosReincidentes
         isOpen={isReincidentesModalOpen}
         onClose={() => setIsReincidentesModalOpen(false)}
-        tecnicoId={primeiroTecnicoId}
-        tecnicoNome={escopoNomeOperacao}
+        tecnicoId={selectedTecnicoIdentifier !== 'all' ? Number(selectedTecnicoIdentifier) : 0}
+        tecnicoNome={selectedTecnicoIdentifier !== 'all' ? (selectedTecnicoObj?.nomeCompleto || 'Técnico') : escopoNomeOperacao}
         selectedMonth={selectedMonth}
-        percentualReincidencia={teamSummary?.reincidenciaMedia || 0}
+        percentualReincidencia={selectedTecnicoIdentifier !== 'all' ? (displayMetricas?.percentualReincidencia || 0) : (teamSummary?.reincidenciaMedia || 0)}
+        equipe={selectedEquipe !== 'all' ? selectedEquipe : undefined}
+        idSupervisor={supervisorEfetivoId !== 'all' ? Number(supervisorEfetivoId) : undefined}
       />
 
       <ModalChamadosPecas

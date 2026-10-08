@@ -95,6 +95,8 @@ export const TecnicoMetricsUI: React.FC<TecnicoMetricsUIProps> = ({
         selectedMonth={selectedMonth}
         percentualReincidencia={percentualReincidencia}
         pontosReincidencia={displayMetricas.pontosReincidencia || 0}
+        equipe={displayMetricas.localEquipe}
+        idSupervisor={displayMetricas.idSupervisor}
       />
 
       {/* MODAL DE CHAMADOS PERDIDOS DE SLA E CAUSAS */}

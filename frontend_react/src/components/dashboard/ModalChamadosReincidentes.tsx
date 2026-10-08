@@ -25,6 +25,8 @@ export interface ChamadoReincidenteDTO {
   ftRrc?: string;
   diasEntreAtendimentos?: number;
   horasEntreAtendimentos?: number;
+  diasEntre?: number;
+  horasEntre?: number;
   tecnicoNomeAnterior?: string;
   tecnicoNomeRrc?: string;
   ctAnterior?: string;
@@ -57,14 +59,25 @@ interface ModalChamadosReincidentesProps {
   taxaReincidencia?: number;
   percentualReincidencia?: number;
   pontosReincidencia?: number;
+  idSupervisor?: number;
+  equipe?: string;
 }
 
 const formatCidadeBase = (cidade?: string, ct?: string): string => {
   if (cidade && cidade.trim() !== '' && cidade.trim() !== '-') {
-    return cidade.trim();
+    const cidTrim = cidade.trim();
+    // Se cidade já contiver texto legível com letras (ex: 'Curitiba', 'POSITEC GLOBAL SOLUTIONS LTDA')
+    if (/[a-zA-Z]/.test(cidTrim)) {
+      return cidTrim;
+    }
+    // Se for puramente código numérico (ex: 89005090), formata explicitamente como CT
+    return `CT ${cidTrim}`;
   }
   if (!ct || ct.trim() === '' || ct.trim() === '-') return 'Base Geral';
   const clean = ct.replace(/^CT\s*-\s*/i, '').trim();
+  if (/^\d+$/.test(clean)) {
+    return `CT ${clean}`;
+  }
   if (clean.length <= 4) return `Base ${clean.toUpperCase()}`;
   return clean;
 };
@@ -152,7 +165,8 @@ const formatMesAno = (mesAnoStr?: string) => {
   if (s.includes('jul') || s.includes('2026-07') || s === '7') return 'Julho';
   if (s.includes('ago') || s.includes('2026-08') || s === '8') return 'Agosto';
   if (s.includes('set') || s.includes('2026-09') || s === '9') return 'Setembro';
-  if (s.includes('campanha') || s.includes('media') || s.includes('média')) return 'Campanha';
+  if (s.includes('out') || s.includes('2026-10') || s === '10') return 'Outubro';
+  if (s.includes('campanha') || s.includes('media') || s.includes('média')) return 'Campanha Ativa';
   return mesAnoStr.charAt(0).toUpperCase() + mesAnoStr.slice(1);
 };
 
@@ -165,7 +179,9 @@ export default function ModalChamadosReincidentes({
   selectedMonth,
   taxaReincidencia,
   percentualReincidencia,
-  pontosReincidencia = 0
+  pontosReincidencia = 0,
+  idSupervisor,
+  equipe
 }: ModalChamadosReincidentesProps) {
   const user = useAuthStore(state => state.user);
   const role = (user?.role || '').toUpperCase();
@@ -179,34 +195,44 @@ export default function ModalChamadosReincidentes({
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroPeca, setFiltroPeca] = useState<'TODOS' | 'COM_PECA' | 'SEM_PECA'>('TODOS');
 
-  const targetId = tecnicoId || (user as any)?.idTecnico || (user as any)?.id || (user as any)?.tecnicoId;
+  const targetId = tecnicoId !== undefined && tecnicoId !== null
+    ? Number(tecnicoId)
+    : ((user as any)?.idTecnico || (user as any)?.id || (user as any)?.tecnicoId || 0);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    let isMounted = true;
     const fetchReincidentes = async () => {
       try {
         setLoading(true);
-        const params: Record<string, string> = {};
+        const params: Record<string, string | number> = {};
         if (mesFiltroAtivo) params.mesAno = mesFiltroAtivo;
+        if (equipe && equipe !== 'all' && equipe !== 'TODAS') params.equipe = equipe;
+        if (idSupervisor && Number(idSupervisor) > 0) params.idSupervisor = Number(idSupervisor);
 
-        const idParaBuscar = targetId || 0;
-        const res = await api.get(`/dashboard/tecnico/${idParaBuscar}/reincidentes`, { params });
-        if (Array.isArray(res.data)) {
-          setReincidentes(res.data);
-        } else {
-          setReincidentes([]);
+        const res = await api.get(`/dashboard/tecnico/${targetId}/reincidentes`, { params });
+        if (isMounted) {
+          if (Array.isArray(res.data)) {
+            setReincidentes(res.data);
+          } else {
+            setReincidentes([]);
+          }
         }
       } catch (err) {
         console.error('Erro ao buscar chamados reincidentes:', err);
-        setReincidentes([]);
+        if (isMounted) setReincidentes([]);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchReincidentes();
-  }, [isOpen, targetId, mesFiltroAtivo]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, targetId, mesFiltroAtivo, equipe, idSupervisor]);
 
   // Filtros de busca e tipo de peça
   const filteredList = useMemo(() => {
@@ -256,7 +282,7 @@ export default function ModalChamadosReincidentes({
   // Tempo médio de retorno até reabertura
   const tempoMedioDias = useMemo(() => {
     if (reincidentes.length === 0) return null;
-    const soma = reincidentes.reduce((acc, r) => acc + (r.diasEntreAtendimentos || 0), 0);
+    const soma = reincidentes.reduce((acc, r) => acc + (r.diasEntreAtendimentos ?? r.diasEntre ?? 0), 0);
     return Math.round(soma / reincidentes.length);
   }, [reincidentes]);
 
@@ -420,8 +446,8 @@ export default function ModalChamadosReincidentes({
           ) : (
             filteredList.map((item, idx) => {
               const badgeTempo = formatTempoReincidencia(
-                item.horasEntreAtendimentos,
-                item.diasEntreAtendimentos,
+                item.horasEntreAtendimentos ?? item.horasEntre,
+                item.diasEntreAtendimentos ?? item.diasEntre,
                 item.ftAnterior,
                 item.ftRrc
               );
@@ -475,9 +501,14 @@ export default function ModalChamadosReincidentes({
                             Primeiro Atendimento: {formatDateTime(item.ftAnterior)}
                           </span>
                           {item.ctAnterior && (
-                            <span className="font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1 text-[10px]">
-                              <Building2 size={11} className="text-light-text-muted dark:text-text-muted" />
-                              {formatCidadeBase(item.ctAnterior, item.ctAnterior)}
+                            <span 
+                              className="font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1 text-[10px]"
+                              title={`Centro de Trabalho / Base: ${item.ctAnterior}`}
+                            >
+                              <Building2 size={11} className="text-light-text-muted dark:text-text-muted shrink-0" />
+                              <span className="truncate max-w-[130px] sm:max-w-[200px]">
+                                {formatCidadeBase(item.ctAnterior, item.ctAnterior)}
+                              </span>
                             </span>
                           )}
                         </div>
@@ -538,22 +569,27 @@ export default function ModalChamadosReincidentes({
                       </div>
 
                       {/* PEÇA APLICADA (1º ATENDIMENTO) */}
-                      <div className="flex items-start gap-1.5 text-[11px] pt-2.5 border-t border-light-borderStrong/40 dark:border-border/40">
-                        <Cpu size={14} className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-primary mt-0.5 shrink-0" : "text-light-text-muted dark:text-text-muted mt-0.5 shrink-0"} />
-                        <div className="flex flex-col gap-1 w-full">
-                          <span className="text-light-text-muted dark:text-text-muted text-[10px] uppercase font-bold">Peça Aplicada (1º Atendimento):</span>
-                          {item.subgrupoAnterior && (
-                            <div className="flex items-center gap-1">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-primary/10 text-primary border border-primary/20">
-                                Subgrupo: {item.subgrupoAnterior}
-                              </span>
+                      {(() => {
+                        const temPecaAnt = Boolean(item.subgrupoAnterior || item.pecaNomeAnterior || item.aplicadoPecaAnterior === 'Sim');
+                        return (
+                          <div className="flex items-start gap-1.5 text-[11px] pt-2.5 border-t border-light-borderStrong/40 dark:border-border/40">
+                            <Cpu size={14} className={temPecaAnt ? "text-primary mt-0.5 shrink-0" : "text-light-text-muted dark:text-text-muted mt-0.5 shrink-0"} />
+                            <div className="flex flex-col gap-1 w-full">
+                              <span className="text-light-text-muted dark:text-text-muted text-[10px] uppercase font-bold">Peça Aplicada (1º Atendimento):</span>
+                              {item.subgrupoAnterior && (
+                                <div className="flex items-center gap-1">
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-primary/10 text-primary border border-primary/20">
+                                    Subgrupo: {item.subgrupoAnterior}
+                                  </span>
+                                </div>
+                              )}
+                              <strong className={temPecaAnt ? "text-light-text-main dark:text-text-main font-semibold leading-tight text-xs" : "text-light-text-muted dark:text-text-muted font-normal text-xs"}>
+                                {item.pecaNomeAnterior || (item.subgrupoAnterior ? item.subgrupoAnterior : (item.aplicadoPecaAnterior === 'Sim' ? 'Sim (Peça Aplicada)' : 'Nenhuma peça aplicada'))}
+                              </strong>
                             </div>
-                          )}
-                          <strong className={item.pecaNomeAnterior && item.pecaNomeAnterior !== 'Nenhuma peça aplicada' ? "text-primary font-medium leading-tight" : "text-light-text-muted dark:text-text-muted font-normal"}>
-                            {item.pecaNomeAnterior || (item.aplicadoPecaAnterior === 'Sim' ? 'Sim (Peça Aplicada)' : 'Nenhuma peça aplicada')}
-                          </strong>
-                        </div>
-                      </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* COLUNA 2: REINCIDÊNCIA */}
@@ -565,9 +601,14 @@ export default function ModalChamadosReincidentes({
                             Reincidência: {formatDateTime(item.ftRrc)}
                           </span>
                           {item.ctRrc && (
-                            <span className="font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1 text-[10px]">
-                              <Building2 size={11} className="text-light-text-muted dark:text-text-muted" />
-                              {formatCidadeBase(item.ctRrc, item.ctRrc)}
+                            <span 
+                              className="font-semibold text-light-text-muted dark:text-text-muted flex items-center gap-1 text-[10px]"
+                              title={`Centro de Trabalho / Base: ${item.ctRrc}`}
+                            >
+                              <Building2 size={11} className="text-light-text-muted dark:text-text-muted shrink-0" />
+                              <span className="truncate max-w-[130px] sm:max-w-[200px]">
+                                {formatCidadeBase(item.ctRrc, item.ctRrc)}
+                              </span>
                             </span>
                           )}
                         </div>
@@ -630,22 +671,27 @@ export default function ModalChamadosReincidentes({
                       </div>
 
                       {/* PEÇA APLICADA NA REINCIDÊNCIA */}
-                      <div className="flex items-start gap-1.5 text-[11px] pt-2.5 border-t border-light-borderStrong/40 dark:border-border/40">
-                        <Cpu size={14} className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-primary mt-0.5 shrink-0" : "text-light-text-muted dark:text-text-muted mt-0.5 shrink-0"} />
-                        <div className="flex flex-col gap-1 w-full">
-                          <span className="text-light-text-muted dark:text-text-muted text-[10px] uppercase font-bold">Peça Aplicada (Reincidência):</span>
-                          {item.subgrupoRrc && (
-                            <div className="flex items-center gap-1">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-primary/10 text-primary border border-primary/20">
-                                Subgrupo: {item.subgrupoRrc}
-                              </span>
+                      {(() => {
+                        const temPecaRrc = Boolean(item.subgrupoRrc || item.pecaNomeRrc || item.aplicadoPecaRrc === 'Sim');
+                        return (
+                          <div className="flex items-start gap-1.5 text-[11px] pt-2.5 border-t border-light-borderStrong/40 dark:border-border/40">
+                            <Cpu size={14} className={temPecaRrc ? "text-primary mt-0.5 shrink-0" : "text-light-text-muted dark:text-text-muted mt-0.5 shrink-0"} />
+                            <div className="flex flex-col gap-1 w-full">
+                              <span className="text-light-text-muted dark:text-text-muted text-[10px] uppercase font-bold">Peça Aplicada (Reincidência):</span>
+                              {item.subgrupoRrc && (
+                                <div className="flex items-center gap-1">
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-primary/10 text-primary border border-primary/20">
+                                    Subgrupo: {item.subgrupoRrc}
+                                  </span>
+                                </div>
+                              )}
+                              <strong className={temPecaRrc ? "text-light-text-main dark:text-text-main font-semibold leading-tight text-xs" : "text-light-text-muted dark:text-text-muted font-normal text-xs"}>
+                                {item.pecaNomeRrc || (item.subgrupoRrc ? item.subgrupoRrc : (item.aplicadoPecaRrc === 'Sim' ? 'Sim (Peça Aplicada)' : 'Nenhuma peça aplicada'))}
+                              </strong>
                             </div>
-                          )}
-                          <strong className={item.pecaNomeRrc && item.pecaNomeRrc !== 'Nenhuma peça aplicada' ? "text-primary font-medium leading-tight" : "text-light-text-muted dark:text-text-muted font-normal"}>
-                            {item.pecaNomeRrc || (item.aplicadoPecaRrc === 'Sim' ? 'Sim (Peça Aplicada)' : 'Nenhuma peça aplicada')}
-                          </strong>
-                        </div>
-                      </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* BOX DE ANÁLISE DE REINCIDÊNCIA */}

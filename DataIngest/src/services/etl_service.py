@@ -453,6 +453,30 @@ class ETLService:
                 "seconds": res_pecas["elapsed_seconds"]
             }
 
+            # Normalização de subgrupo na tabela pecas
+            try:
+                logger.info("Atualizando classificação de subgrupos na tabela pecas...")
+                self.postgres.execute_query("""
+                    UPDATE public.pecas 
+                    SET subgrupo = CASE 
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(PLM|PLACA M|MOTHERBOARD)' THEN 'Placa Mãe'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(MEMORIA|MEMÓRIA|\\bDDR\\b|\\bRAM\\b)' THEN 'Memória'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '\\bSSD\\b' THEN 'SSD'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(HARD DISK|\\bHD\\b|\\bHDD\\b)' THEN 'HD'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(LCD|TELA|DISPLAY|PAINEL)' THEN 'Tela / LCD'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'BATER' THEN 'Bateria'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'TECL' THEN 'Teclado'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(TAMPA|TRASEIR|FRONT|DECO|FRAME|CARC)' THEN 'Gabinete / Carcaça'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(FONTE|CARREG|ADAPTADOR AC)' THEN 'Fonte / Carregador'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'IMPR' THEN 'Impressora Térmica'
+                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'PROCESSADOR' THEN 'Processador'
+                        ELSE COALESCE(grupo_mercadoria_desc, 'Outros')
+                    END
+                    WHERE subgrupo IS NULL OR subgrupo = '';
+                """)
+            except Exception as e_sub:
+                logger.warning(f"Erro ao normalizar subgrupo de pecas: {e_sub}")
+
             # -----------------------------------------------------------------
             # Etapa 4: Carga Incremental Automática em tb_chamado e tb_encerrados_rrc
             # -----------------------------------------------------------------

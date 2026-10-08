@@ -109,10 +109,10 @@ export const DashboardBentoDesktop: React.FC<DashboardBentoDesktopProps> = ({
         const fim = format(parseISO(campanhaInfo.dataFim), 'dd/MM/yyyy');
         return `${ini} a ${fim}`;
       } catch {
-        return '01/09 a 30/09/2026';
+        return '01/10 a 31/10/2026';
       }
     }
-    return '01/09 a 30/09/2026';
+    return '01/10 a 31/10/2026';
   }, [campanhaInfo]);
 
   const targetTecnicoId =

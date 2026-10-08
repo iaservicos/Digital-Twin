@@ -4,6 +4,7 @@ import { cn } from '../../utils/cn';
 export interface BentoCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   hoverable?: boolean;
+  clickable?: boolean;
   className?: string;
 }
 
@@ -21,9 +22,12 @@ export interface BentoCardProps extends React.HTMLAttributes<HTMLDivElement> {
 export const BentoCard: React.FC<BentoCardProps> = ({
   children,
   hoverable = true,
+  clickable,
   className,
   ...props
 }) => {
+  const isClickable = clickable !== undefined ? clickable : Boolean(props.onClick);
+
   return (
     <div
       className={cn(
@@ -37,8 +41,10 @@ export const BentoCard: React.FC<BentoCardProps> = ({
         "relative overflow-hidden group",
         // Transição suave
         "transition-all duration-300 ease-in-out",
-        // Hover interativo com brilho na cor primária oficial
-        hoverable && "cursor-pointer hover:border-primary/50 dark:hover:border-primary/60 hover:shadow-xl hover:shadow-primary/10",
+        // Hover interativo com brilho na cor primária oficial preservado
+        hoverable && "hover:border-primary/50 dark:hover:border-primary/60 hover:shadow-xl hover:shadow-primary/10",
+        // Cursor clicável apenas se houver ação de clique direta no container
+        isClickable ? "cursor-pointer" : "cursor-default",
         className
       )}
       {...props}

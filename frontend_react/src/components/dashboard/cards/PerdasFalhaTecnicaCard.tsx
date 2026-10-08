@@ -34,7 +34,6 @@ export const PerdasFalhaTecnicaCard: React.FC<PerdasFalhaTecnicaCardProps> = ({
   return (
     <BentoCard
       hoverable
-      onClick={onOpenPerdasModal}
       className={`min-h-[19.5rem] sm:min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between hover:border-amber-500/50 hover:shadow-amber-500/10 ${className}`}
       title="Chamados com erro de gestão ou transferência que geraram perda de SLA (Máx: 21,0 pts)"
     >

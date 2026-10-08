@@ -35,7 +35,7 @@ const MESES_NOMES = [
 
 export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
   campanhaInfo,
-  campanhaPeriodoFormatado = '01/09 a 30/09',
+  campanhaPeriodoFormatado = '01/10 a 31/10',
   selectedMonth,
   onSelectMonth,
   historicoMeses = [],
@@ -94,7 +94,11 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
       }
     }
 
-    return [{ mes: 'Setembro', mesReferencia: '2026-09-01' }];
+    const defaultMes = campanhaInfo?.dataInicio
+      ? MESES_NOMES[parseInt(campanhaInfo.dataInicio.split('-')[1], 10) - 1] || 'Outubro'
+      : 'Outubro';
+    const defaultRef = campanhaInfo?.dataInicio?.substring(0, 7) ? `${campanhaInfo.dataInicio.substring(0, 7)}-01` : '2026-10-01';
+    return [{ mes: defaultMes, mesReferencia: defaultRef }];
   }, [historicoMeses, campanhaInfo]);
 
   // Se a campanha tiver apenas 1 mês, sincroniza automaticamente a seleção para esse único mês
@@ -152,10 +156,10 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
               // Quando for apenas um mês: exibe apenas o nome do mês sem o botão Total
               <button
                 type="button"
-                onClick={() => onSelectMonth(mesesCampanha[0]?.mes || 'Setembro')}
+                onClick={() => onSelectMonth(mesesCampanha[0]?.mes || 'Outubro')}
                 className="px-[0.625rem] py-[0.25rem] rounded-[0.5rem] bg-primary text-slate-950 font-black shadow-xs cursor-pointer"
               >
-                {mesesCampanha[0]?.mes || 'Setembro'}
+                {mesesCampanha[0]?.mes || 'Outubro'}
               </button>
             ) : (
               // Quando forem vários meses: exibe o botão Total e os meses da campanha
@@ -220,9 +224,9 @@ export const CampanhaAtivaCard: React.FC<CampanhaAtivaCardProps> = ({
           </div>
           <p
             className="text-[0.75rem] sm:text-[0.8125rem] font-black text-light-text-main dark:text-text-main leading-tight line-clamp-2 break-normal"
-            title={campanhaInfo?.nomeCampanha || 'Campanha Setembro 2026'}
+            title={campanhaInfo?.nomeCampanha || 'Campanha Outubro 2026'}
           >
-            {campanhaInfo?.nomeCampanha || 'Campanha Setembro 2026'}
+            {campanhaInfo?.nomeCampanha || 'Campanha Outubro 2026'}
           </p>
           <span
             className="text-[0.625rem] sm:text-[0.6875rem] text-light-text-muted dark:text-text-muted font-medium block truncate mt-[0.125rem]"

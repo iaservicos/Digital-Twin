@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 try:
@@ -15,6 +15,91 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Técnicos & Equipes"])
+
+def obter_contexto_supervisor(cur, current_user: Dict[str, Any]) -> Tuple[bool, Optional[int], List[str]]:
+    """
+    Retorna (is_supervisor, id_supervisor, lista_ct_codigos).
+    Se perfil for MODERADOR, retorna (False, None, []).
+    Para qualquer outro usuário, retorna is_supervisor = True com seu id_supervisor e bases autorizadas.
+    """
+    role = (current_user.get("role") or "").upper()
+    if role == "MODERADOR":
+        return False, None, []
+
+    mat = (current_user.get("sub") or "").strip().upper()
+    sup = None
+
+    # 1. Busca direta por matrícula em tb_supervisor
+    if mat:
+        cur.execute("SELECT id_supervisor, matricula, nome_completo FROM tb_supervisor WHERE UPPER(matricula) = %s AND ativo = true LIMIT 1;", (mat,))
+        sup = cur.fetchone()
+
+    # 2. Busca por ID em tb_supervisor
+    if not sup and current_user.get("id"):
+        cur.execute("SELECT id_supervisor, matricula, nome_completo FROM tb_supervisor WHERE id_supervisor = %s AND ativo = true LIMIT 1;", (current_user["id"],))
+        sup = cur.fetchone()
+
+    # 3. Busca por correspondência via tb_usuario
+    if not sup and mat:
+        cur.execute("""
+            SELECT s.id_supervisor, s.matricula, s.nome_completo
+            FROM tb_supervisor s
+            JOIN tb_usuario u ON s.id_usuario = u.id_usuario
+            WHERE UPPER(u.matricula) = %s AND s.ativo = true
+            LIMIT 1;
+        """, (mat,))
+        sup = cur.fetchone()
+
+    # 4. Busca por nome completo do usuário em tb_supervisor
+    user_nome = (current_user.get("nome") or "").strip().upper()
+    if not sup and user_nome:
+        cur.execute("""
+            SELECT id_supervisor, matricula, nome_completo
+            FROM tb_supervisor
+            WHERE UPPER(TRIM(nome_completo)) = %s AND ativo = true
+            LIMIT 1;
+        """, (user_nome,))
+        sup = cur.fetchone()
+
+    # 5. Busca cruzada via tb_tecnico pelo nome
+    if not sup and mat:
+        cur.execute("""
+            SELECT s.id_supervisor, s.matricula, s.nome_completo
+            FROM tb_supervisor s
+            JOIN tb_tecnico t ON UPPER(TRIM(s.nome_completo)) = UPPER(TRIM(t.nome_completo))
+            WHERE UPPER(t.matricula) = %s AND s.ativo = true
+            LIMIT 1;
+        """, (mat,))
+        sup = cur.fetchone()
+
+    sup_id = sup["id_supervisor"] if sup else None
+    
+    bases_set = set()
+    if sup_id:
+        # Bases explicitamente atribuídas em tb_base_atp
+        cur.execute("SELECT ct_codigo FROM tb_base_atp WHERE id_supervisor = %s AND ct_codigo IS NOT NULL;", (sup_id,))
+        for r in cur.fetchall():
+            if r.get("ct_codigo"):
+                bases_set.add(r["ct_codigo"])
+
+        # Bases dos técnicos sob sua supervisão (direta ou empréstimo)
+        cur.execute("""
+            SELECT DISTINCT codigo_base_atp 
+            FROM tb_tecnico 
+            WHERE (id_supervisor = %s OR id_supervisor_emprestimo = %s) AND codigo_base_atp IS NOT NULL;
+        """, (sup_id, sup_id))
+        for r in cur.fetchall():
+            if r.get("codigo_base_atp"):
+                bases_set.add(r["codigo_base_atp"])
+
+    # Base própria do técnico/líder logado (se for supervisor)
+    if sup_id and mat:
+        cur.execute("SELECT codigo_base_atp FROM tb_tecnico WHERE UPPER(matricula) = %s AND codigo_base_atp IS NOT NULL;", (mat,))
+        row_t = cur.fetchone()
+        if row_t and row_t.get("codigo_base_atp"):
+            bases_set.add(row_t["codigo_base_atp"])
+
+    return True, sup_id, sorted(list(bases_set))
 
 def normalizar_status(raw: Optional[str]) -> str:
     if not raw:
@@ -70,8 +155,15 @@ class ResetSenhaRequest(BaseModel):
     novaSenha: Optional[str] = None
 
 @router.get("/tecnicos")
-def list_tecnicos(idSupervisor: Optional[int] = Query(None), apenasValidados: Optional[bool] = Query(False)):
+def list_tecnicos(
+    idSupervisor: Optional[int] = Query(None), 
+    codigoBaseAtp: Optional[str] = Query(None),
+    apenasValidados: Optional[bool] = Query(False),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     with get_db_cursor() as cur:
+        is_sup, sup_id, sup_bases = obter_contexto_supervisor(cur, current_user)
+        
         sql = """
             SELECT t.id_tecnico, t.matricula, t.nome_completo, t.primeiro_nome, t.sobrenome,
                    t.cargo, t.role, t.ativo,
@@ -90,9 +182,27 @@ def list_tecnicos(idSupervisor: Optional[int] = Query(None), apenasValidados: Op
         """
         conditions = []
         params = []
-        if idSupervisor:
+        
+        if is_sup:
+            if sup_id:
+                # O perfil é estritamente filtrado pelo campo supervisor (titular ou empréstimo).
+                # Uma base ATP pode ter mais de um supervisor, logo não se deve usar OR pela base.
+                conditions.append("""(
+                    t.id_supervisor = %s
+                    OR t.id_supervisor_emprestimo = %s
+                )""")
+                params.extend([sup_id, sup_id])
+            else:
+                conditions.append("UPPER(t.matricula) = %s")
+                params.append((current_user.get("sub") or "").upper())
+        elif idSupervisor:
             conditions.append("t.id_supervisor = %s")
             params.append(idSupervisor)
+
+        if codigoBaseAtp:
+            conditions.append("(t.codigo_base_atp = %s OR t.codigo_base_atp_emprestimo = %s)")
+            params.extend([codigoBaseAtp, codigoBaseAtp])
+            
         if apenasValidados:
             conditions.append("t.fl_validado = true")
         
@@ -144,46 +254,60 @@ def list_tecnicos(idSupervisor: Optional[int] = Query(None), apenasValidados: Op
 def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
     mat = request.matricula.strip()
     
-    user_role = current_user.get("role", "").upper()
-    role_to_set = "PADRAO" if user_role != "MODERADOR" else (request.role or "PADRAO")
-    
-    primeiro_nome = request.primeiroNome.strip() if request.primeiroNome else ""
-    sobrenome = request.sobrenome.strip() if request.sobrenome else ""
-    if request.nomeCompleto and not (primeiro_nome and sobrenome):
-        parts = request.nomeCompleto.strip().split()
-        if not primeiro_nome and parts:
-            primeiro_nome = parts[0]
-        if not sobrenome and len(parts) > 1:
-            sobrenome = " ".join(parts[1:])
-    nome_completo = f"{primeiro_nome} {sobrenome}".strip() or (request.nomeCompleto.strip() if request.nomeCompleto else mat)
+    with get_db_cursor(commit=True) as cur:
+        is_sup, sup_id, sup_bases = obter_contexto_supervisor(cur, current_user)
+        user_role = current_user.get("role", "").upper()
+        
+        # 1. Regra de Negócio: Supervisores e perfis não-moderadores só podem cadastrar perfil 'PADRAO' (técnico)
+        role_to_set = "PADRAO" if (user_role != "MODERADOR" or is_sup) else (request.role or "PADRAO")
+        
+        # Tratamento consistente de primeiro nome, sobrenome e nome completo
+        primeiro_nome = request.primeiroNome.strip() if request.primeiroNome else ""
+        sobrenome = request.sobrenome.strip() if request.sobrenome else ""
+        if request.nomeCompleto and not (primeiro_nome and sobrenome):
+            parts = request.nomeCompleto.strip().split()
+            if not primeiro_nome and parts:
+                primeiro_nome = parts[0]
+            if not sobrenome and len(parts) > 1:
+                sobrenome = " ".join(parts[1:])
+        nome_completo = f"{primeiro_nome} {sobrenome}".strip() or (request.nomeCompleto.strip() if request.nomeCompleto else mat)
 
-    # Senha inicial
-    if request.senha and request.senha.strip():
-        raw_senha = request.senha.strip()
-        # Normalização inteligente: aceita variações de senha padrão sem disparar erro 400
-        if raw_senha.lower() in ("brilha123", "brilha@123", SENHA_PADRAO_SISTEMA.lower()):
+        # 2. Definição do Supervisor de Origem, Base ATP e Senha
+        if is_sup and sup_id:
+            id_sup = sup_id
+            base_atp = (request.codigoBaseAtp or "").strip()
+            if sup_bases and base_atp not in sup_bases:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Operação não permitida: Você só pode cadastrar técnicos em sua própria base ATP. Suas bases autorizadas: {', '.join(sup_bases)}."
+                )
+            # Supervisor não pode definir senha: sem exceção, recebe a senha padrão do sistema
             raw_senha = SENHA_PADRAO_SISTEMA
         else:
-            validate_password_complexity(raw_senha)
-    else:
-        raw_senha = SENHA_PADRAO_SISTEMA
-    senha_hash = hash_password(raw_senha)
-    
-    id_sup = request.idSupervisor
-    if not id_sup and current_user.get("id_supervisor"):
-        id_sup = current_user.get("id_supervisor")
+            id_sup = request.idSupervisor
+            if not id_sup and current_user.get("id_supervisor"):
+                id_sup = current_user.get("id_supervisor")
+                
+            if request.senha and request.senha.strip():
+                raw_senha = request.senha.strip()
+                if raw_senha.lower() in ("brilha123", "brilha@123", SENHA_PADRAO_SISTEMA.lower()):
+                    raw_senha = SENHA_PADRAO_SISTEMA
+                else:
+                    validate_password_complexity(raw_senha)
+            else:
+                raw_senha = SENHA_PADRAO_SISTEMA
+                
+        senha_hash = hash_password(raw_senha)
 
-    ativo_val = True if request.ativo is None else request.ativo
-    status_colab = normalizar_status(request.statusColaborador or ("Ativo" if ativo_val else "Inativo"))
-    if status_colab in ("Ativo", "Férias", "Emprestado"):
-        ativo_val = True
-    else:
-        ativo_val = False
+        ativo_val = True if request.ativo is None else request.ativo
+        status_colab = normalizar_status(request.statusColaborador or ("Ativo" if ativo_val else "Inativo"))
+        if status_colab in ("Ativo", "Férias", "Emprestado"):
+            ativo_val = True
+        else:
+            ativo_val = False
 
-    id_sup_emp = request.idSupervisorEmprestimo if status_colab == "Emprestado" else None
-    base_emp = request.codigoBaseAtpEmprestimo.strip() if (status_colab == "Emprestado" and request.codigoBaseAtpEmprestimo) else None
-
-    with get_db_cursor(commit=True) as cur:
+        id_sup_emp = request.idSupervisorEmprestimo if status_colab == "Emprestado" else None
+        base_emp = request.codigoBaseAtpEmprestimo.strip() if (status_colab == "Emprestado" and request.codigoBaseAtpEmprestimo) else None
         # 1. Validação amigável de duplicidade de matrícula
         cur.execute("SELECT id_tecnico, nome_completo FROM tb_tecnico WHERE UPPER(matricula) = %s LIMIT 1;", (mat.upper(),))
         existe = cur.fetchone()
@@ -249,6 +373,25 @@ def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user:
     user_role = current_user.get("role", "").upper()
     
     with get_db_cursor(commit=True) as cur:
+        is_sup, sup_id, sup_bases = obter_contexto_supervisor(cur, current_user)
+        
+        if is_sup:
+            # Validação estrita de titularidade: o técnico pertence à supervisão deste supervisor?
+            cur.execute("""
+                SELECT id_tecnico, id_supervisor, codigo_base_atp, id_supervisor_emprestimo, codigo_base_atp_emprestimo
+                FROM tb_tecnico
+                WHERE id_tecnico = %s AND (
+                    id_supervisor = %s
+                    OR id_supervisor_emprestimo = %s
+                );
+            """, (id_tecnico, sup_id, sup_id))
+            tec_autorizado = cur.fetchone()
+            if not tec_autorizado:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Acesso não autorizado: Este colaborador não pertence à sua supervisão."
+                )
+
         updates = []
         params = []
         
@@ -275,7 +418,9 @@ def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user:
         if request.cargo is not None:
             updates.append("cargo = %s")
             params.append(request.cargo)
-        if request.idSupervisor is not None:
+            
+        # Apenas Moderadores podem transferir titularidade de supervisor de origem
+        if not is_sup and request.idSupervisor is not None:
             updates.append("id_supervisor = %s")
             params.append(request.idSupervisor)
             
@@ -285,6 +430,7 @@ def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user:
             updates.append("role = %s")
             params.append(request.role)
             
+        # Supervisores podem alterar status (Ativo, Férias, Emprestado, Afastado, Inativo)
         if request.statusColaborador is not None:
             s_colab = normalizar_status(request.statusColaborador)
             updates.append("status_colaborador = %s")
@@ -322,13 +468,18 @@ def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user:
             updates.append("centro_custo = %s")
             params.append(request.centroCusto.strip() if request.centroCusto else None)
 
-        if request.codigoBaseAtp is not None:
+        # Apenas Moderadores podem alterar permanentemente a Base ATP de origem (empréstimos usam o bloco de empréstimo)
+        if not is_sup and request.codigoBaseAtp is not None:
             updates.append("codigo_base_atp = %s")
             params.append(request.codigoBaseAtp.strip() if request.codigoBaseAtp else None)
 
         if request.email is not None:
             updates.append("email = %s")
-            params.append(request.email)
+            params.append(request.email.strip() if request.email else None)
+
+        if getattr(request, 'celularCorporativo', None) is not None:
+            updates.append("celular_corporativo = %s")
+            params.append(request.celularCorporativo.strip() if request.celularCorporativo else None)
 
         if updates:
             sql = f"UPDATE tb_tecnico SET {', '.join(updates)} WHERE id_tecnico = %s;"
@@ -344,6 +495,12 @@ def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user:
 
 @router.delete("/tecnicos/{id_tecnico}")
 def delete_tecnico(id_tecnico: int, current_user: Dict[str, Any] = Depends(get_current_user)):
+    user_role = current_user.get("role", "").upper()
+    if user_role != "MODERADOR":
+        raise HTTPException(
+            status_code=403,
+            detail="Operação não permitida: Apenas moderadores podem excluir colaboradores. Para inativar, altere o status para 'Inativo'."
+        )
     with get_db_cursor(commit=True) as cur:
         cur.execute("DELETE FROM tb_tecnico_base WHERE id_tecnico = %s;", (id_tecnico,))
         cur.execute("DELETE FROM tb_tecnico WHERE id_tecnico = %s;", (id_tecnico,))
@@ -351,6 +508,12 @@ def delete_tecnico(id_tecnico: int, current_user: Dict[str, Any] = Depends(get_c
 
 @router.put("/tecnicos/{id_tecnico}/reset-senha")
 def reset_senha(id_tecnico: int, request: Optional[ResetSenhaRequest] = None, current_user: Dict[str, Any] = Depends(get_current_user)):
+    user_role = current_user.get("role", "").upper()
+    if user_role != "MODERADOR":
+        raise HTTPException(
+            status_code=403,
+            detail="Operação não permitida: Supervisores não possuem permissão para redefinir senhas de colaboradores."
+        )
     with get_db_cursor(commit=True) as cur:
         cur.execute("SELECT matricula FROM tb_tecnico WHERE id_tecnico = %s;", (id_tecnico,))
         t = cur.fetchone()
@@ -403,14 +566,21 @@ def list_supervisores():
         ]
 
 @router.get("/bases")
-def list_bases(idSupervisor: Optional[int] = Query(None)):
+def list_bases(idSupervisor: Optional[int] = Query(None), current_user: Dict[str, Any] = Depends(get_current_user)):
     with get_db_cursor() as cur:
+        is_sup, sup_id, sup_bases = obter_contexto_supervisor(cur, current_user)
         sql = """
             SELECT b.id_base, b.ct_codigo, b.nome_atp, b.cidade, b.uf, b.id_supervisor, b.atp_resumidas
             FROM tb_base_atp b
         """
         params = []
-        if idSupervisor:
+        if is_sup:
+            if sup_id or sup_bases:
+                sql += " WHERE (b.id_supervisor = %s OR b.ct_codigo = ANY(%s))"
+                params.extend([sup_id, sup_bases])
+            else:
+                sql += " WHERE 1=0"
+        elif idSupervisor:
             sql += " WHERE b.id_supervisor = %s"
             params.append(idSupervisor)
         sql += " ORDER BY b.cidade ASC, b.nome_atp ASC;"

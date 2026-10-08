@@ -38,9 +38,8 @@ export const ConsumoPecasCard: React.FC<ConsumoPecasCardProps> = ({
   return (
     <BentoCard
       hoverable
-      onClick={onOpenPecasModal}
       className={`min-h-[19.5rem] sm:min-h-[22.5rem] 2xl:min-h-[25rem] flex flex-col justify-between ${className}`}
-      title="Clique para ver o detalhamento de peças da campanha (Tela LCD, SSD, HD e PLM — Máx: 13,5 pts)"
+      title="Detalhamento de consumo de peças da campanha (Tela LCD, SSD, HD e PLM — Máx: 13,5 pts)"
     >
       <div className="flex items-center justify-between gap-[0.375rem] flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-[0.375rem]">

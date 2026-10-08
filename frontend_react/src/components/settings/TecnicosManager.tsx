@@ -14,6 +14,15 @@ interface SupervisorOption {
   nomeCompleto: string;
 }
 
+interface BaseAtpOption {
+  idBase?: number;
+  ctCodigo: string;
+  nomeAtp: string;
+  cidade?: string;
+  uf?: string;
+  idSupervisor?: number;
+}
+
 interface Tecnico {
   idTecnico: number;
   matricula: string;
@@ -41,8 +50,10 @@ export default function TecnicosManager() {
   const isModerador = user?.role === 'MODERADOR' || user?.cargo === 'Moderador';
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [supervisores, setSupervisores] = useState<SupervisorOption[]>([]);
+  const [basesList, setBasesList] = useState<BaseAtpOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBaseFilter, setSelectedBaseFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 15;
   
@@ -77,6 +88,7 @@ export default function TecnicosManager() {
   useEffect(() => {
     fetchTecnicos();
     fetchSupervisores();
+    fetchBases();
   }, []);
 
   const fetchTecnicos = async () => {
@@ -97,6 +109,15 @@ export default function TecnicosManager() {
       setSupervisores(response.data || []);
     } catch (err) {
       console.warn('Erro ao carregar supervisores para empréstimo:', err);
+    }
+  };
+
+  const fetchBases = async () => {
+    try {
+      const response = await api.get('/bases');
+      setBasesList(response.data || []);
+    } catch (err) {
+      console.warn('Erro ao carregar bases ATP:', err);
     }
   };
 
@@ -136,7 +157,11 @@ export default function TecnicosManager() {
       setAtivo(true);
       setStatusColaborador('Ativo');
       setCentroCusto('');
-      setCodigoBaseAtp('');
+      if (!isModerador && basesList.length > 0) {
+        setCodigoBaseAtp(basesList[0].ctCodigo);
+      } else {
+        setCodigoBaseAtp('');
+      }
       setIdSupervisorEmprestimo('');
       setCodigoBaseAtpEmprestimo('');
       setAutoPassword(true);
@@ -146,6 +171,10 @@ export default function TecnicosManager() {
   };
 
   const openPasswordModal = (tecnico: Tecnico) => {
+    if (!isModerador) {
+      alert('Operação não permitida: Supervisores não possuem permissão para redefinir senhas.');
+      return;
+    }
     setError('');
     setSelectedTecnico(tecnico);
     setNewPassword('');
@@ -230,7 +259,7 @@ export default function TecnicosManager() {
         await api.put(`/tecnicos/${selectedTecnico.idTecnico}`, payload);
       } else {
         // Create 
-        if (!autoPassword) {
+        if (isModerador && !autoPassword) {
           const val = validatePassword(createPassword);
           if (!val.isValid) {
             setError(`Senha inicial inválida: ${val.errors[0]}`);
@@ -240,7 +269,7 @@ export default function TecnicosManager() {
         }
         await api.post('/tecnicos', {
           ...payload,
-          senha: autoPassword ? SENHA_PADRAO_SISTEMA : createPassword 
+          senha: (!isModerador || autoPassword) ? SENHA_PADRAO_SISTEMA : createPassword 
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -329,21 +358,60 @@ export default function TecnicosManager() {
     }
   };
 
-  const filteredTecnicos = tecnicos.filter(t => 
-    t.nomeCompleto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.matricula?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.primeiroNome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.sobrenome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.celularCorporativo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.centroCusto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.codigoBaseAtp?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Combina bases cadastradas com bases encontradas nos técnicos sob supervisão
+  const availableBases = React.useMemo(() => {
+    const list = [...basesList];
+    const knownCodes = new Set(list.map(b => b.ctCodigo));
+    tecnicos.forEach(t => {
+      if (t.codigoBaseAtp && !knownCodes.has(t.codigoBaseAtp)) {
+        list.push({ ctCodigo: t.codigoBaseAtp, nomeAtp: `Base ${t.codigoBaseAtp}` });
+        knownCodes.add(t.codigoBaseAtp);
+      }
+      t.ctBases?.forEach(ct => {
+        if (ct && !knownCodes.has(ct)) {
+          list.push({ ctCodigo: ct, nomeAtp: `Base ${ct}` });
+          knownCodes.add(ct);
+        }
+      });
+    });
+    return list;
+  }, [basesList, tecnicos]);
 
-  // Reset para a primeira página sempre que o termo de busca mudar
+  const filteredTecnicos = tecnicos.filter(t => {
+    // 1. Filtro por base ATP selecionada
+    if (selectedBaseFilter !== 'all') {
+      if (selectedBaseFilter === 'none') {
+        const hasBase = Boolean(t.codigoBaseAtp || (t.ctBases && t.ctBases.length > 0));
+        if (hasBase) return false;
+      } else {
+        const matchesBase = 
+          t.codigoBaseAtp === selectedBaseFilter ||
+          t.codigoBaseAtpEmprestimo === selectedBaseFilter ||
+          (t.ctBases && t.ctBases.includes(selectedBaseFilter));
+        if (!matchesBase) return false;
+      }
+    }
+
+    // 2. Filtro por busca textual
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      t.nomeCompleto?.toLowerCase().includes(term) ||
+      t.matricula?.toLowerCase().includes(term) ||
+      t.primeiroNome?.toLowerCase().includes(term) ||
+      t.sobrenome?.toLowerCase().includes(term) ||
+      t.email?.toLowerCase().includes(term) ||
+      t.celularCorporativo?.toLowerCase().includes(term) ||
+      t.centroCusto?.toLowerCase().includes(term) ||
+      t.codigoBaseAtp?.toLowerCase().includes(term) ||
+      t.nomeSupervisor?.toLowerCase().includes(term)
+    );
+  });
+
+  // Reset para a primeira página sempre que o termo de busca ou filtro de base mudar
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, selectedBaseFilter]);
 
   const totalPages = Math.ceil(filteredTecnicos.length / ITEMS_PER_PAGE) || 1;
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -395,15 +463,48 @@ export default function TecnicosManager() {
           <div>
             <h3 className="text-lg font-bold text-light-text-main dark:text-text-main tracking-tight flex items-center gap-2">
               Gestão de Usuários e Técnicos
+              {!isModerador && (
+                <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
+                  Operação Supervisor
+                </span>
+              )}
             </h3>
             <p className="text-xs text-light-text-muted dark:text-text-muted mt-0.5">
-              Consulte, crie e administre os acessos, centros de custo, bases ATP e status dos colaboradores
+              {isModerador 
+                ? 'Consulte, crie e administre os acessos, centros de custo, bases ATP e status dos colaboradores (Visão Master)' 
+                : 'Gerencie os técnicos e status da sua operação ATP vinculada. Novos cadastros são atribuídos à sua base.'}
             </p>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          <div className="relative w-full sm:w-72">
+          {/* Seletor de Base ATP */}
+          <div className="relative w-full sm:w-60">
+            <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" size={15} />
+            <select
+              value={selectedBaseFilter}
+              onChange={(e) => setSelectedBaseFilter(e.target.value)}
+              className="w-full appearance-none glass-bento border border-light-border/60 dark:border-white/10 text-light-text-main dark:text-text-main text-xs font-semibold rounded-full pl-10 pr-8 py-2.5 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner bg-light-surface/90 dark:bg-surface-elevated/90 cursor-pointer"
+            >
+              <option value="all">Todas as Bases ({tecnicos.length})</option>
+              {availableBases.map((b) => {
+                const count = tecnicos.filter(t => t.codigoBaseAtp === b.ctCodigo || t.ctBases?.includes(b.ctCodigo)).length;
+                return (
+                  <option key={b.ctCodigo} value={b.ctCodigo}>
+                    Base {b.ctCodigo} - {b.nomeAtp} ({count})
+                  </option>
+                );
+              })}
+              {tecnicos.some(t => !t.codigoBaseAtp && (!t.ctBases || t.ctBases.length === 0)) && (
+                <option value="none">
+                  Sem Base Vinculada ({tecnicos.filter(t => !t.codigoBaseAtp && (!t.ctBases || t.ctBases.length === 0)).length})
+                </option>
+              )}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" size={14} />
+          </div>
+
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-text-muted dark:text-text-muted pointer-events-none" size={15} />
             <input 
               type="text" 
@@ -500,25 +601,29 @@ export default function TecnicosManager() {
                         <button 
                           onClick={() => openEditModal(t)} 
                           className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-primary/50 hover:bg-primary/10 hover:text-primary transition-all cursor-pointer" 
-                          title="Editar Usuário"
+                          title="Editar Colaborador"
                         >
                           <Pencil size={15} />
                         </button>
-                        <button 
-                          onClick={() => openPasswordModal(t)} 
-                          className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-400 transition-all cursor-pointer" 
-                          title="Redefinir Senha"
-                        >
-                          <KeyRound size={15} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(t.idTecnico)} 
-                          disabled={t.matricula === '72916' || t.role === 'MODERADOR'}
-                          className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" 
-                          title="Excluir Usuário"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        {isModerador && (
+                          <button 
+                            onClick={() => openPasswordModal(t)} 
+                            className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-400 transition-all cursor-pointer" 
+                            title="Redefinir Senha"
+                          >
+                            <KeyRound size={15} />
+                          </button>
+                        )}
+                        {isModerador && (
+                          <button 
+                            onClick={() => handleDelete(t.idTecnico)} 
+                            disabled={t.matricula === '72916' || t.role === 'MODERADOR'}
+                            className="p-1.5 rounded-xl bg-light-buttonBg dark:bg-buttonBg border border-light-border dark:border-white/10 text-light-text-muted dark:text-text-muted hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" 
+                            title="Excluir Usuário"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -704,14 +809,39 @@ export default function TecnicosManager() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider flex items-center gap-1.5">
                     <Building2 size={13} className="text-primary" /> Base ATP
+                    {!isModerador && (
+                      <span className="text-[10px] lowercase font-normal text-primary">(sua operação)</span>
+                    )}
                   </label>
-                  <input 
-                    type="text" 
-                    className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2 text-sm font-mono text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 transition-all"
-                    value={codigoBaseAtp}
-                    onChange={e => setCodigoBaseAtp(e.target.value)}
-                    placeholder="Ex: 2791040"
-                  />
+                  {!isModerador ? (
+                    <select 
+                      required
+                      value={codigoBaseAtp}
+                      disabled={Boolean(selectedTecnico)}
+                      onChange={e => setCodigoBaseAtp(e.target.value)}
+                      className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2 text-sm font-mono text-light-text-main dark:text-text-main focus:outline-none focus:border-primary/60 transition-all disabled:opacity-75 disabled:cursor-not-allowed shadow-inner"
+                    >
+                      <option value="">Selecione sua base ATP...</option>
+                      {basesList.map(b => (
+                        <option key={b.ctCodigo} value={b.ctCodigo}>
+                          {b.ctCodigo} - {b.nomeAtp} {b.cidade ? `(${b.cidade}/${b.uf || ''})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input 
+                      type="text" 
+                      className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-4 py-2 text-sm font-mono text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 transition-all shadow-inner"
+                      value={codigoBaseAtp}
+                      onChange={e => setCodigoBaseAtp(e.target.value)}
+                      placeholder="Ex: 2791040"
+                    />
+                  )}
+                  {!isModerador && selectedTecnico && (
+                    <p className="text-[10px] text-light-text-muted dark:text-text-muted">
+                      Base de origem fixada. Para transferir temporariamente, utilize o status <strong>Emprestado</strong>.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -798,36 +928,48 @@ export default function TecnicosManager() {
               {/* Criação de Senha e Role */}
               <div className="pt-2 border-t border-light-border dark:border-white/10 space-y-4">
                 {!selectedTecnico && (
-                  <div className="space-y-2 p-4 bg-light-surface/40 dark:bg-surface-elevated/40 border border-light-border dark:border-white/10 rounded-2xl">
-                    <label className="flex items-center gap-2.5 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={autoPassword}
-                        onChange={(e) => setAutoPassword(e.target.checked)}
-                        className="w-4 h-4 rounded border-light-border dark:border-border text-primary accent-primary focus:ring-primary/30 bg-light-background dark:bg-surface-elevated cursor-pointer"
-                      />
-                      <span className="text-sm font-medium text-light-text-main dark:text-text-main">
-                        Gerar senha padrão automaticamente ({SENHA_PADRAO_SISTEMA})
-                      </span>
-                    </label>
-                    
-                    {!autoPassword && (
-                      <div className="space-y-1.5 mt-3 animate-in fade-in slide-in-from-top-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Senha Inicial</label>
-                          <span className="text-[11px] text-light-text-secondary dark:text-text-muted">Mínimo 8 dígitos (A-Z, a-z, 0-9, especial)</span>
-                        </div>
+                  isModerador ? (
+                    <div className="space-y-2 p-4 bg-light-surface/40 dark:bg-surface-elevated/40 border border-light-border dark:border-white/10 rounded-2xl">
+                      <label className="flex items-center gap-2.5 cursor-pointer">
                         <input 
-                          required={!autoPassword}
-                          type="text" 
-                          className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
-                          value={createPassword}
-                          onChange={e => setCreatePassword(e.target.value)}
-                          placeholder={`Ex: ${SENHA_PADRAO_SISTEMA}`}
+                          type="checkbox" 
+                          checked={autoPassword}
+                          onChange={(e) => setAutoPassword(e.target.checked)}
+                          className="w-4 h-4 rounded border-light-border dark:border-border text-primary accent-primary focus:ring-primary/30 bg-light-background dark:bg-surface-elevated cursor-pointer"
                         />
+                        <span className="text-sm font-medium text-light-text-main dark:text-text-main">
+                          Gerar senha padrão automaticamente ({SENHA_PADRAO_SISTEMA})
+                        </span>
+                      </label>
+                      
+                      {!autoPassword && (
+                        <div className="space-y-1.5 mt-3 animate-in fade-in slide-in-from-top-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-semibold text-light-text-muted dark:text-text-muted uppercase tracking-wider">Senha Inicial</label>
+                            <span className="text-[11px] text-light-text-secondary dark:text-text-muted">Mínimo 8 dígitos (A-Z, a-z, 0-9, especial)</span>
+                          </div>
+                          <input 
+                            required={!autoPassword}
+                            type="text" 
+                            className="w-full glass-bento border border-light-border/60 dark:border-white/10 rounded-full px-5 py-2.5 text-sm text-light-text-main dark:text-text-main placeholder:text-light-text-muted dark:placeholder:text-text-muted/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all shadow-inner"
+                            value={createPassword}
+                            onChange={e => setCreatePassword(e.target.value)}
+                            placeholder={`Ex: ${SENHA_PADRAO_SISTEMA}`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-primary/10 border border-primary/20 rounded-2xl flex items-center gap-3">
+                      <KeyRound size={20} className="text-primary shrink-0" />
+                      <div className="text-xs text-light-text-main dark:text-text-main">
+                        <p className="font-bold">Senha Padrão do Sistema ({SENHA_PADRAO_SISTEMA})</p>
+                        <p className="text-[11px] text-light-text-muted dark:text-text-muted mt-0.5">
+                          Supervisores não definem senhas. O colaborador cadastrado definirá sua senha pessoal obrigatória no primeiro acesso ao sistema.
+                        </p>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )
                 )}
 
                 <div className="space-y-1.5 relative">
@@ -928,7 +1070,7 @@ export default function TecnicosManager() {
     )}
 
     {/* MODAL SENHA */}
-    {isPasswordModalOpen && typeof document !== 'undefined' && createPortal(
+    {isPasswordModalOpen && isModerador && typeof document !== 'undefined' && createPortal(
       <div className="fixed inset-0 lg:left-64 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
         <div className="bg-light-surface dark:bg-surface border border-light-borderStrong dark:border-white/10 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
           <div className="flex justify-between items-center p-5 border-b border-light-border dark:border-white/10 bg-light-surface/40 dark:bg-surface-elevated/40">

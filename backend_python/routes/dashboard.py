@@ -1449,11 +1449,13 @@ def get_tecnico_reincidentes(
     id_tecnico: int, 
     mesAno: Optional[str] = Query(None),
     equipe: Optional[str] = Query(None),
-    segmento: Optional[str] = Query(None)
+    segmento: Optional[str] = Query(None),
+    idSupervisor: Optional[int] = Query(None)
 ):
     with get_db_cursor() as cur:
         d_ini, d_fim = resolver_intervalo_datas(cur, mesAno)
         equipe_val = resolver_codigo_atp(cur, equipe)
+        sup_id = safe_int(idSupervisor)
 
         where_conds = ["r.ft_rrc >= %s", "r.ft_rrc <= %s"]
         params: List[Any] = [d_ini, d_fim]
@@ -1464,14 +1466,28 @@ def get_tecnico_reincidentes(
             where_conds.append("NOT (r.projeto_rrc LIKE 'H3-%%' OR UPPER(COALESCE(r.segmento_rrc, '')) LIKE '%%GOV%%')")
 
         if id_tecnico > 0:
-            cur.execute("SELECT nome_completo FROM tb_tecnico WHERE id_tecnico = %s LIMIT 1;", (id_tecnico,))
+            cur.execute("SELECT nome_completo, matricula FROM tb_tecnico WHERE id_tecnico = %s LIMIT 1;", (id_tecnico,))
             t = cur.fetchone()
             nome_tec = t["nome_completo"] if t else ""
-            where_conds.append("UPPER(TRIM(r.tecnico_nome_anterior)) = UPPER(TRIM(%s))")
-            params.append(nome_tec)
+            mat_tec = t["matricula"] if t else ""
+            where_conds.append("(UPPER(TRIM(r.tecnico_nome_anterior)) = UPPER(TRIM(%s)) OR UPPER(TRIM(r.tecnico_nome_anterior)) = UPPER(TRIM(%s)))")
+            params.extend([nome_tec, mat_tec])
         elif equipe_val:
             where_conds.append("r.ct_anterior = %s")
             params.append(equipe_val)
+        elif sup_id:
+            cur.execute("SELECT DISTINCT ct_codigo FROM tb_base_atp WHERE id_supervisor = %s AND ct_codigo IS NOT NULL;", (sup_id,))
+            cts = [r["ct_codigo"] for r in cur.fetchall() if r.get("ct_codigo")]
+            if cts:
+                where_conds.append("r.ct_anterior = ANY(%s)")
+                params.append(cts)
+            else:
+                cur.execute("SELECT nome_completo, matricula FROM tb_tecnico WHERE id_supervisor = %s;", (sup_id,))
+                tec_rows = cur.fetchall()
+                nomes_tecs = [r["nome_completo"].strip().upper() for r in tec_rows if r.get("nome_completo")]
+                if nomes_tecs:
+                    where_conds.append("UPPER(TRIM(r.tecnico_nome_anterior)) = ANY(%s)")
+                    params.append(nomes_tecs)
 
         sql = f"""
             SELECT 
@@ -1491,8 +1507,16 @@ def get_tecnico_reincidentes(
                 END AS horas_entre,
                 r.tecnico_nome_anterior,
                 r.tecnico_nome_rrc,
-                COALESCE((SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = r.ct_anterior LIMIT 1), r.ct_anterior) AS ct_anterior,
-                COALESCE((SELECT b.cidade FROM tb_base_atp b WHERE b.ct_codigo = r.ct_rrc LIMIT 1), r.ct_rrc) AS ct_rrc,
+                COALESCE(
+                    (SELECT CASE WHEN b.cidade IS NOT NULL AND b.cidade != '' THEN b.cidade ELSE b.nome_atp END FROM tb_base_atp b WHERE b.ct_codigo = r.ct_anterior LIMIT 1),
+                    (SELECT ch.assistencia_razao_social FROM chamados ch WHERE ch.assistencia_centro_trabalho = r.ct_anterior AND ch.assistencia_razao_social IS NOT NULL LIMIT 1),
+                    CASE WHEN r.ct_anterior ~ '^[0-9]+$' THEN 'CT ' || r.ct_anterior ELSE r.ct_anterior END
+                ) AS ct_anterior,
+                COALESCE(
+                    (SELECT CASE WHEN b.cidade IS NOT NULL AND b.cidade != '' THEN b.cidade ELSE b.nome_atp END FROM tb_base_atp b WHERE b.ct_codigo = r.ct_rrc LIMIT 1),
+                    (SELECT ch.assistencia_razao_social FROM chamados ch WHERE ch.assistencia_centro_trabalho = r.ct_rrc AND ch.assistencia_razao_social IS NOT NULL LIMIT 1),
+                    CASE WHEN r.ct_rrc ~ '^[0-9]+$' THEN 'CT ' || r.ct_rrc ELSE r.ct_rrc END
+                ) AS ct_rrc,
                 r.projeto_anterior,
                 r.projeto_rrc,
                 r.defeito_anterior,
@@ -1502,8 +1526,36 @@ def get_tecnico_reincidentes(
                 r.defeito_rrc,
                 r.ocorrencia_chamado_rrc,
                 r.texto_encerrado_rrc,
-                r.aplicado_peca_rrc
+                r.aplicado_peca_rrc,
+                COALESCE(
+                    p_ant.subgrupo_ant,
+                    CASE WHEN r.trocou_plm_anterior ILIKE '%%sim%%' THEN 'Placa Mãe' ELSE NULL END
+                ) AS subgrupo_anterior,
+                p_ant.peca_nome_ant AS peca_nome_anterior,
+                COALESCE(
+                    p_rrc.subgrupo_rrc,
+                    CASE WHEN r.trocou_plm_rrc ILIKE '%%sim%%' THEN 'Placa Mãe' ELSE NULL END
+                ) AS subgrupo_rrc,
+                p_rrc.peca_nome_rrc AS peca_nome_rrc
             FROM reincidentes r
+            LEFT JOIN LATERAL (
+                SELECT 
+                    string_agg(DISTINCT p.subgrupo, ', ') AS subgrupo_ant,
+                    string_agg(DISTINCT p.cod_aplic_desc, ' | ') AS peca_nome_ant
+                FROM pecas p
+                WHERE p.chamado = r.chamado_anterior
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%%A009%%'
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%%SEM NECESSIDADE%%'
+            ) p_ant ON true
+            LEFT JOIN LATERAL (
+                SELECT 
+                    string_agg(DISTINCT p.subgrupo, ', ') AS subgrupo_rrc,
+                    string_agg(DISTINCT p.cod_aplic_desc, ' | ') AS peca_nome_rrc
+                FROM pecas p
+                WHERE p.chamado = r.chamado_rrc
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%%A009%%'
+                  AND UPPER(COALESCE(p.acao, '')) NOT LIKE '%%SEM NECESSIDADE%%'
+            ) p_rrc ON true
             WHERE {' AND '.join(where_conds)}
             ORDER BY r.ft_rrc DESC;
         """
@@ -1517,7 +1569,9 @@ def get_tecnico_reincidentes(
                 "ftAnterior": r["ft_anterior"].isoformat() if r.get("ft_anterior") else None,
                 "ftRrc": r["ft_rrc"].isoformat() if r.get("ft_rrc") else None,
                 "diasEntre": r.get("dias_entre"),
+                "diasEntreAtendimentos": r.get("dias_entre"),
                 "horasEntre": r.get("horas_entre"),
+                "horasEntreAtendimentos": r.get("horas_entre"),
                 "tecnicoNomeAnterior": r.get("tecnico_nome_anterior"),
                 "tecnicoNomeRrc": r.get("tecnico_nome_rrc"),
                 "ctAnterior": r.get("ct_anterior"),
@@ -1531,7 +1585,11 @@ def get_tecnico_reincidentes(
                 "defeitoRrc": r.get("defeito_rrc"),
                 "ocorrenciaChamadoRrc": r.get("ocorrencia_chamado_rrc"),
                 "textoEncerradoRrc": r.get("texto_encerrado_rrc"),
-                "aplicadoPecaRrc": r.get("aplicado_peca_rrc")
+                "aplicadoPecaRrc": r.get("aplicado_peca_rrc"),
+                "subgrupoAnterior": r.get("subgrupo_anterior"),
+                "pecaNomeAnterior": r.get("peca_nome_anterior"),
+                "subgrupoRrc": r.get("subgrupo_rrc"),
+                "pecaNomeRrc": r.get("peca_nome_rrc")
             }
             for r in rows
         ]
