@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Optional, List, Dict, Any, Tuple
 from datetime import date, datetime
 from fastapi import APIRouter, Query, HTTPException, Request
@@ -1452,6 +1453,49 @@ def get_tecnico_pecas_distribuicao(
             ]
         }
 
+def extrair_componente_laudo(texto: Optional[str], defeito: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+    """Extrai o subgrupo e a descrição do componente a partir do laudo / texto de encerramento do chamado."""
+    if not texto and not defeito:
+        return None, None
+    t = (texto or "").upper()
+    d = (defeito or "").upper()
+
+    mapeamentos = [
+        (r"\b(PLM|PLACA M[AÃ]E|MOTHERBOARD)\b", "Placa Mãe", "Placa Mãe"),
+        (r"\b(PL CONEX[AÃ]O|PLACA DE CONEX[AÃ]O|PLACA CONEX[AÃ]O|PLACA CINEX[AÃ]O|PLACA I/O|PLACA SUB|SUB PLACA|BOARD I/O|PL CONECTOR|PLACA DA FONTE)\b", "Placa I/O / Conexão", "Placa de Conexão"),
+        (r"\b(LCD|TELA|DISPLAY|PAINEL)\b", "Tela / LCD", "Painel / Tela LCD"),
+        (r"\b(BATERIA|BATER)\b", "Bateria", "Bateria"),
+        (r"\b(TECLADO|TECL)\b", "Teclado", "Teclado"),
+        (r"\b(SSD|NVME|M\.2)\b", "SSD", "Unidade SSD"),
+        (r"\b(HARD DISK|HD|HDD)\b", "HD", "Disco Rígido (HD)"),
+        (r"\b(MEMORIA|MEMÓRIA|RAM|DDR[345]?)\b", "Memória", "Módulo de Memória RAM"),
+        (r"\b(FONTE|CARREGADOR|ADAPTADOR AC)\b", "Fonte / Carregador", "Fonte de Alimentação"),
+        (r"\b(COOLER|VENTOINHA|DISSIPADOR)\b", "Cooler / Térmico", "Cooler / Dissipador Térmico"),
+        (r"\b(CABO FLAT|FLAT|CONECTOR|DC JACK|DC-JACK)\b", "Cabos / Conectores", "Cabo Flat / Conector"),
+        (r"\b(TAMPA|CARCACA|CARCAÇA|MOLDURA|BEZEL|DOBRADI[CÇ]A)\b", "Gabinete / Carcaça", "Gabinete / Carcaça"),
+        (r"\b(WEBCAM|CAMERA|CÂMERA)\b", "Câmera / WebCam", "Módulo de Câmera"),
+        (r"\b(ALTO FALANTE|AUTO FALANTE|SPEAKER|SOM)\b", "Alto Falante / Som", "Alto Falantes"),
+        (r"\b(WIFI|WI-FI|WIRELESS|PLACA DE REDE)\b", "Placa Wi-Fi / Rede", "Placa de Rede / Wi-Fi"),
+    ]
+
+    solucao_match = re.search(r"(?:SOLUCAO|SOLUÇÃO)[:\s]+([^\r\n]+)", t)
+    diag_match = re.search(r"(?:DIAGNOSTICO|DIAGNÓSTICO|FALHA IDENTIFICADA)[:\s]+([^\r\n]+)", t)
+    trecho = (solucao_match.group(1) if solucao_match else "") or (diag_match.group(1) if diag_match else "")
+
+    for padrao, subgrupo, nome_padrao in mapeamentos:
+        if (trecho and re.search(padrao, trecho)) or re.search(padrao, t) or re.search(padrao, d):
+            nome_final = nome_padrao
+            if solucao_match:
+                s = solucao_match.group(1).strip()
+                s_limpo = re.sub(r"^(TROCA D[AEO]|SUBSTITUI[CÇ][AÃ]O D[AEO]|EFETUADO TROCA D[AEO]|REALIZADO TROCA D[AEO])\s+", "", s, flags=re.IGNORECASE).strip(". ")
+                s_limpo = re.sub(r"\bCINEX[AÃ]O\b", "CONEXÃO", s_limpo, flags=re.IGNORECASE)
+                s_limpo = re.sub(r"\bPL\b", "PLACA", s_limpo, flags=re.IGNORECASE)
+                if s_limpo and len(s_limpo) <= 50 and re.search(padrao, s):
+                    nome_final = s_limpo.title()
+            return subgrupo, nome_final
+
+    return None, None
+
 @router.get("/dashboard/tecnico/{id_tecnico}/reincidentes")
 def get_tecnico_reincidentes(
     id_tecnico: int, 
@@ -1570,8 +1614,35 @@ def get_tecnico_reincidentes(
         cur.execute(sql, tuple(params))
         rows = cur.fetchall()
 
-        return [
-            {
+        out = []
+        for r in rows:
+            sub_ant = r.get("subgrupo_anterior")
+            peca_ant = r.get("peca_nome_anterior")
+            
+            # Se a peça anterior não foi encontrada na tabela pecas, aplica a cascata inteligente
+            if not sub_ant or not peca_ant:
+                if (r.get("aplicado_peca_anterior") or "").strip().upper() == "SIM":
+                    laudo_sub, laudo_peca = extrair_componente_laudo(r.get("texto_encerrado_anterior"), r.get("defeito_anterior"))
+                    if laudo_sub:
+                        sub_ant = sub_ant or laudo_sub
+                        peca_ant = peca_ant or laudo_peca
+                    else:
+                        sub_ant = sub_ant or "Peça Aplicada"
+                        peca_ant = peca_ant or "Peça substituída no 1º atendimento"
+
+            sub_rrc = r.get("subgrupo_rrc")
+            peca_rrc = r.get("peca_nome_rrc")
+            if not sub_rrc or not peca_rrc:
+                if (r.get("aplicado_peca_rrc") or "").strip().upper() == "SIM":
+                    laudo_sub_rrc, laudo_peca_rrc = extrair_componente_laudo(r.get("texto_encerrado_rrc"), r.get("defeito_rrc"))
+                    if laudo_sub_rrc:
+                        sub_rrc = sub_rrc or laudo_sub_rrc
+                        peca_rrc = peca_rrc or laudo_peca_rrc
+                    else:
+                        sub_rrc = sub_rrc or "Peça Aplicada"
+                        peca_rrc = peca_rrc or "Peça substituída na reincidência"
+
+            out.append({
                 "chamadoAnterior": r["chamado_anterior"],
                 "chamadoRrc": r["chamado_rrc"],
                 "ftAnterior": r["ft_anterior"].isoformat() if r.get("ft_anterior") else None,
@@ -1594,13 +1665,12 @@ def get_tecnico_reincidentes(
                 "ocorrenciaChamadoRrc": r.get("ocorrencia_chamado_rrc"),
                 "textoEncerradoRrc": r.get("texto_encerrado_rrc"),
                 "aplicadoPecaRrc": r.get("aplicado_peca_rrc"),
-                "subgrupoAnterior": r.get("subgrupo_anterior"),
-                "pecaNomeAnterior": r.get("peca_nome_anterior"),
-                "subgrupoRrc": r.get("subgrupo_rrc"),
-                "pecaNomeRrc": r.get("peca_nome_rrc")
-            }
-            for r in rows
-        ]
+                "subgrupoAnterior": sub_ant,
+                "pecaNomeAnterior": peca_ant,
+                "subgrupoRrc": sub_rrc,
+                "pecaNomeRrc": peca_rrc
+            })
+        return out
 
 @router.get("/dashboard/tecnico/{id_tecnico}/chamados")
 @router.get("/dashboard/tecnico/{id_tecnico}/chamados-encerrados")

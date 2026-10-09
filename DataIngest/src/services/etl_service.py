@@ -433,14 +433,24 @@ class ETLService:
             sync_status_tracker["tables"]["pecas"]["status"] = "processing"
 
             if data_inicio and data_fim:
-                logger.info(f"Removendo dados antigos de pecas do período {clean_inicio} a {clean_fim}...")
-                self.postgres.execute_query(f"DELETE FROM public.pecas WHERE 1=1{date_clause_ft};")
+                logger.info(f"Removendo dados antigos de pecas do período {clean_inicio} a {clean_fim} e chamados de reincidência...")
+                self.postgres.execute_query(f"""
+                    DELETE FROM public.pecas 
+                    WHERE 1=1{date_clause_ft}
+                       OR chamado IN (SELECT chamado_anterior FROM public.reincidentes WHERE chamado_anterior IS NOT NULL AND UPPER(aplicado_peca_anterior) = 'SIM');
+                """)
 
             cols_pecas = """
                 chamado, ft, tecnico_nome, grupo_mercadoria_desc, grupo_mercadoria,
                 cod_solic_desc, cod_aplic_desc, tipo_equipamento, acao
             """
-            q_pecas = f"SELECT {cols_pecas} FROM pecas WHERE chamado IS NOT NULL{date_clause_ft}{limit_clause};"
+            reinc_pecas_clause = "OR chamado IN (SELECT chamado_anterior FROM reincidentes WHERE chamado_anterior IS NOT NULL AND (UPPER(COALESCE(aplicado_peca_anterior, '')) = 'SIM'))"
+            if date_clause_ft:
+                where_pecas = f"WHERE chamado IS NOT NULL AND ( (1=1{date_clause_ft}) {reinc_pecas_clause} )"
+            else:
+                where_pecas = "WHERE chamado IS NOT NULL"
+
+            q_pecas = f"SELECT {cols_pecas} FROM pecas {where_pecas}{limit_clause};"
             res_pecas = self.run_pipeline(query=q_pecas, target_table="pecas")
             results["pecas"] = res_pecas
 
