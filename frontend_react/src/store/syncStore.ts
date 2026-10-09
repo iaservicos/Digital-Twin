@@ -54,10 +54,18 @@ export const getPythonApiUrl = () => {
   if (envUrl) {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return 'https://digitaltwin-dataingest.onrender.com';
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:8000';
+    }
+    // Suporte a acesso via IP da rede local
+    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
+      return `http://${host}:8000`;
+    }
   }
-  return 'http://localhost:8000';
+  // Em produção com proxy ou na mesma origem
+  return '';
 };
 
 const initialTracker: SyncTracker = {
