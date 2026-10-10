@@ -43,7 +43,7 @@ interface SyncStore {
 }
 
 export const getPythonHeaders = () => {
-  const apiKey = import.meta.env.VITE_DATA_INGEST_API_KEY || 'pos-data-token-2026';
+  const apiKey = (import.meta.env.VITE_DATA_INGEST_API_KEY || '').trim();
   return {
     'X-API-Key': apiKey,
   };

@@ -284,8 +284,7 @@ def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] =
                 
             if request.senha and request.senha.strip():
                 raw_senha = request.senha.strip()
-                # Normalização inteligente: aceita variações de senha padrão sem disparar erro 400
-                if raw_senha.lower() in ("brilha123", "brilha@123", SENHA_PADRAO_SISTEMA.lower()):
+                if SENHA_PADRAO_SISTEMA and raw_senha.lower() == SENHA_PADRAO_SISTEMA.lower():
                     raw_senha = SENHA_PADRAO_SISTEMA
                 else:
                     validate_password_complexity(raw_senha)
@@ -519,7 +518,7 @@ def reset_senha(id_tecnico: int, request: Optional[ResetSenhaRequest] = None, cu
         
         if request and request.novaSenha and request.novaSenha.strip():
             nova_senha = request.novaSenha.strip()
-            if nova_senha.lower() in ("brilha123", "brilha@123", SENHA_PADRAO_SISTEMA.lower()):
+            if SENHA_PADRAO_SISTEMA and nova_senha.lower() == SENHA_PADRAO_SISTEMA.lower():
                 nova_senha = SENHA_PADRAO_SISTEMA
             else:
                 validate_password_complexity(nova_senha)
@@ -527,7 +526,7 @@ def reset_senha(id_tecnico: int, request: Optional[ResetSenhaRequest] = None, cu
             msg = "Senha redefinida com sucesso."
         else:
             senha_hash = hash_password(SENHA_PADRAO_SISTEMA)
-            msg = f"Senha resetada para a senha padrão ({SENHA_PADRAO_SISTEMA}) com sucesso."
+            msg = "Senha resetada para a senha padrão de primeiro acesso com sucesso."
 
         cur.execute("UPDATE tb_tecnico SET senha = %s, is_primeiro_acesso = true WHERE id_tecnico = %s;", (senha_hash, id_tecnico))
         

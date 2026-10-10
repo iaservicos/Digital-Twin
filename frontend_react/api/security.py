@@ -14,7 +14,7 @@ except ImportError:
     except ImportError:
         import config
 
-SENHA_PADRAO_SISTEMA = "Brilha@123"
+SENHA_PADRAO_SISTEMA = os.getenv("DEFAULT_USER_PASSWORD", "").strip()
 
 def validate_password_complexity(password: str) -> None:
     """
@@ -55,7 +55,12 @@ def validate_password_complexity(password: str) -> None:
 security_scheme = HTTPBearer(auto_error=False)
 
 def _get_signing_key() -> bytes:
-    # Decodifica a chave base64 idêntica à utilizada pelo Spring Boot
+    # Decodifica a chave base64
+    if not config.JWT_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="JWT_SECRET não configurado no ambiente da aplicação."
+        )
     return base64.b64decode(config.JWT_SECRET)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

@@ -4,6 +4,7 @@ Compatível com psycopg e psycopg2 com pooler Supabase.
 """
 
 import os
+import re
 import logging
 from contextlib import contextmanager
 
@@ -51,7 +52,14 @@ class PostgreSQLClient:
         self.dbname = (POSTGRES_DB or os.getenv("POSTGRES_DB", "postgres")).strip()
         self.user = (POSTGRES_USER or os.getenv("POSTGRES_USER", "")).strip()
         self.password = (POSTGRES_PASSWORD or os.getenv("POSTGRES_PASSWORD", "")).strip()
-        self.schema = (POSTGRES_SCHEMA or os.getenv("POSTGRES_SCHEMA", "public")).strip()
+        
+        # Sanitização defensiva: valida se o schema é um identificador SQL válido (ex: 'public').
+        # Rejeita qualquer token, hash longo ou lixo acidental e força 'public'.
+        raw_schema = (POSTGRES_SCHEMA or os.getenv("POSTGRES_SCHEMA", "public")).strip()
+        if raw_schema and len(raw_schema) <= 32 and re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", raw_schema):
+            self.schema = raw_schema
+        else:
+            self.schema = "public"
 
     def _get_connection(self):
         """
@@ -113,21 +121,22 @@ class PostgreSQLClient:
         if not rows or len(rows) == 0:
             return 0
 
-        target_table = f"{self.schema}.{table_name}"
+        safe_schema = self.schema
+        target_table_escaped = f'"{safe_schema}"."{table_name}"'
+        staging_table_escaped = f'"{safe_schema}"."_staging_{table_name}"'
         rows_count = len(rows)
-        staging_table = f"{self.schema}._staging_{table_name}"
 
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
                 # 1. Garante que staging seja limpa e vazia
-                cur.execute(f"CREATE TABLE IF NOT EXISTS {staging_table} (LIKE {target_table} INCLUDING DEFAULTS);")
-                cur.execute(f"TRUNCATE TABLE {staging_table};")
+                cur.execute(f"CREATE TABLE IF NOT EXISTS {staging_table_escaped} (LIKE {target_table_escaped} INCLUDING DEFAULTS);")
+                cur.execute(f"TRUNCATE TABLE {staging_table_escaped};")
 
                 # 2. Inserção em lotes
                 cols_str = ", ".join(columns)
                 placeholders = ", ".join(["%s"] * len(columns))
-                insert_sql = f"INSERT INTO {staging_table} ({cols_str}) VALUES ({placeholders})"
+                insert_sql = f"INSERT INTO {staging_table_escaped} ({cols_str}) VALUES ({placeholders})"
 
                 cur.executemany(insert_sql, rows)
 
@@ -136,17 +145,17 @@ class PostgreSQLClient:
                     update_cols = [c for c in columns if c != conflict_column]
                     update_stmt = ", ".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
                     cur.execute(f"""
-                        INSERT INTO {target_table} ({cols_str})
-                        SELECT {cols_str} FROM {staging_table}
+                        INSERT INTO {target_table_escaped} ({cols_str})
+                        SELECT {cols_str} FROM {staging_table_escaped}
                         ON CONFLICT ({conflict_column}) DO UPDATE SET {update_stmt};
                     """)
                 else:
                     cur.execute(f"""
-                        INSERT INTO {target_table} ({cols_str})
-                        SELECT {cols_str} FROM {staging_table};
+                        INSERT INTO {target_table_escaped} ({cols_str})
+                        SELECT {cols_str} FROM {staging_table_escaped};
                     """)
 
-                cur.execute(f"DROP TABLE IF EXISTS {staging_table};")
+                cur.execute(f"DROP TABLE IF EXISTS {staging_table_escaped};")
 
             if hasattr(conn, 'commit') and not getattr(conn, 'autocommit', False):
                 conn.commit()

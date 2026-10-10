@@ -22,7 +22,7 @@ export interface PasswordValidationResult extends PasswordCriteria {
   errors: string[];
 }
 
-export const SENHA_PADRAO_SISTEMA = 'Brilha@123';
+export const SENHA_PADRAO_SISTEMA = (import.meta.env.VITE_DEFAULT_USER_PASSWORD || '').trim();
 
 /**
  * Valida a senha contra todos os critérios de complexidade exigidos.

@@ -38,10 +38,7 @@ export default function OnboardingScreen() {
   const passwordValidation = useMemo(() => validatePassword(novaSenha), [novaSenha]);
   const isDifferentFromDefault = Boolean(
     novaSenha &&
-    novaSenha !== SENHA_PADRAO_SISTEMA &&
-    novaSenha !== 'Brilha123' &&
-    novaSenha !== 'brilha123' &&
-    novaSenha !== 'Brilha@123'
+    (!SENHA_PADRAO_SISTEMA || novaSenha.toLowerCase() !== SENHA_PADRAO_SISTEMA.toLowerCase())
   );
   const isMatching = Boolean(novaSenha && confirmaSenha && novaSenha === confirmaSenha);
   const isFormValid = passwordValidation.isValid && isDifferentFromDefault && isMatching;
