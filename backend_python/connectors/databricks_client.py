@@ -70,8 +70,11 @@ class DatabricksClient:
                 catalog=self.catalog,
                 schema=self.schema
             )
-        except ImportError:
-            raise RuntimeError("Biblioteca 'databricks-sql-connector' não instalada no ambiente.")
+        except ImportError as ie:
+            raise RuntimeError(
+                f"Biblioteca 'databricks-sql-connector' ou suas dependências não puderam ser carregadas: {ie}. "
+                "Verifique se o requirements.txt foi instalado no deploy do Vercel."
+            )
 
     def fetch_arrow_batches(self, query: str, batch_size: int = None):
         """Executa consulta SQL no Databricks e retorna gerador de RecordBatches."""

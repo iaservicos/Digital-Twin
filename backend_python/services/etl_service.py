@@ -101,6 +101,8 @@ class ETLService:
         total_batches = 0
 
         try:
+            if pl is None:
+                raise RuntimeError("Biblioteca 'polars' não está instalada no ambiente para processamento do lote Arrow.")
             for arrow_batch in self.databricks.fetch_arrow_batches(query):
                 total_batches += 1
                 df = pl.from_arrow(arrow_batch)
