@@ -20,16 +20,35 @@ try:
 except ImportError:
     pd = None
 
+from contextlib import contextmanager
+
 try:
     import psycopg
     from psycopg.rows import dict_row
+    _USE_PSYCOPG3 = True
 except ImportError:
     try:
         import psycopg2 as psycopg
         from psycopg2.extras import RealDictCursor as dict_row
+        _USE_PSYCOPG3 = False
     except ImportError:
         psycopg = None
         dict_row = None
+        _USE_PSYCOPG3 = False
+
+@contextmanager
+def _get_dict_cursor(conn):
+    """Context manager universal para cursores que retornam dict, compatível com psycopg3 e psycopg2."""
+    if _USE_PSYCOPG3:
+        cur = conn.cursor(row_factory=dict_row)
+    else:
+        from psycopg2.extras import RealDictCursor
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        yield cur
+    finally:
+        cur.close()
+
 
 try:
     from connectors.postgres_client import PostgreSQLClient
@@ -204,7 +223,7 @@ class SpreadsheetIngestService:
                 return
 
             with self.pg_client._get_connection() as conn:
-                with conn.cursor(row_factory=dict_row) as cur:
+                with _get_dict_cursor(conn) as cur:
                     task_progress[task_id] = {
                         "status": "processing", 
                         "progress": 15, 
@@ -441,7 +460,7 @@ class SpreadsheetIngestService:
             total_rows = len(df)
 
             with self.pg_client._get_connection() as conn:
-                with conn.cursor(row_factory=dict_row) as cur:
+                with _get_dict_cursor(conn) as cur:
                     task_progress[task_id] = {
                         "status": "processing", 
                         "progress": 15, 
@@ -745,7 +764,7 @@ class SpreadsheetIngestService:
             total_rows = len(df)
 
             with self.pg_client._get_connection() as conn:
-                with conn.cursor(row_factory=dict_row) as cur:
+                with _get_dict_cursor(conn) as cur:
                     task_progress[task_id] = {
                         "status": "processing", 
                         "progress": 15, 
@@ -946,7 +965,7 @@ class SpreadsheetIngestService:
             total_rows = len(df)
 
             with self.pg_client._get_connection() as conn:
-                with conn.cursor(row_factory=dict_row) as cur:
+                with _get_dict_cursor(conn) as cur:
                     task_progress[task_id] = {
                         "status": "processing", 
                         "progress": 15, 

@@ -2,16 +2,35 @@ import time
 import unicodedata
 from datetime import datetime, date
 from typing import Dict, Any, List, Optional, Tuple
+from contextlib import contextmanager
+
 try:
     import psycopg
     from psycopg.rows import dict_row
+    _USE_PSYCOPG3 = True
 except ImportError:
     try:
         import psycopg2 as psycopg
         from psycopg2.extras import RealDictCursor as dict_row
+        _USE_PSYCOPG3 = False
     except ImportError:
         psycopg = None
         dict_row = None
+        _USE_PSYCOPG3 = False
+
+@contextmanager
+def _get_dict_cursor(conn):
+    """Context manager universal para cursores que retornam dict, compatível com psycopg3 e psycopg2."""
+    if _USE_PSYCOPG3:
+        cur = conn.cursor(row_factory=dict_row)
+    else:
+        from psycopg2.extras import RealDictCursor
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        yield cur
+    finally:
+        cur.close()
+
 
 try:
     from backend_python.connectors.postgres_client import PostgreSQLClient
@@ -66,7 +85,7 @@ class CalculoPontuacaoService:
     # =========================================================================
     # 1. KPI 1: SLA DA EQUIPE (Peso: 32.5 pts)
     # =========================================================================
-    def _calcular_sla_equipe(self, cur: psycopg.Cursor, ano_mes_str: str) -> Dict[str, Dict[str, Any]]:
+    def _calcular_sla_equipe(self, cur: Any, ano_mes_str: str) -> Dict[str, Dict[str, Any]]:
         """
         Calcula o SLA por Base ATP: Chamados com sla_status = 'DENTRO' / Total de Chamados da Base.
         Meta: >= 100% -> 33.5 pts | >= 90% -> 29.0 pts | < 90% -> 0.0 pts (Gatilho).
@@ -195,7 +214,7 @@ class CalculoPontuacaoService:
             }
         return resultado
 
-    def _calcular_sla_individual(self, cur: psycopg.Cursor, ano_mes_str: str) -> Dict[str, Dict[str, Any]]:
+    def _calcular_sla_individual(self, cur: Any, ano_mes_str: str) -> Dict[str, Dict[str, Any]]:
         """
         Calcula o SLA individual do técnico a partir da Base DL (chamados_sla).
         """
@@ -226,7 +245,7 @@ class CalculoPontuacaoService:
     # =========================================================================
     # 2. KPI 2: PERDAS / PERFORMANCE DA EQUIPE (Peso: 21.0 pts)
     # =========================================================================
-    def _calcular_perdas_equipe(self, cur: psycopg.Cursor, ano_mes_str: str) -> Dict[str, Dict[str, float]]:
+    def _calcular_perdas_equipe(self, cur: Any, ano_mes_str: str) -> Dict[str, Dict[str, float]]:
         """
         Calcula as Perdas por Base ATP: 
         Chamados com 'PERFORMANCE FALHA GESTAO' ou 'TRANSFERENCIA ENTRE BASES' / Total de Chamados da Base.
@@ -287,7 +306,7 @@ class CalculoPontuacaoService:
     # =========================================================================
     # 3. KPI 3: REINCIDÊNCIA DA EQUIPE (Peso: 16.0 pts)
     # =========================================================================
-    def _calcular_reincidencia_equipe(self, cur: psycopg.Cursor, ano_mes_str: str, sla_dict: Dict[str, Dict[str, float]]) -> Tuple[Dict[str, Dict[str, float]], Dict[str, int]]:
+    def _calcular_reincidencia_equipe(self, cur: Any, ano_mes_str: str, sla_dict: Dict[str, Dict[str, float]]) -> Tuple[Dict[str, Dict[str, float]], Dict[str, int]]:
         """
         Calcula a Reincidência da Base ATP: TCBCT / TCAC
         Onde:
@@ -421,7 +440,7 @@ class CalculoPontuacaoService:
     # =========================================================================
     def _calcular_reincidencia_individual(
         self, 
-        cur: psycopg.Cursor, 
+        cur: Any, 
         ano_mes_str: str, 
         tec_chamados_dict: Dict[str, int],
         tcac_dict: Optional[Dict[str, int]] = None
@@ -497,7 +516,7 @@ class CalculoPontuacaoService:
     # =========================================================================
     # 5. KPI 5: CONSUMO DE PEÇAS INDIVIDUAL (Peso: 13.5 pts)
     # =========================================================================
-    def _calcular_consumo_pecas_individual(self, cur: psycopg.Cursor, ano_mes_str: str, tec_chamados_dict: Dict[str, int]) -> Tuple[Dict[str, Dict[str, float]], str]:
+    def _calcular_consumo_pecas_individual(self, cur: Any, ano_mes_str: str, tec_chamados_dict: Dict[str, int]) -> Tuple[Dict[str, Dict[str, float]], str]:
         """
         Calcula o Consumo de Peças por Técnico:
         Quantidade de Peças Elegíveis (Placa Mãe, SSD, HD, HDD, Tela LCD) / Total de Chamados Atendidos (BaseDL).
@@ -602,7 +621,7 @@ class CalculoPontuacaoService:
         print(f"[MOTOR ANALÍTICO MODULAR] Iniciando apuração para {ano_mes_str}...")
 
         conn = self.pg_client._get_connection()
-        with conn.cursor(row_factory=dict_row) as cur:
+        with _get_dict_cursor(conn) as cur:
             # 1. Total de Chamados por Técnico (alimentado com prioridade por chamados_sla)
             cur.execute(f"""
                 SELECT 
@@ -858,7 +877,7 @@ class CalculoPontuacaoService:
         """
         start_time = time.time()
         conn = self.pg_client._get_connection()
-        with conn.cursor(row_factory=dict_row) as cur:
+        with _get_dict_cursor(conn) as cur:
             if not camp:
                 cur.execute("SELECT id_campanha, data_inicio, data_fim FROM tb_campanha WHERE ativa = true LIMIT 1;")
                 camp = cur.fetchone()
@@ -998,7 +1017,7 @@ class CalculoPontuacaoService:
         start_time = time.time()
         conn = self.pg_client._get_connection()
         
-        with conn.cursor(row_factory=dict_row) as cur:
+        with _get_dict_cursor(conn) as cur:
             cur.execute("""
                 SELECT id_campanha, data_inicio, data_fim, ativa, duracao_meses
                 FROM tb_campanha

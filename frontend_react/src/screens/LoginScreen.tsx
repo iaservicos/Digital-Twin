@@ -4,7 +4,6 @@ import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import { jwtDecode } from 'jwt-decode';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
-import IntroSplashOverlay from '../components/common/IntroSplashOverlay';
 import MatrixBackground from '../components/common/MatrixBackground';
 
 export default function LoginScreen() {
@@ -13,11 +12,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // Controle de reprodução da intro do vídeo BrilhaMaisV7.mp4 na abertura do site
-  const [showIntro, setShowIntro] = useState(() => {
-    return sessionStorage.getItem('brilha_intro_seen') !== 'true';
-  });
 
   const redirecionarPorPerfil = (role?: string, cargo?: string) => {
     if (role === 'MODERADOR' || role === 'ADMINISTRADOR' || role === 'SUPERVISOR' || cargo === 'Administrador' || cargo === 'Super Administrador' || cargo === 'Supervisor de Campo') {
@@ -95,11 +89,6 @@ export default function LoginScreen() {
 
   return (
     <>
-      {/* Reprodução do Vídeo na abertura inicial com transição cinematográfica */}
-      {showIntro && (
-        <IntroSplashOverlay onFinish={() => setShowIntro(false)} />
-      )}
-
       {/* Plano de Fundo Matrix Cyber Ciano Procedural */}
       <MatrixBackground opacity={0.2} fontSize={10} />
 
