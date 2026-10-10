@@ -35,8 +35,9 @@ except ImportError:
             POSTGRES_SCHEMA = config.POSTGRES_SCHEMA
         except ImportError:
             POSTGRES_HOST = os.getenv("POSTGRES_HOST", "aws-1-us-east-1.pooler.supabase.com")
-            POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+            POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "6543"))
             POSTGRES_DB = os.getenv("POSTGRES_DB", "postgres")
+            POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres.eychznasujcjfdupizfm")
             POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
             POSTGRES_SCHEMA = os.getenv("POSTGRES_SCHEMA", "public")
 
@@ -46,31 +47,50 @@ logger = logging.getLogger(__name__)
 class PostgreSQLClient:
     def __init__(self) -> None:
         self.host = POSTGRES_HOST or "aws-1-us-east-1.pooler.supabase.com"
-        self.port = POSTGRES_PORT or 5432
+        self.port = POSTGRES_PORT or 6543
         self.dbname = POSTGRES_DB or "postgres"
-        self.user = POSTGRES_USER or "postgres"
-        self.password = POSTGRES_PASSWORD or ""
+        self.user = POSTGRES_USER or "postgres.eychznasujcjfdupizfm"
+        self.password = POSTGRES_PASSWORD or os.getenv("POSTGRES_PASSWORD", "")
         self.schema = POSTGRES_SCHEMA or "public"
 
     def _get_connection(self):
-        """Abre conexão com fallback de porta 5432/6543."""
-        try:
-            import psycopg
-            conn_info = (
-                f"host={self.host} port={self.port} dbname={self.dbname} "
-                f"user={self.user} password={self.password} sslmode=require"
-            )
-            conn = psycopg.connect(conn_info, autocommit=True)
-            with conn.cursor() as cur:
-                cur.execute("SET default_transaction_read_only = off;")
-            return conn
-        except Exception:
-            import psycopg2
-            return psycopg2.connect(
-                host=self.host, port=self.port, dbname=self.dbname,
-                user=self.user, password=self.password, sslmode="require",
-                connect_timeout=8
-            )
+        """
+        Abre conexão com fallback automático bidirecional (porta 6543 Transaction Pooler <-> 5432).
+        Tenta psycopg e psycopg2 com timeout de 15s.
+        """
+        alt_port = 5432 if self.port == 6543 else 6543
+        ports_to_try = [self.port, alt_port]
+
+        last_error = None
+        for p in ports_to_try:
+            try:
+                import psycopg
+                conn_info = (
+                    f"host={self.host} port={p} dbname={self.dbname} "
+                    f"user={self.user} password={self.password} sslmode=require "
+                    f"connect_timeout=15"
+                )
+                conn = psycopg.connect(conn_info, autocommit=True)
+                with conn.cursor() as cur:
+                    cur.execute("SET default_transaction_read_only = off;")
+                logger.info(f"Conexão psycopg estabelecida com sucesso na porta {p}.")
+                return conn
+            except Exception as e_psy3:
+                try:
+                    import psycopg2
+                    conn = psycopg2.connect(
+                        host=self.host, port=p, dbname=self.dbname,
+                        user=self.user, password=self.password, sslmode="require",
+                        connect_timeout=15
+                    )
+                    logger.info(f"Conexão psycopg2 estabelecida com sucesso na porta {p}.")
+                    return conn
+                except Exception as e_psy2:
+                    last_error = e_psy2
+                    logger.warning(f"Falha ao conectar no host {self.host}:{p} ({e_psy2}). Tentando próxima porta...")
+
+        logger.error(f"Falha em todas as portas {ports_to_try} para o host {self.host}: {last_error}")
+        raise last_error
 
     def execute_query(self, query: str) -> None:
         """Executa query DML com commit automático."""

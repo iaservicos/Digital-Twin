@@ -16,22 +16,22 @@ logger = logging.getLogger(__name__)
 _conn = None
 
 def _create_connection():
-    """Cria uma nova conexão com o PostgreSQL/Supabase com fallback de resiliência."""
+    """Cria uma nova conexão com o PostgreSQL/Supabase com fallback de resiliência (6543/5432)."""
     host = config.POSTGRES_HOST
     # Se na Vercel o host estiver configurado como localhost ou postgres, usa o Supabase
     if host in ["localhost", "127.0.0.1", "postgres", None, ""]:
         host = "aws-1-us-east-1.pooler.supabase.com"
 
-    port = config.POSTGRES_PORT or 5432
+    port = config.POSTGRES_PORT or 6543
     user = config.POSTGRES_USER
     if user in ["postgres", None, ""]:
         user = "postgres.eychznasujcjfdupizfm"
 
-    password = config.POSTGRES_PASSWORD
-    if password in ["sua_senha_postgres_aqui", None, ""]:
-        password = "Br@sil#$%2026"
-
+    password = config.POSTGRES_PASSWORD or os.getenv("POSTGRES_PASSWORD", "")
     dbname = config.POSTGRES_DB or "postgres"
+
+    # Porta alternativa para fallback automático
+    alt_port = 5432 if port == 6543 else 6543
 
     try:
         return psycopg2.connect(
@@ -41,18 +41,18 @@ def _create_connection():
             user=user,
             password=password,
             sslmode="require",
-            connect_timeout=8
+            connect_timeout=15
         )
     except Exception as err:
-        logger.warning(f"Falha ao conectar no host {host}:{port} ({err}). Tentando fallback Supabase porta 6543...")
+        logger.warning(f"Falha ao conectar no host {host}:{port} ({err}). Tentando fallback Supabase porta {alt_port}...")
         return psycopg2.connect(
-            host="aws-1-us-east-1.pooler.supabase.com",
-            port=6543,
-            dbname="postgres",
-            user="postgres.eychznasujcjfdupizfm",
-            password="Br@sil#$%2026",
+            host=host,
+            port=alt_port,
+            dbname=dbname,
+            user=user,
+            password=password,
             sslmode="require",
-            connect_timeout=8
+            connect_timeout=15
         )
 
 @contextmanager

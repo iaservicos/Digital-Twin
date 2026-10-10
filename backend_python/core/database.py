@@ -13,22 +13,39 @@ _pool = None
 def get_connection_pool():
     global _pool
     if _pool is None or _pool.closed:
+        port = config.POSTGRES_PORT or 6543
+        alt_port = 5432 if port == 6543 else 6543
         try:
             _pool = pool.ThreadedConnectionPool(
                 minconn=1,
                 maxconn=10,
                 host=config.POSTGRES_HOST,
-                port=config.POSTGRES_PORT,
+                port=port,
                 dbname=config.POSTGRES_DB,
                 user=config.POSTGRES_USER,
                 password=config.POSTGRES_PASSWORD,
                 sslmode="require",
-                connect_timeout=10
+                connect_timeout=15
             )
-            logger.info("Pool de conexões PostgreSQL/Supabase inicializado com sucesso.")
+            logger.info(f"Pool de conexões PostgreSQL/Supabase inicializado com sucesso na porta {port}.")
         except Exception as e:
-            logger.error(f"Erro ao inicializar o pool de conexões: {e}")
-            raise
+            logger.warning(f"Erro ao inicializar pool na porta {port} ({e}). Tentando fallback na porta {alt_port}...")
+            try:
+                _pool = pool.ThreadedConnectionPool(
+                    minconn=1,
+                    maxconn=10,
+                    host=config.POSTGRES_HOST,
+                    port=alt_port,
+                    dbname=config.POSTGRES_DB,
+                    user=config.POSTGRES_USER,
+                    password=config.POSTGRES_PASSWORD,
+                    sslmode="require",
+                    connect_timeout=15
+                )
+                logger.info(f"Pool de conexões inicializado com sucesso na porta de fallback {alt_port}.")
+            except Exception as e_alt:
+                logger.error(f"Erro ao inicializar pool de conexões em ambas as portas: {e_alt}")
+                raise e_alt
     return _pool
 
 @contextmanager
