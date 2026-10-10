@@ -101,18 +101,30 @@ class ETLService:
         total_batches = 0
 
         try:
-            if pl is None:
-                raise RuntimeError("Biblioteca 'polars' não está instalada no ambiente para processamento do lote Arrow.")
-            for arrow_batch in self.databricks.fetch_arrow_batches(query):
-                total_batches += 1
-                df = pl.from_arrow(arrow_batch)
-                
-                rows_inserted = self.postgres.write_polars_df(
-                    df=df,
-                    table_name=target_table,
-                    conflict_column=conflict_column
-                )
-                total_rows += rows_inserted
+            # Prioriza streaming leve e nativo em tuplas (zero dependência de polars/pyarrow)
+            if hasattr(self.databricks, 'fetch_native_batches'):
+                for columns, rows in self.databricks.fetch_native_batches(query):
+                    total_batches += 1
+                    rows_inserted = self.postgres.write_tuples_batch(
+                        columns=columns,
+                        rows=rows,
+                        table_name=target_table,
+                        conflict_column=conflict_column
+                    )
+                    total_rows += rows_inserted
+            else:
+                # Fallback retrocompatível
+                for arrow_batch in self.databricks.fetch_arrow_batches(query):
+                    total_batches += 1
+                    cols = arrow_batch.schema.names
+                    rows = [tuple(r.get(c) for c in cols) for r in arrow_batch.to_pylist()]
+                    rows_inserted = self.postgres.write_tuples_batch(
+                        columns=cols,
+                        rows=rows,
+                        table_name=target_table,
+                        conflict_column=conflict_column
+                    )
+                    total_rows += rows_inserted
 
             elapsed_time = round(time.time() - start_time, 2)
             summary = {

@@ -105,13 +105,16 @@ class PostgreSQLClient:
         finally:
             conn.close()
 
-    def write_polars_df(self, df, table_name: str, conflict_column: str = None) -> int:
-        """Persiste um DataFrame na tabela de destino com staging upsert."""
-        if df is None or len(df) == 0:
+    def write_tuples_batch(self, columns: list, rows: list, table_name: str, conflict_column: str = None) -> int:
+        """
+        Persiste um lote de tuplas diretamente na tabela de destino com staging upsert nativo,
+        sem depender de Polars, PyArrow ou Pandas.
+        """
+        if not rows or len(rows) == 0:
             return 0
 
         target_table = f"{self.schema}.{table_name}"
-        rows_count = len(df)
+        rows_count = len(rows)
         staging_table = f"{self.schema}._staging_{table_name}"
 
         conn = self._get_connection()
@@ -122,20 +125,11 @@ class PostgreSQLClient:
                 cur.execute(f"TRUNCATE TABLE {staging_table};")
 
                 # 2. Inserção em lotes
-                columns = list(df.columns)
                 cols_str = ", ".join(columns)
                 placeholders = ", ".join(["%s"] * len(columns))
-
                 insert_sql = f"INSERT INTO {staging_table} ({cols_str}) VALUES ({placeholders})"
-                
-                # Converte rows para tuplas
-                try:
-                    records = df.to_dicts()
-                    tuples = [tuple(r.get(c) for c in columns) for r in records]
-                except Exception:
-                    tuples = [tuple(row) for row in df.iter_rows()]
 
-                cur.executemany(insert_sql, tuples)
+                cur.executemany(insert_sql, rows)
 
                 # 3. Merge/Upsert
                 if conflict_column and conflict_column in columns:
@@ -159,3 +153,16 @@ class PostgreSQLClient:
             return rows_count
         finally:
             conn.close()
+
+    def write_polars_df(self, df, table_name: str, conflict_column: str = None) -> int:
+        """Persiste um DataFrame na tabela de destino (mantido para retrocompatibilidade)."""
+        if df is None or len(df) == 0:
+            return 0
+        columns = list(df.columns)
+        try:
+            records = df.to_dicts()
+            tuples = [tuple(r.get(c) for c in columns) for r in records]
+        except Exception:
+            tuples = [tuple(row) for row in df.iter_rows()]
+        return self.write_tuples_batch(columns=columns, rows=tuples, table_name=table_name, conflict_column=conflict_column)
+

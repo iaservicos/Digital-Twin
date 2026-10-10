@@ -76,6 +76,23 @@ class DatabricksClient:
                 "Verifique se o requirements.txt foi instalado no deploy do Vercel."
             )
 
+    def fetch_native_batches(self, query: str, batch_size: int = None):
+        """
+        Executa consulta SQL no Databricks e retorna gerador leve de (colunas, linhas_tuplas)
+        usando o cursor nativo sem overhead de memória ou dependências de terceiros.
+        """
+        size = batch_size or self.batch_size
+        logger.info(f"Executando query no Databricks (Lote nativo: {size} registros)...")
+        with self._get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                cols = [desc[0] for desc in cursor.description] if cursor.description else []
+                while True:
+                    rows = cursor.fetchmany(size)
+                    if not rows or len(rows) == 0:
+                        break
+                    yield cols, rows
+
     def fetch_arrow_batches(self, query: str, batch_size: int = None):
         """Executa consulta SQL no Databricks e retorna gerador de RecordBatches."""
         size = batch_size or self.batch_size
@@ -88,3 +105,4 @@ class DatabricksClient:
                     if not batch or len(batch) == 0:
                         break
                     yield batch
+

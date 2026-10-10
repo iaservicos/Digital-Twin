@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/index.py": {
+      "excludeFiles": "{node_modules,src,dist}/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/v1/(.*)",
