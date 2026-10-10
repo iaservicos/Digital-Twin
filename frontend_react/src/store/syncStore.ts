@@ -193,21 +193,21 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         }
       });
 
-      // 3. Etapa de Peças (~10s)
+      // 3. Etapa de Peças (~10s via COPY)
       set({
         tracker: {
           ...get().tracker,
           progress: 75,
           step: 'Extraindo e gravando Peças (3/4)...',
           current_table: 'Peças',
-          estimated_seconds_remaining: 12,
+          estimated_seconds_remaining: 15,
           tables: {
             ...get().tracker.tables,
             pecas: { status: 'processing', rows: 0, seconds: 0 }
           }
         }
       });
-      const resPecas = await axios.post(`${pythonApiUrl}/api/v1/sync/step/pecas`, payload, { headers, timeout: 25000 });
+      const resPecas = await axios.post(`${pythonApiUrl}/api/v1/sync/step/pecas`, payload, { headers, timeout: 60000 });
       const rowsPecas = resPecas.data?.summary?.total_rows || 0;
       const secPecas = resPecas.data?.summary?.elapsed_seconds || 10;
       set({
@@ -231,7 +231,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
           estimated_seconds_remaining: 5
         }
       });
-      await axios.post(`${pythonApiUrl}/api/v1/sync/step/consolidar`, payload, { headers, timeout: 25000 });
+      await axios.post(`${pythonApiUrl}/api/v1/sync/step/consolidar`, payload, { headers, timeout: 60000 });
 
       // Sucesso Total!
       const totalRowsAll = rowsChamados + rowsReinc + rowsPecas;
@@ -260,6 +260,10 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
           estimated_seconds_remaining: 0
         }
       });
+      // Notifica o backend imediatamente para abortar status zumbi e quebrar loops infinitos
+      try {
+        await axios.post(`${pythonApiUrl}/api/v1/sync/status/abort`, { error: errDetail }, { headers, timeout: 5000 }).catch(() => null);
+      } catch {}
       throw error;
     }
   },

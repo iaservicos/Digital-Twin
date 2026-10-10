@@ -109,6 +109,19 @@ class ETLService:
             if hasattr(self.databricks, 'fetch_native_batches'):
                 for columns, rows in self.databricks.fetch_native_batches(query):
                     total_batches += 1
+
+                    # Otimização: para peças, pré-calcula subgrupo em memória para evitar UPDATE pós-carga no Postgres
+                    if target_table == 'pecas' and 'subgrupo' not in columns:
+                        idx_cod = columns.index('cod_aplic_desc') if 'cod_aplic_desc' in columns else -1
+                        idx_grp = columns.index('grupo_mercadoria_desc') if 'grupo_mercadoria_desc' in columns else -1
+                        augmented_rows = []
+                        for r in rows:
+                            cod_val = r[idx_cod] if idx_cod >= 0 else ''
+                            grp_val = r[idx_grp] if idx_grp >= 0 else ''
+                            augmented_rows.append(r + (self.classificar_subgrupo_peca(cod_val, grp_val),))
+                        rows = augmented_rows
+                        columns = list(columns) + ['subgrupo']
+
                     rows_inserted = self.postgres.write_tuples_batch(
                         columns=columns,
                         rows=rows,
@@ -122,6 +135,18 @@ class ETLService:
                     total_batches += 1
                     cols = arrow_batch.schema.names
                     rows = [tuple(r.get(c) for c in cols) for r in arrow_batch.to_pylist()]
+
+                    if target_table == 'pecas' and 'subgrupo' not in cols:
+                        idx_cod = cols.index('cod_aplic_desc') if 'cod_aplic_desc' in cols else -1
+                        idx_grp = cols.index('grupo_mercadoria_desc') if 'grupo_mercadoria_desc' in cols else -1
+                        augmented_rows = []
+                        for r in rows:
+                            cod_val = r[idx_cod] if idx_cod >= 0 else ''
+                            grp_val = r[idx_grp] if idx_grp >= 0 else ''
+                            augmented_rows.append(r + (self.classificar_subgrupo_peca(cod_val, grp_val),))
+                        rows = augmented_rows
+                        cols = list(cols) + ['subgrupo']
+
                     rows_inserted = self.postgres.write_tuples_batch(
                         columns=cols,
                         rows=rows,
@@ -445,8 +470,26 @@ class ETLService:
         self.update_progress(65, f"Reincidências concluídas ({res_reincidentes['total_rows']:,} registros)", "Reincidências")
         return res_reincidentes
 
+    @staticmethod
+    def classificar_subgrupo_peca(cod_desc: str, grp_desc: str) -> str:
+        """Classifica o subgrupo da peça em milissegundos via regex compilado em memória."""
+        import re
+        val = f"{cod_desc or ''} {grp_desc or ''}"
+        if re.search(r'(PLM|PLACA M|MOTHERBOARD)', val, re.I): return 'Placa Mãe'
+        if re.search(r'(MEMORIA|MEMÓRIA|\bDDR\b|\bRAM\b)', val, re.I): return 'Memória'
+        if re.search(r'\bSSD\b', val, re.I): return 'SSD'
+        if re.search(r'(HARD DISK|\bHD\b|\bHDD\b)', val, re.I): return 'HD'
+        if re.search(r'(LCD|TELA|DISPLAY|PAINEL)', val, re.I): return 'Tela / LCD'
+        if re.search(r'BATER', val, re.I): return 'Bateria'
+        if re.search(r'TECL', val, re.I): return 'Teclado'
+        if re.search(r'(TAMPA|TRASEIR|FRONT|DECO|FRAME|CARC)', val, re.I): return 'Gabinete / Carcaça'
+        if re.search(r'(FONTE|CARREG|ADAPTADOR AC)', val, re.I): return 'Fonte / Carregador'
+        if re.search(r'IMPR', val, re.I): return 'Impressora Térmica'
+        if re.search(r'PROCESSADOR', val, re.I): return 'Processador'
+        return grp_desc or 'Outros'
+
     def sync_step_pecas(self, data_inicio: str = None, data_fim: str = None, limit_per_table: int = None) -> dict:
-        """Etapa 3 atômica: Extrai e grava a tabela de peças com filtro cirúrgico (~10s)."""
+        """Etapa 3 atômica: Extrai e grava a tabela de peças com filtro cirúrgico e alta performance (~12s)."""
         data_inicio, data_fim = self.resolve_periodo(data_inicio, data_fim)
         clean_inicio = data_inicio.replace("'", "''")
         clean_fim = data_fim.replace("'", "''")
@@ -455,10 +498,19 @@ class ETLService:
         limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
 
         self.update_progress(75, "Extraindo e gravando Peças (3/4)...", "Peças")
+
+        # 1. DELETE ultra-rápido indexado por ft (~1s)
+        self.postgres.execute_query(f"DELETE FROM public.pecas WHERE ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59';")
+        # 2. DELETE indexado por chamados de reincidentes (~0.5s)
         self.postgres.execute_query(f"""
             DELETE FROM public.pecas 
-            WHERE 1=1{date_clause_ft}
-               OR chamado IN (SELECT chamado_anterior FROM public.reincidentes WHERE chamado_anterior IS NOT NULL AND UPPER(aplicado_peca_anterior) = 'SIM'{date_clause_rrc_pg});
+            WHERE chamado IN (
+                SELECT chamado_anterior 
+                FROM public.reincidentes 
+                WHERE chamado_anterior IS NOT NULL 
+                  AND UPPER(aplicado_peca_anterior) = 'SIM'
+                  {date_clause_rrc_pg}
+            );
         """)
 
         cols_pecas = """
@@ -478,29 +530,6 @@ class ETLService:
             "rows": res_pecas["total_rows"],
             "seconds": res_pecas["elapsed_seconds"]
         }
-
-        # Normalização de subgrupo
-        try:
-            self.postgres.execute_query("""
-                UPDATE public.pecas 
-                SET subgrupo = CASE 
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(PLM|PLACA M|MOTHERBOARD)' THEN 'Placa Mãe'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(MEMORIA|MEMÓRIA|\\bDDR\\b|\\bRAM\\b)' THEN 'Memória'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '\\bSSD\\b' THEN 'SSD'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(HARD DISK|\\bHD\\b|\\bHDD\\b)' THEN 'HD'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(LCD|TELA|DISPLAY|PAINEL)' THEN 'Tela / LCD'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'BATER' THEN 'Bateria'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'TECL' THEN 'Teclado'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(TAMPA|TRASEIR|FRONT|DECO|FRAME|CARC)' THEN 'Gabinete / Carcaça'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(FONTE|CARREG|ADAPTADOR AC)' THEN 'Fonte / Carregador'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'IMPR' THEN 'Impressora Térmica'
-                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'PROCESSADOR' THEN 'Processador'
-                    ELSE COALESCE(grupo_mercadoria_desc, 'Outros')
-                END
-                WHERE subgrupo IS NULL OR subgrupo = '';
-            """)
-        except Exception as e_sub:
-            logger.warning(f"Erro ao normalizar subgrupo de pecas: {e_sub}")
 
         self.update_progress(88, f"Peças concluídas ({res_pecas['total_rows']:,} registros)", "Peças")
         return res_pecas

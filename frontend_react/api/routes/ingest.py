@@ -59,7 +59,24 @@ def get_sync_status() -> Dict[str, Any]:
     except Exception as e:
         logger.warning(f"Erro ao consultar sync status no banco: {e}")
 
-    return sync_status_tracker
+@router.post("/sync/status/abort", response_model=Dict[str, Any])
+def abort_sync_endpoint(body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Endpoint chamado para abortar status zumbi no PostgreSQL quando ocorre falha."""
+    err_msg = body.get("error", "Sincronização abortada.") if body else "Sincronização abortada."
+    try:
+        from connectors.postgres_client import PostgreSQLClient
+    except ImportError:
+        try:
+            from api.connectors.postgres_client import PostgreSQLClient
+        except ImportError:
+            from backend_python.connectors.postgres_client import PostgreSQLClient
+
+    try:
+        PostgreSQLClient().abort_sync_status(err_msg)
+    except Exception as e:
+        logger.warning(f"Erro ao abortar status no banco: {e}")
+
+    return {"status": "success", "message": "Status abortado."}
 
 
 # ==============================================================================
