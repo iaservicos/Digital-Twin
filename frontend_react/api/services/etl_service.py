@@ -362,6 +362,25 @@ class ETLService:
 
         start_all_time = time.time()
         
+        # Validação preventiva de credenciais do Databricks antes de iniciar as queries
+        if not self.databricks.access_token:
+            err_msg = (
+                "DATABRICKS_ACCESS_TOKEN não configurado no ambiente Vercel. "
+                "Cadastre a variável nas Environment Variables do projeto (escopo Production) e acione o Redeploy."
+            )
+            sync_status_tracker.update({
+                "status": "failed",
+                "error": err_msg,
+                "step": "Falha de credenciais Databricks",
+                "tables": {
+                    "chamados": {"status": "failed", "rows": 0, "seconds": 0},
+                    "reincidentes": {"status": "pending", "rows": 0, "seconds": 0},
+                    "pecas": {"status": "pending", "rows": 0, "seconds": 0}
+                }
+            })
+            logger.error(err_msg)
+            raise RuntimeError(err_msg)
+
         # Resetar o Tracker para o início do processamento com timestamp inicial
         sync_status_tracker.update({
             "status": "processing",

@@ -65,13 +65,14 @@ def healthcheck():
 
 @app.get("/api/v1/diagnostic")
 def diagnostic():
+    postgres_status = {}
     try:
         from core import config
         from core.database import get_db_cursor
         with get_db_cursor() as cur:
             cur.execute("SELECT current_database() as db, current_user as usr, version() as ver;")
             db_info = cur.fetchone()
-        return {
+        postgres_status = {
             "status": "CONECTADO",
             "db_info": db_info,
             "host": config.POSTGRES_HOST,
@@ -79,12 +80,47 @@ def diagnostic():
             "user": config.POSTGRES_USER
         }
     except Exception as e:
-        return {
+        postgres_status = {
             "status": "FALHA_CONEXAO",
             "error_type": type(e).__name__,
             "error": str(e),
             "traceback": traceback.format_exc()
         }
+
+    # Diagnóstico Seguro do Databricks (Verifica injeção de variáveis sem vazar o token)
+    databricks_status = {}
+    try:
+        from connectors.databricks_client import DatabricksClient
+        db_client = DatabricksClient()
+        token_detected = bool(db_client.access_token)
+        token_source = None
+        for key in ["DATABRICKS_ACCESS_TOKEN", "DATABRICKS_TOKEN", "DATABRICKS_PAT", "VITE_DATABRICKS_ACCESS_TOKEN"]:
+            if os.getenv(key):
+                token_source = key
+                break
+
+        databricks_status = {
+            "token_configured": token_detected,
+            "token_source": token_source,
+            "token_length": len(db_client.access_token) if token_detected else 0,
+            "server_hostname": db_client.server_hostname,
+            "http_path": db_client.http_path,
+            "catalog": db_client.catalog,
+            "schema": db_client.schema,
+            "batch_size": db_client.batch_size
+        }
+    except Exception as ex:
+        databricks_status = {
+            "error": str(ex),
+            "error_type": type(ex).__name__
+        }
+
+    return {
+        "status": postgres_status.get("status", "DESCONHECIDO"),
+        "postgres": postgres_status,
+        "databricks": databricks_status,
+        "timestamp": datetime.now().isoformat()
+    }
 
 # Inclui os roteadores com prefixo vazio (ex: /auth/login) e prefixo /api/v1 (ex: /api/v1/auth/login)
 # Isso garante que qualquer requisição vinda do frontend (com ou sem /api/v1) funcione perfeitamente!

@@ -6,22 +6,60 @@ import os
 import logging
 from typing import Generator, Any
 
+from dotenv import load_dotenv
+
+# Carrega variáveis de ambiente do .env da raiz do projeto ou diretórios superiores se existirem
+for env_candidate in [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.env')),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.env')),
+]:
+    if os.path.exists(env_candidate):
+        load_dotenv(dotenv_path=env_candidate)
+        break
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 
 
 class DatabricksClient:
     def __init__(self) -> None:
-        self.server_hostname = os.getenv("DATABRICKS_SERVER_HOSTNAME", "dbc-9b65f5c1-978c.cloud.databricks.com")
-        self.http_path = os.getenv("DATABRICKS_HTTP_PATH", "/sql/1.0/warehouses/d3fd04c34a6e5ff0")
-        self.access_token = os.getenv("DATABRICKS_ACCESS_TOKEN", "")
-        self.catalog = os.getenv("DATABRICKS_CATALOG", "datalake_prod")
-        self.schema = os.getenv("DATABRICKS_SCHEMA", "indicadores_servicos")
-        self.batch_size = int(os.getenv("BATCH_SIZE", "10000"))
+        self.server_hostname = (
+            os.getenv("DATABRICKS_SERVER_HOSTNAME") or
+            os.getenv("DATABRICKS_HOST") or
+            "dbc-9b65f5c1-978c.cloud.databricks.com"
+        ).strip()
+        self.http_path = (
+            os.getenv("DATABRICKS_HTTP_PATH") or
+            "/sql/1.0/warehouses/d3fd04c34a6e5ff0"
+        ).strip()
+        self.access_token = (
+            os.getenv("DATABRICKS_ACCESS_TOKEN") or
+            os.getenv("DATABRICKS_TOKEN") or
+            os.getenv("DATABRICKS_PAT") or
+            os.getenv("VITE_DATABRICKS_ACCESS_TOKEN") or
+            ""
+        ).strip()
+        self.catalog = (
+            os.getenv("DATABRICKS_CATALOG") or
+            "datalake_prod"
+        ).strip()
+        self.schema = (
+            os.getenv("DATABRICKS_SCHEMA") or
+            "indicadores_servicos"
+        ).strip()
+        raw_batch_size = (os.getenv("BATCH_SIZE") or "10000").strip()
+        try:
+            self.batch_size = int(raw_batch_size)
+        except ValueError:
+            self.batch_size = 10000
 
     def _get_connection(self) -> Any:
         """Cria e retorna uma nova conexão com o Databricks SQL Warehouse."""
         if not self.access_token:
-            raise RuntimeError("DATABRICKS_ACCESS_TOKEN não configurado no ambiente.")
+            raise RuntimeError(
+                "DATABRICKS_ACCESS_TOKEN não configurado no ambiente Vercel/local. "
+                "Verifique se a variável está cadastrada no Vercel (escopo Production) e faça um Redeploy."
+            )
         try:
             from databricks import sql
             logger.info("Estabelecendo conexão com Databricks SQL Warehouse...")
