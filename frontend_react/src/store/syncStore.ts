@@ -50,21 +50,13 @@ export const getPythonHeaders = () => {
 };
 
 export const getPythonApiUrl = () => {
-  const envUrl = import.meta.env.VITE_DATA_INGEST_URL || import.meta.env.VITE_PYTHON_API_URL;
-  if (envUrl) {
-    return envUrl.trim().replace(/\/+$/, '');
+  const envUrl = (import.meta.env.VITE_DATA_INGEST_URL || import.meta.env.VITE_PYTHON_API_URL || '').trim();
+  // Se houver uma URL externa explícita em produção (ex: backend dedicado fora da Vercel)
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1') && !envUrl.includes('onrender.com')) {
+    return envUrl.replace(/\/+$/, '');
   }
-  if (typeof window !== 'undefined' && window.location.hostname) {
-    const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1') {
-      return 'http://localhost:8000';
-    }
-    // Suporte a acesso via IP da rede local
-    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
-      return `http://${host}:8000`;
-    }
-  }
-  // Em produção com proxy ou na mesma origem
+  // Em produção no Vercel (onde /api/v1 é servido pelo Python Serverless na mesma origem)
+  // e em desenvolvimento local (via Vite proxy /api -> localhost:8080):
   return '';
 };
 

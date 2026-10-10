@@ -46,16 +46,6 @@ export default defineConfig({
       usePolling: true
     },
     proxy: {
-      '/api/v1/sync': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/api/v1/calculo': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
