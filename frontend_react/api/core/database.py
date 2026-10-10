@@ -17,18 +17,14 @@ _conn = None
 
 def _create_connection():
     """Cria uma nova conexão com o PostgreSQL/Supabase com fallback de resiliência (6543/5432)."""
-    host = config.POSTGRES_HOST
-    # Se na Vercel o host estiver configurado como localhost ou postgres, usa o Supabase
-    if host in ["localhost", "127.0.0.1", "postgres", None, ""]:
-        host = "aws-1-us-east-1.pooler.supabase.com"
+    host = (config.POSTGRES_HOST or os.getenv("POSTGRES_HOST", "")).strip()
+    port = int(str(config.POSTGRES_PORT or os.getenv("POSTGRES_PORT", "6543")).strip())
+    user = (config.POSTGRES_USER or os.getenv("POSTGRES_USER", "")).strip()
+    password = (config.POSTGRES_PASSWORD or os.getenv("POSTGRES_PASSWORD", "")).strip()
+    dbname = (config.POSTGRES_DB or os.getenv("POSTGRES_DB", "postgres")).strip()
 
-    port = config.POSTGRES_PORT or 6543
-    user = config.POSTGRES_USER
-    if user in ["postgres", None, ""]:
-        user = "postgres.eychznasujcjfdupizfm"
-
-    password = config.POSTGRES_PASSWORD or os.getenv("POSTGRES_PASSWORD", "")
-    dbname = config.POSTGRES_DB or "postgres"
+    if not host or not user:
+        raise RuntimeError("POSTGRES_HOST e POSTGRES_USER devem ser configurados via variáveis de ambiente.")
 
     # Porta alternativa para fallback automático
     alt_port = 5432 if port == 6543 else 6543

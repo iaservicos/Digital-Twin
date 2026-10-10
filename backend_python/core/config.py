@@ -11,13 +11,13 @@ for env_candidate in [
         break
 load_dotenv()
 
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "aws-1-us-east-1.pooler.supabase.com")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "").strip()
 # Usa a porta 6543 (PgBouncer Transaction Pooler recomendado para Serverless) ou 5432
-POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "6543"))
-POSTGRES_DB = os.getenv("POSTGRES_DB", "postgres")
-POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres.eychznasujcjfdupizfm")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
-POSTGRES_SCHEMA = os.getenv("POSTGRES_SCHEMA", "public")
+POSTGRES_PORT = int(str(os.getenv("POSTGRES_PORT", "6543")).strip())
+POSTGRES_DB = os.getenv("POSTGRES_DB", "postgres").strip()
+POSTGRES_USER = os.getenv("POSTGRES_USER", "").strip()
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "").strip()
+POSTGRES_SCHEMA = os.getenv("POSTGRES_SCHEMA", "public").strip()
 
 JWT_SECRET = os.getenv("JWT_SECRET", "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970")
 JWT_ALGORITHM = "HS384"

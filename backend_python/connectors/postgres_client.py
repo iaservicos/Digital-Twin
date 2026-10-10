@@ -34,30 +34,32 @@ except ImportError:
             POSTGRES_PASSWORD = config.POSTGRES_PASSWORD
             POSTGRES_SCHEMA = config.POSTGRES_SCHEMA
         except ImportError:
-            POSTGRES_HOST = os.getenv("POSTGRES_HOST", "aws-1-us-east-1.pooler.supabase.com")
-            POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "6543"))
-            POSTGRES_DB = os.getenv("POSTGRES_DB", "postgres")
-            POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres.eychznasujcjfdupizfm")
-            POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
-            POSTGRES_SCHEMA = os.getenv("POSTGRES_SCHEMA", "public")
+            POSTGRES_HOST = os.getenv("POSTGRES_HOST", "").strip()
+            POSTGRES_PORT = int(str(os.getenv("POSTGRES_PORT", "6543")).strip())
+            POSTGRES_DB = os.getenv("POSTGRES_DB", "postgres").strip()
+            POSTGRES_USER = os.getenv("POSTGRES_USER", "").strip()
+            POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "").strip()
+            POSTGRES_SCHEMA = os.getenv("POSTGRES_SCHEMA", "public").strip()
 
 logger = logging.getLogger(__name__)
 
 
 class PostgreSQLClient:
     def __init__(self) -> None:
-        self.host = POSTGRES_HOST or "aws-1-us-east-1.pooler.supabase.com"
-        self.port = POSTGRES_PORT or 6543
-        self.dbname = POSTGRES_DB or "postgres"
-        self.user = POSTGRES_USER or "postgres.eychznasujcjfdupizfm"
-        self.password = POSTGRES_PASSWORD or os.getenv("POSTGRES_PASSWORD", "")
-        self.schema = POSTGRES_SCHEMA or "public"
+        self.host = (POSTGRES_HOST or os.getenv("POSTGRES_HOST", "")).strip()
+        self.port = int(str(POSTGRES_PORT or os.getenv("POSTGRES_PORT", "6543")).strip())
+        self.dbname = (POSTGRES_DB or os.getenv("POSTGRES_DB", "postgres")).strip()
+        self.user = (POSTGRES_USER or os.getenv("POSTGRES_USER", "")).strip()
+        self.password = (POSTGRES_PASSWORD or os.getenv("POSTGRES_PASSWORD", "")).strip()
+        self.schema = (POSTGRES_SCHEMA or os.getenv("POSTGRES_SCHEMA", "public")).strip()
 
     def _get_connection(self):
         """
         Abre conexão com fallback automático bidirecional (porta 6543 Transaction Pooler <-> 5432).
         Tenta psycopg e psycopg2 com timeout de 15s.
         """
+        if not self.host or not self.user:
+            raise RuntimeError("Configurações do banco de dados (POSTGRES_HOST, POSTGRES_USER) não configuradas nas variáveis de ambiente.")
         alt_port = 5432 if self.port == 6543 else 6543
         ports_to_try = [self.port, alt_port]
 
