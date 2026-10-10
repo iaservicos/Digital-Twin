@@ -114,16 +114,6 @@ def login(request: AuthRequest, request_http: Request):
     disp, nav = parse_client_device_and_browser(ua)
 
     with get_db_cursor(commit=True) as cur:
-        # Fallback de Admin Master
-        if config.ADMIN_MATRICULA.upper() == matricula.upper():
-            cur.execute("SELECT * FROM tb_supervisor WHERE UPPER(matricula) = %s LIMIT 1;", (config.ADMIN_MATRICULA.upper(),))
-            admin = cur.fetchone()
-            if not admin:
-                cur.execute("""
-                    INSERT INTO tb_supervisor (matricula, nome_completo, senha, role, ativo, is_primeiro_acesso)
-                    VALUES (%s, %s, %s, %s, true, false);
-                """, (config.ADMIN_MATRICULA.upper(), "Administrador Master", hash_password(config.ADMIN_PASSWORD), "MODERADOR"))
-
         def registrar_sessao(mat: str, nome: str, cargo: str, role: str) -> Optional[str]:
             try:
                 cur.execute("""
@@ -231,6 +221,49 @@ def login(request: AuthRequest, request_http: Request):
                 nome=supervisor["nome_completo"],
                 cargo=user_cargo,
                 localEquipe="Base Central",
+                role=user_role,
+                idSessao=id_sessao
+            )
+
+        # 3. Busca por Usuário do Sistema (tb_usuario) - Administradores e Moderadores
+        cur.execute("""
+            SELECT id_usuario, matricula, nome_completo, perfil_acesso, senha_hash, is_primeiro_acesso, ativo, email
+            FROM tb_usuario
+            WHERE UPPER(matricula) = %s OR UPPER(COALESCE(email, '')) = %s
+            LIMIT 1;
+        """, (matricula.upper(), matricula.upper()))
+        usuario = cur.fetchone()
+
+        if usuario:
+            if not usuario.get("ativo", True):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário inativo no sistema.")
+
+            senha_hash = usuario.get("senha_hash")
+            if not senha_hash or not verify_password(senha, senha_hash):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Matrícula ou senha inválidos.")
+
+            user_cargo = usuario.get("perfil_acesso") or "MODERADOR"
+            user_role = usuario.get("perfil_acesso") or "MODERADOR"
+
+            claims = {
+                "sub": usuario["matricula"],
+                "id": usuario["id_usuario"],
+                "nome": usuario["nome_completo"],
+                "cargo": user_cargo,
+                "role": user_role,
+                "localEquipe": "Administração"
+            }
+
+            token = create_access_token(claims)
+            id_sessao = registrar_sessao(usuario["matricula"], usuario["nome_completo"], user_cargo, user_role)
+
+            return AuthResponse(
+                accessToken=token,
+                refreshToken=token,
+                primeiroAcesso=bool(usuario.get("is_primeiro_acesso")),
+                nome=usuario["nome_completo"],
+                cargo=user_cargo,
+                localEquipe="Administração",
                 role=user_role,
                 idSessao=id_sessao
             )
