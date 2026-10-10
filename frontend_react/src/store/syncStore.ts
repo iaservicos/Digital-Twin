@@ -39,6 +39,7 @@ interface SyncStore {
   triggerCampaignRecalculation: (apiToken: string | null) => Promise<void>;
   triggerIncrementalCampaignSync: () => Promise<void>;
   triggerFullCampaignSync: () => Promise<void>;
+  executeStepPipeline: (data_inicio?: string, data_fim?: string) => Promise<void>;
   tickSeconds: () => void;
 }
 
@@ -118,125 +119,161 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     }
   },
 
-  triggerSync: async (data_inicio: string, data_fim: string) => {
+  executeStepPipeline: async (data_inicio?: string, data_fim?: string) => {
+    const pythonApiUrl = getPythonApiUrl();
+    const headers = getPythonHeaders();
+    const payload = { data_inicio: data_inicio || null, data_fim: data_fim || null };
+
     set({
       isWidgetDismissed: false,
       tracker: {
         ...initialTracker,
         status: 'processing',
         progress: 5,
-        step: `Conectando ao Databricks SQL Warehouse (${data_inicio} até ${data_fim})...`,
-        estimated_seconds_remaining: 30,
-        periodo: { data_inicio, data_fim }
+        step: 'Conectando ao Databricks SQL Warehouse...',
+        estimated_seconds_remaining: 35,
+        periodo: { data_inicio: data_inicio || null, data_fim: data_fim || null }
       }
     });
 
     try {
-      const pythonApiUrl = getPythonApiUrl();
-      const res = await axios.post(
-        `${pythonApiUrl}/api/v1/sync`,
-        { data_inicio, data_fim },
-        { headers: getPythonHeaders() }
-      );
-      if (res.data?.status === 'success') {
-        await get().fetchStatus();
-      }
-    } catch (error: any) {
-      console.error('Erro ao disparar sincronização:', error);
-      await get().fetchStatus();
-      if (get().tracker.status !== 'failed') {
-        const errDetail = error.response?.data?.detail || error.message || 'Servidor offline';
-        set({
-          tracker: {
-            ...initialTracker,
-            status: 'failed',
-            progress: 0,
-            step: `Falha na sincronização: ${errDetail}`,
-            error: errDetail
+      // 1. Etapa de Chamados (~8s)
+      set({
+        tracker: {
+          ...get().tracker,
+          progress: 15,
+          step: 'Extraindo e gravando Chamados (1/4)...',
+          current_table: 'Chamados',
+          estimated_seconds_remaining: 25,
+          tables: {
+            ...get().tracker.tables,
+            chamados: { status: 'processing', rows: 0, seconds: 0 }
           }
-        });
-      }
+        }
+      });
+      const resChamados = await axios.post(`${pythonApiUrl}/api/v1/sync/step/chamados`, payload, { headers, timeout: 25000 });
+      const rowsChamados = resChamados.data?.summary?.total_rows || 0;
+      const secChamados = resChamados.data?.summary?.elapsed_seconds || 8;
+      set({
+        tracker: {
+          ...get().tracker,
+          progress: 35,
+          tables: {
+            ...get().tracker.tables,
+            chamados: { status: 'success', rows: rowsChamados, seconds: secChamados }
+          }
+        }
+      });
+
+      // 2. Etapa de Reincidências (~4s)
+      set({
+        tracker: {
+          ...get().tracker,
+          progress: 45,
+          step: 'Extraindo e gravando Reincidências (2/4)...',
+          current_table: 'Reincidências',
+          estimated_seconds_remaining: 18,
+          tables: {
+            ...get().tracker.tables,
+            reincidentes: { status: 'processing', rows: 0, seconds: 0 }
+          }
+        }
+      });
+      const resReinc = await axios.post(`${pythonApiUrl}/api/v1/sync/step/reincidentes`, payload, { headers, timeout: 25000 });
+      const rowsReinc = resReinc.data?.summary?.total_rows || 0;
+      const secReinc = resReinc.data?.summary?.elapsed_seconds || 4;
+      set({
+        tracker: {
+          ...get().tracker,
+          progress: 65,
+          tables: {
+            ...get().tracker.tables,
+            reincidentes: { status: 'success', rows: rowsReinc, seconds: secReinc }
+          }
+        }
+      });
+
+      // 3. Etapa de Peças (~10s)
+      set({
+        tracker: {
+          ...get().tracker,
+          progress: 75,
+          step: 'Extraindo e gravando Peças (3/4)...',
+          current_table: 'Peças',
+          estimated_seconds_remaining: 12,
+          tables: {
+            ...get().tracker.tables,
+            pecas: { status: 'processing', rows: 0, seconds: 0 }
+          }
+        }
+      });
+      const resPecas = await axios.post(`${pythonApiUrl}/api/v1/sync/step/pecas`, payload, { headers, timeout: 25000 });
+      const rowsPecas = resPecas.data?.summary?.total_rows || 0;
+      const secPecas = resPecas.data?.summary?.elapsed_seconds || 10;
+      set({
+        tracker: {
+          ...get().tracker,
+          progress: 88,
+          tables: {
+            ...get().tracker.tables,
+            pecas: { status: 'success', rows: rowsPecas, seconds: secPecas }
+          }
+        }
+      });
+
+      // 4. Etapa de Consolidação & Recálculo (~12s)
+      set({
+        tracker: {
+          ...get().tracker,
+          progress: 92,
+          step: 'Recalculando matriz analítica e indicadores oficiais (4/4)...',
+          current_table: 'Cálculo Analítico',
+          estimated_seconds_remaining: 5
+        }
+      });
+      await axios.post(`${pythonApiUrl}/api/v1/sync/step/consolidar`, payload, { headers, timeout: 25000 });
+
+      // Sucesso Total!
+      const totalRowsAll = rowsChamados + rowsReinc + rowsPecas;
+      set({
+        tracker: {
+          ...get().tracker,
+          status: 'success',
+          progress: 100,
+          step: 'Sincronização concluída com sucesso! Todos os indicadores foram atualizados.',
+          current_table: null,
+          estimated_seconds_remaining: 0,
+          total_rows: totalRowsAll
+        }
+      });
+      await get().fetchStatus();
+    } catch (error: any) {
+      console.error('Erro no pipeline step-by-step:', error);
+      const errDetail = error.response?.data?.detail || error.message || 'Falha na comunicação com o servidor';
+      set({
+        tracker: {
+          ...get().tracker,
+          status: 'failed',
+          progress: 0,
+          step: `Falha na sincronização: ${errDetail}`,
+          error: errDetail,
+          estimated_seconds_remaining: 0
+        }
+      });
+      throw error;
     }
+  },
+
+  triggerSync: async (data_inicio: string, data_fim: string) => {
+    await get().executeStepPipeline(data_inicio, data_fim);
   },
 
   triggerIncrementalCampaignSync: async () => {
-    set({
-      isWidgetDismissed: false,
-      tracker: {
-        ...initialTracker,
-        status: 'processing',
-        progress: 5,
-        step: 'Rotina Diária: Sincronizando novos atendimentos da campanha...',
-        estimated_seconds_remaining: 25,
-      }
-    });
-
-    try {
-      const pythonApiUrl = getPythonApiUrl();
-      const res = await axios.post(
-        `${pythonApiUrl}/api/v1/sync/campanha/incremental`,
-        {},
-        { headers: getPythonHeaders() }
-      );
-      if (res.data?.status === 'success') {
-        await get().fetchStatus();
-      }
-    } catch (error: any) {
-      console.error('Erro ao disparar atualização incremental diária:', error);
-      await get().fetchStatus();
-      if (get().tracker.status !== 'failed') {
-        const errDetail = error.response?.data?.detail || error.message || 'Servidor offline';
-        set({
-          tracker: {
-            ...initialTracker,
-            status: 'failed',
-            progress: 0,
-            step: `Falha na sincronização: ${errDetail}`,
-            error: errDetail
-          }
-        });
-      }
-    }
+    await get().executeStepPipeline();
   },
 
   triggerFullCampaignSync: async () => {
-    set({
-      isWidgetDismissed: false,
-      tracker: {
-        ...initialTracker,
-        status: 'processing',
-        progress: 5,
-        step: 'Rotina Semanal: Reingestão completa de toda a campanha no Postgres...',
-        estimated_seconds_remaining: 45,
-      }
-    });
-
-    try {
-      const pythonApiUrl = getPythonApiUrl();
-      const res = await axios.post(
-        `${pythonApiUrl}/api/v1/sync/campanha/completa`,
-        {},
-        { headers: getPythonHeaders() }
-      );
-      if (res.data?.status === 'success') {
-        await get().fetchStatus();
-      }
-    } catch (error: any) {
-      console.error('Erro ao disparar sincronização completa semanal:', error);
-      await get().fetchStatus();
-      if (get().tracker.status !== 'failed') {
-        const errDetail = error.response?.data?.detail || error.message || 'Servidor offline';
-        set({
-          tracker: {
-            ...initialTracker,
-            status: 'failed',
-            progress: 0,
-            step: `Falha na sincronização: ${errDetail}`,
-            error: errDetail
-          }
-        });
-      }
-    }
+    await get().executeStepPipeline();
   },
 
   triggerCampaignRecalculation: async (apiToken: string | null) => {

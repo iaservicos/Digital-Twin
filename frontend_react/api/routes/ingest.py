@@ -63,6 +63,69 @@ def get_sync_status() -> Dict[str, Any]:
 
 
 # ==============================================================================
+# ENDPOINTS ATÔMICOS POR ETAPA (SERVERLESS STEP-BY-STEP - ZERO TIMEOUT 504)
+# ==============================================================================
+
+@router.post("/sync/step/chamados", response_model=Dict[str, Any])
+def sync_step_chamados_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
+    """Etapa 1: Extrai e grava a tabela de chamados (~8s)."""
+    try:
+        req_inicio = body.data_inicio if body else None
+        req_fim = body.data_fim if body else None
+        req_limit = body.limit_per_table if body else None
+        etl = ETLService()
+        res = etl.sync_step_chamados(req_inicio, req_fim, req_limit)
+        return {"status": "success", "step": "chamados", "summary": res}
+    except Exception as e:
+        logger.error(f"Erro na etapa de chamados: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro em chamados: {str(e)}")
+
+
+@router.post("/sync/step/reincidentes", response_model=Dict[str, Any])
+def sync_step_reincidentes_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
+    """Etapa 2: Extrai e grava a tabela de reincidentes (~4s)."""
+    try:
+        req_inicio = body.data_inicio if body else None
+        req_fim = body.data_fim if body else None
+        req_limit = body.limit_per_table if body else None
+        etl = ETLService()
+        res = etl.sync_step_reincidentes(req_inicio, req_fim, req_limit)
+        return {"status": "success", "step": "reincidentes", "summary": res}
+    except Exception as e:
+        logger.error(f"Erro na etapa de reincidentes: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro em reincidentes: {str(e)}")
+
+
+@router.post("/sync/step/pecas", response_model=Dict[str, Any])
+def sync_step_pecas_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
+    """Etapa 3: Extrai e grava a tabela de peças com filtro do período (~10s)."""
+    try:
+        req_inicio = body.data_inicio if body else None
+        req_fim = body.data_fim if body else None
+        req_limit = body.limit_per_table if body else None
+        etl = ETLService()
+        res = etl.sync_step_pecas(req_inicio, req_fim, req_limit)
+        return {"status": "success", "step": "pecas", "summary": res}
+    except Exception as e:
+        logger.error(f"Erro na etapa de peças: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro em peças: {str(e)}")
+
+
+@router.post("/sync/step/consolidar", response_model=Dict[str, Any])
+def sync_step_consolidar_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
+    """Etapa 4: Carga operacional em tb_chamado/tb_encerrados_rrc e recálculo dos KPIs (~12s)."""
+    try:
+        req_inicio = body.data_inicio if body else None
+        req_fim = body.data_fim if body else None
+        etl = ETLService()
+        res = etl.sync_step_consolidar(req_inicio, req_fim)
+        return {"status": "success", "step": "consolidar", "summary": res}
+    except Exception as e:
+        logger.error(f"Erro na etapa de consolidação: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro em consolidação: {str(e)}")
+
+
+# ==============================================================================
 # SINCRONIZAÇÃO SOB DEMANDA (POR PERÍODO)
 # ==============================================================================
 

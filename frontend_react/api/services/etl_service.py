@@ -366,6 +366,170 @@ class ETLService:
         logger.info(f"Iniciando rotina SEMANAL completa da campanha ativa ({data_inicio} até {data_fim})...")
         return self.sync_all_tables(data_inicio=data_inicio, data_fim=data_fim)
 
+    def resolve_periodo(self, data_inicio: str = None, data_fim: str = None) -> tuple:
+        """Resolve as datas de início e fim com base na campanha ativa se não informadas."""
+        from datetime import date, timedelta
+        if data_inicio and data_fim:
+            return data_inicio, data_fim
+        camp = self.get_campanha_ativa()
+        today = date.today()
+        d_inicio_dt = today - timedelta(days=3)
+        try:
+            camp_ini = date.fromisoformat(camp["data_inicio"])
+            if d_inicio_dt < camp_ini:
+                d_inicio_dt = camp_ini
+        except Exception:
+            pass
+        return d_inicio_dt.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d")
+
+    def sync_step_chamados(self, data_inicio: str = None, data_fim: str = None, limit_per_table: int = None) -> dict:
+        """Etapa 1 atômica: Extrai e grava a tabela de chamados (~8s)."""
+        data_inicio, data_fim = self.resolve_periodo(data_inicio, data_fim)
+        clean_inicio = data_inicio.replace("'", "''")
+        clean_fim = data_fim.replace("'", "''")
+        date_clause_chamados = f" AND ((ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59') OR (encerramento >= '{clean_inicio} 00:00:00' AND encerramento <= '{clean_fim} 23:59:59'))"
+        limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
+
+        self.update_progress(15, "Extraindo e gravando Chamados (1/4)...", "Chamados")
+        self.postgres.execute_query(f"DELETE FROM public.chamados WHERE 1=1{date_clause_chamados};")
+
+        cols_chamados = """
+            chamado, assistencia_centro_trabalho, assistencia_razao_social, tecnico_nome,
+            ft, tipo_equipamento, projeto, sla_status, descricao_material, texto_encerrado,
+            gp_desc, gp_segmento, ocorrencia_chamado, tipo,
+            encerramento, encdesc, serie, material
+        """
+        q_chamados = f"SELECT {cols_chamados} FROM chamados WHERE chamado IS NOT NULL{date_clause_chamados}{limit_clause};"
+        res_chamados = self.run_pipeline(query=q_chamados, target_table="chamados", conflict_column="chamado")
+        if res_chamados.get("status") == "FAILED":
+            raise Exception(f"Falha na tabela chamados: {res_chamados.get('error')}")
+
+        sync_status_tracker["tables"]["chamados"] = {
+            "status": "success",
+            "rows": res_chamados["total_rows"],
+            "seconds": res_chamados["elapsed_seconds"]
+        }
+        self.update_progress(35, f"Chamados concluídos ({res_chamados['total_rows']:,} registros)", "Chamados")
+        return res_chamados
+
+    def sync_step_reincidentes(self, data_inicio: str = None, data_fim: str = None, limit_per_table: int = None) -> dict:
+        """Etapa 2 atômica: Extrai e grava a tabela de reincidentes (~4s)."""
+        data_inicio, data_fim = self.resolve_periodo(data_inicio, data_fim)
+        clean_inicio = data_inicio.replace("'", "''")
+        clean_fim = data_fim.replace("'", "''")
+        date_clause_rrc_pg = f" AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'))"
+        date_clause_rrc = f"{date_clause_rrc_pg} AND (DATEDIFF(abertura_rrc, encerramento_anterior) <= 90 OR encerramento_anterior IS NULL)"
+        limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
+
+        self.update_progress(45, "Extraindo e gravando Reincidências (2/4)...", "Reincidências")
+        self.postgres.execute_query(f"DELETE FROM public.reincidentes WHERE 1=1{date_clause_rrc_pg};")
+
+        cols_reinc = """
+            chamado_rrc, chamado_anterior, ft_rrc, ft_anterior, ct_anterior, ct_rrc,
+            tecnico_nome_anterior, tecnico_nome_rrc, projeto_anterior, projeto_rrc,
+            aplicado_peca_anterior, defeito_anterior, texto_encerrado_anterior, ocorrencia_chamado_anterior,
+            defeito_rrc, texto_encerrado_rrc, texto_abertura_rrc, texto_abertura_anterior, ocorrencia_chamado_rrc,
+            aplicado_peca_rrc, trocou_plm_anterior, trocou_plm_rrc, encerramento_anterior, encerramento_rrc,
+            abertura_anterior, abertura_rrc, meses_rrc, classificacao, material_descricao_rrc, serie, segmento_rrc
+        """
+        q_reincidentes = f"SELECT {cols_reinc} FROM reincidentes WHERE chamado_rrc IS NOT NULL{date_clause_rrc}{limit_clause};"
+        res_reincidentes = self.run_pipeline(query=q_reincidentes, target_table="reincidentes")
+        if res_reincidentes.get("status") == "FAILED":
+            raise Exception(f"Falha na tabela reincidentes: {res_reincidentes.get('error')}")
+
+        sync_status_tracker["tables"]["reincidentes"] = {
+            "status": "success",
+            "rows": res_reincidentes["total_rows"],
+            "seconds": res_reincidentes["elapsed_seconds"]
+        }
+        self.update_progress(65, f"Reincidências concluídas ({res_reincidentes['total_rows']:,} registros)", "Reincidências")
+        return res_reincidentes
+
+    def sync_step_pecas(self, data_inicio: str = None, data_fim: str = None, limit_per_table: int = None) -> dict:
+        """Etapa 3 atômica: Extrai e grava a tabela de peças com filtro cirúrgico (~10s)."""
+        data_inicio, data_fim = self.resolve_periodo(data_inicio, data_fim)
+        clean_inicio = data_inicio.replace("'", "''")
+        clean_fim = data_fim.replace("'", "''")
+        date_clause_ft = f" AND ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59'"
+        date_clause_rrc_pg = f" AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'))"
+        limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
+
+        self.update_progress(75, "Extraindo e gravando Peças (3/4)...", "Peças")
+        self.postgres.execute_query(f"""
+            DELETE FROM public.pecas 
+            WHERE 1=1{date_clause_ft}
+               OR chamado IN (SELECT chamado_anterior FROM public.reincidentes WHERE chamado_anterior IS NOT NULL AND UPPER(aplicado_peca_anterior) = 'SIM'{date_clause_rrc_pg});
+        """)
+
+        cols_pecas = """
+            chamado, ft, tecnico_nome, grupo_mercadoria_desc, grupo_mercadoria,
+            cod_solic_desc, cod_aplic_desc, tipo_equipamento, acao
+        """
+        reinc_pecas_clause = f"OR chamado IN (SELECT chamado_anterior FROM reincidentes WHERE chamado_anterior IS NOT NULL AND (UPPER(COALESCE(aplicado_peca_anterior, '')) = 'SIM'){date_clause_rrc_pg})"
+        where_pecas = f"WHERE chamado IS NOT NULL AND ( (1=1{date_clause_ft}) {reinc_pecas_clause} )"
+
+        q_pecas = f"SELECT {cols_pecas} FROM pecas {where_pecas}{limit_clause};"
+        res_pecas = self.run_pipeline(query=q_pecas, target_table="pecas")
+        if res_pecas.get("status") == "FAILED":
+            raise Exception(f"Falha na tabela pecas: {res_pecas.get('error')}")
+
+        sync_status_tracker["tables"]["pecas"] = {
+            "status": "success",
+            "rows": res_pecas["total_rows"],
+            "seconds": res_pecas["elapsed_seconds"]
+        }
+
+        # Normalização de subgrupo
+        try:
+            self.postgres.execute_query("""
+                UPDATE public.pecas 
+                SET subgrupo = CASE 
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(PLM|PLACA M|MOTHERBOARD)' THEN 'Placa Mãe'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(MEMORIA|MEMÓRIA|\\bDDR\\b|\\bRAM\\b)' THEN 'Memória'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '\\bSSD\\b' THEN 'SSD'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(HARD DISK|\\bHD\\b|\\bHDD\\b)' THEN 'HD'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(LCD|TELA|DISPLAY|PAINEL)' THEN 'Tela / LCD'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'BATER' THEN 'Bateria'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'TECL' THEN 'Teclado'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(TAMPA|TRASEIR|FRONT|DECO|FRAME|CARC)' THEN 'Gabinete / Carcaça'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(FONTE|CARREG|ADAPTADOR AC)' THEN 'Fonte / Carregador'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'IMPR' THEN 'Impressora Térmica'
+                    WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'PROCESSADOR' THEN 'Processador'
+                    ELSE COALESCE(grupo_mercadoria_desc, 'Outros')
+                END
+                WHERE subgrupo IS NULL OR subgrupo = '';
+            """)
+        except Exception as e_sub:
+            logger.warning(f"Erro ao normalizar subgrupo de pecas: {e_sub}")
+
+        self.update_progress(88, f"Peças concluídas ({res_pecas['total_rows']:,} registros)", "Peças")
+        return res_pecas
+
+    def sync_step_consolidar(self, data_inicio: str = None, data_fim: str = None) -> dict:
+        """Etapa 4 atômica: Cargas operacionais tb_chamado/tb_encerrados_rrc e recálculo dos KPIs (~12s)."""
+        data_inicio, data_fim = self.resolve_periodo(data_inicio, data_fim)
+        self.update_progress(90, "Atualizando base operacional de chamados...", "Processamento")
+        novos_tb = self.sincronizar_tb_chamados()
+
+        self.update_progress(93, "Atualizando base de Encerrados RRC...", "Processamento")
+        novos_enc = self.sincronizar_tb_encerrados_rrc(data_inicio, data_fim)
+
+        self.update_progress(96, "Recalculando apuração analítica da campanha...", "Cálculo Analítico")
+        self.recalcular_indicadores_campanha()
+
+        self.update_progress(100, "Sincronização concluída com sucesso! Todos os indicadores foram atualizados.", None)
+        sync_status_tracker["status"] = "success"
+        try:
+            self.postgres.save_sync_status(sync_status_tracker)
+        except Exception:
+            pass
+
+        return {
+            "status": "SUCCESS",
+            "novos_tb_chamados": novos_tb,
+            "novos_encerrados_rrc": novos_enc
+        }
+
     def sync_all_tables(
         self, 
         data_inicio: str = None, 
@@ -374,13 +538,12 @@ class ETLService:
     ) -> dict:
         """
         Sincroniza as 3 tabelas operacionais do Databricks para o PostgreSQL filtradas por período
-        com projeção cirúrgica de colunas e alta performance.
+        executando os passos atômicos sequencialmente.
         """
         global sync_status_tracker
-
         start_all_time = time.time()
         
-        # Validação preventiva de credenciais do Databricks antes de iniciar as queries
+        # Validação preventiva de credenciais do Databricks antes de iniciar
         if not self.databricks.access_token:
             err_msg = (
                 "DATABRICKS_ACCESS_TOKEN não configurado no ambiente Vercel. "
@@ -389,15 +552,12 @@ class ETLService:
             sync_status_tracker.update({
                 "status": "failed",
                 "error": err_msg,
-                "step": "Falha de credenciais Databricks",
-                "tables": {
-                    "chamados": {"status": "failed", "rows": 0, "seconds": 0},
-                    "reincidentes": {"status": "pending", "rows": 0, "seconds": 0},
-                    "pecas": {"status": "pending", "rows": 0, "seconds": 0}
-                }
+                "step": "Falha de credenciais Databricks"
             })
             logger.error(err_msg)
             raise RuntimeError(err_msg)
+
+        data_inicio, data_fim = self.resolve_periodo(data_inicio, data_fim)
 
         # Resetar o Tracker para o início do processamento com timestamp inicial
         sync_status_tracker.update({
@@ -422,183 +582,17 @@ class ETLService:
         except Exception:
             pass
 
-        limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
-        
-        date_clause_ft = ""
-        date_clause_chamados = ""
-        date_clause_rrc = ""
-        if data_inicio and data_fim:
-            clean_inicio = data_inicio.replace("'", "''")
-            clean_fim = data_fim.replace("'", "''")
-            date_clause_ft = f" AND ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59'"
-            date_clause_chamados = f" AND ((ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59') OR (encerramento >= '{clean_inicio} 00:00:00' AND encerramento <= '{clean_fim} 23:59:59'))"
-            date_clause_rrc_pg = f" AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'))"
-            date_clause_rrc = f"{date_clause_rrc_pg} AND (DATEDIFF(abertura_rrc, encerramento_anterior) <= 90 OR encerramento_anterior IS NULL)"
-
         results = {}
-
         try:
-            # -----------------------------------------------------------------
-            # Etapa 1: Sync chamados (SLA & Atendimentos)
-            # -----------------------------------------------------------------
-            self.update_progress(15, "Extraindo e gravando Chamados (1/3)...", "Chamados")
-
-            if data_inicio and data_fim:
-                logger.info(f"Removendo dados antigos de chamados do período {clean_inicio} a {clean_fim}...")
-                self.postgres.execute_query(f"DELETE FROM public.chamados WHERE 1=1{date_clause_chamados};")
-
-            cols_chamados = """
-                chamado, assistencia_centro_trabalho, assistencia_razao_social, tecnico_nome,
-                ft, tipo_equipamento, projeto, sla_status, descricao_material, texto_encerrado,
-                gp_desc, gp_segmento, ocorrencia_chamado, tipo,
-                encerramento, encdesc, serie, material
-            """
-            q_chamados = f"SELECT {cols_chamados} FROM chamados WHERE chamado IS NOT NULL{date_clause_chamados}{limit_clause};"
-            res_chamados = self.run_pipeline(query=q_chamados, target_table="chamados", conflict_column="chamado")
-            results["chamados"] = res_chamados
-
-            if res_chamados["status"] == "FAILED":
-                raise Exception(f"Falha na tabela chamados: {res_chamados.get('error')}")
-
-            sync_status_tracker["tables"]["chamados"] = {
-                "status": "success", 
-                "rows": res_chamados["total_rows"], 
-                "seconds": res_chamados["elapsed_seconds"]
-            }
-
-            # -----------------------------------------------------------------
-            # Etapa 2: Sync reincidentes (Voltas RRC)
-            # -----------------------------------------------------------------
-            self.update_progress(50, "Extraindo e gravando Reincidências (2/3)...", "Reincidências")
-            sync_status_tracker["tables"]["reincidentes"]["status"] = "processing"
-
-            if data_inicio and data_fim:
-                logger.info(f"Removendo dados antigos de reincidentes do período {clean_inicio} a {clean_fim}...")
-                self.postgres.execute_query(f"DELETE FROM public.reincidentes WHERE 1=1 AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'));")
-
-            cols_reinc = """
-                chamado_rrc, chamado_anterior, ft_rrc, ft_anterior, ct_anterior, ct_rrc,
-                tecnico_nome_anterior, tecnico_nome_rrc, projeto_anterior, projeto_rrc,
-                aplicado_peca_anterior, defeito_anterior, texto_encerrado_anterior, ocorrencia_chamado_anterior,
-                defeito_rrc, texto_encerrado_rrc, texto_abertura_rrc, texto_abertura_anterior, ocorrencia_chamado_rrc,
-                aplicado_peca_rrc, trocou_plm_anterior, trocou_plm_rrc, encerramento_anterior, encerramento_rrc,
-                abertura_anterior, abertura_rrc, meses_rrc, classificacao, material_descricao_rrc, serie, segmento_rrc
-            """
-            q_reincidentes = f"SELECT {cols_reinc} FROM reincidentes WHERE chamado_rrc IS NOT NULL{date_clause_rrc}{limit_clause};"
-            res_reincidentes = self.run_pipeline(query=q_reincidentes, target_table="reincidentes")
-            results["reincidentes"] = res_reincidentes
-
-            if res_reincidentes["status"] == "FAILED":
-                raise Exception(f"Falha na tabela reincidentes: {res_reincidentes.get('error')}")
-
-            sync_status_tracker["tables"]["reincidentes"] = {
-                "status": "success", 
-                "rows": res_reincidentes["total_rows"], 
-                "seconds": res_reincidentes["elapsed_seconds"]
-            }
-
-            # -----------------------------------------------------------------
-            # Etapa 3: Sync pecas (Consumo de Peças)
-            # -----------------------------------------------------------------
-            self.update_progress(80, "Extraindo e gravando Peças (3/3)...", "Peças")
-            sync_status_tracker["tables"]["pecas"]["status"] = "processing"
-
-            if data_inicio and data_fim:
-                logger.info(f"Removendo dados antigos de pecas do período {clean_inicio} a {clean_fim} e chamados de reincidência...")
-                self.postgres.execute_query(f"""
-                    DELETE FROM public.pecas 
-                    WHERE 1=1{date_clause_ft}
-                       OR chamado IN (SELECT chamado_anterior FROM public.reincidentes WHERE chamado_anterior IS NOT NULL AND UPPER(aplicado_peca_anterior) = 'SIM'{date_clause_rrc_pg});
-                """)
-
-            cols_pecas = """
-                chamado, ft, tecnico_nome, grupo_mercadoria_desc, grupo_mercadoria,
-                cod_solic_desc, cod_aplic_desc, tipo_equipamento, acao
-            """
-            if date_clause_ft:
-                reinc_pecas_clause = f"OR chamado IN (SELECT chamado_anterior FROM reincidentes WHERE chamado_anterior IS NOT NULL AND (UPPER(COALESCE(aplicado_peca_anterior, '')) = 'SIM'){date_clause_rrc})"
-                where_pecas = f"WHERE chamado IS NOT NULL AND ( (1=1{date_clause_ft}) {reinc_pecas_clause} )"
-            else:
-                where_pecas = "WHERE chamado IS NOT NULL"
-
-            q_pecas = f"SELECT {cols_pecas} FROM pecas {where_pecas}{limit_clause};"
-            res_pecas = self.run_pipeline(query=q_pecas, target_table="pecas")
-            results["pecas"] = res_pecas
-
-            if res_pecas["status"] == "FAILED":
-                raise Exception(f"Falha na tabela pecas: {res_pecas.get('error')}")
-
-            sync_status_tracker["tables"]["pecas"] = {
-                "status": "success", 
-                "rows": res_pecas["total_rows"], 
-                "seconds": res_pecas["elapsed_seconds"]
-            }
-
-            # Normalização de subgrupo na tabela pecas
-            try:
-                logger.info("Atualizando classificação de subgrupos na tabela pecas...")
-                self.postgres.execute_query("""
-                    UPDATE public.pecas 
-                    SET subgrupo = CASE 
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(PLM|PLACA M|MOTHERBOARD)' THEN 'Placa Mãe'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(MEMORIA|MEMÓRIA|\\bDDR\\b|\\bRAM\\b)' THEN 'Memória'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '\\bSSD\\b' THEN 'SSD'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(HARD DISK|\\bHD\\b|\\bHDD\\b)' THEN 'HD'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(LCD|TELA|DISPLAY|PAINEL)' THEN 'Tela / LCD'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'BATER' THEN 'Bateria'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'TECL' THEN 'Teclado'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(TAMPA|TRASEIR|FRONT|DECO|FRAME|CARC)' THEN 'Gabinete / Carcaça'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* '(FONTE|CARREG|ADAPTADOR AC)' THEN 'Fonte / Carregador'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'IMPR' THEN 'Impressora Térmica'
-                        WHEN UPPER(COALESCE(cod_aplic_desc, grupo_mercadoria_desc, '')) ~* 'PROCESSADOR' THEN 'Processador'
-                        ELSE COALESCE(grupo_mercadoria_desc, 'Outros')
-                    END
-                    WHERE subgrupo IS NULL OR subgrupo = '';
-                """)
-            except Exception as e_sub:
-                logger.warning(f"Erro ao normalizar subgrupo de pecas: {e_sub}")
-
-            # -----------------------------------------------------------------
-            # Etapa 4: Carga Incremental Automática em tb_chamado e tb_encerrados_rrc
-            # -----------------------------------------------------------------
-            self.update_progress(88, "Atualizando base operacional de chamados...", "Processamento")
-            novos_tb = self.sincronizar_tb_chamados()
-
-            self.update_progress(92, "Atualizando base de Encerrados RRC...", "Processamento")
-            novos_enc = self.sincronizar_tb_encerrados_rrc(data_inicio, data_fim)
-
-            # -----------------------------------------------------------------
-            # Etapa 5: Recálculo Analítico Automático da Campanha
-            # -----------------------------------------------------------------
-            self.update_progress(96, "Recalculando apuração analítica da campanha...", "Cálculo Analítico")
-            self.recalcular_indicadores_campanha()
-
-            # -----------------------------------------------------------------
-            # Conclusão com Sucesso
-            # -----------------------------------------------------------------
-            total_elapsed = round(time.time() - start_all_time, 2)
-            total_rows_all = sum(res["total_rows"] for res in results.values())
-
-            sync_status_tracker.update({
-                "status": "success",
-                "progress": 100,
-                "step": "Sincronização concluída com sucesso! Todos os indicadores foram atualizados.",
-                "current_table": None,
-                "estimated_seconds_remaining": 0,
-                "elapsed_seconds": total_elapsed,
-                "total_rows": total_rows_all
-            })
-            try:
-                self.postgres.save_sync_status(sync_status_tracker)
-            except Exception:
-                pass
-
+            results["chamados"] = self.sync_step_chamados(data_inicio, data_fim, limit_per_table)
+            results["reincidentes"] = self.sync_step_reincidentes(data_inicio, data_fim, limit_per_table)
+            results["pecas"] = self.sync_step_pecas(data_inicio, data_fim, limit_per_table)
+            results["consolidacao"] = self.sync_step_consolidar(data_inicio, data_fim)
             return results
-
         except Exception as e:
             total_elapsed = round(time.time() - start_all_time, 2)
             err_msg = str(e)
-            logger.error(f"Erro durante a sincronização completa: {err_msg}")
+            logger.error(f"Erro durante a sincronização: {err_msg}")
             
             sync_status_tracker.update({
                 "status": "failed",
@@ -612,4 +606,4 @@ class ETLService:
                 self.postgres.save_sync_status(sync_status_tracker)
             except Exception:
                 pass
-            return results
+            raise e
