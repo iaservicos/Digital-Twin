@@ -43,7 +43,17 @@ class SyncRequest(BaseModel):
 
 @router.get("/sync/status", response_model=Dict[str, Any])
 def get_sync_status() -> Dict[str, Any]:
-    """Retorna o progresso em tempo real, tempo estimado e status das tabelas."""
+    """Retorna o progresso em tempo real, priorizando a tabela persistida no PostgreSQL."""
+    try:
+        from connectors.postgres_client import PostgreSQLClient
+        client = PostgreSQLClient()
+        if hasattr(client, 'get_sync_status'):
+            db_status = client.get_sync_status()
+            if db_status and isinstance(db_status, dict) and "status" in db_status:
+                return db_status
+    except Exception as e:
+        logger.warning(f"Erro ao consultar sync status no banco: {e}")
+
     return sync_status_tracker
 
 

@@ -415,6 +415,12 @@ class ETLService:
         date_clause_chamados = f" AND ((ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59') OR (encerramento >= '{clean_inicio} 00:00:00' AND encerramento <= '{clean_fim} 23:59:59'))"
         limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
 
+        sync_status_tracker["status"] = "processing"
+        if not sync_status_tracker.get("start_timestamp"):
+            sync_status_tracker["start_timestamp"] = time.time()
+        sync_status_tracker["tables"]["chamados"]["status"] = "processing"
+        sync_status_tracker["periodo"] = {"data_inicio": data_inicio, "data_fim": data_fim}
+
         self.update_progress(15, "Extraindo e gravando Chamados (1/4)...", "Chamados")
         self.postgres.execute_query(f"DELETE FROM public.chamados WHERE 1=1{date_clause_chamados};")
 
@@ -445,6 +451,12 @@ class ETLService:
         date_clause_rrc_pg = f" AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'))"
         date_clause_rrc = f"{date_clause_rrc_pg} AND (DATEDIFF(abertura_rrc, encerramento_anterior) <= 90 OR encerramento_anterior IS NULL)"
         limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
+
+        sync_status_tracker["status"] = "processing"
+        if not sync_status_tracker.get("start_timestamp"):
+            sync_status_tracker["start_timestamp"] = time.time()
+        sync_status_tracker["tables"]["reincidentes"]["status"] = "processing"
+        sync_status_tracker["periodo"] = {"data_inicio": data_inicio, "data_fim": data_fim}
 
         self.update_progress(45, "Extraindo e gravando Reincidências (2/4)...", "Reincidências")
         self.postgres.execute_query(f"DELETE FROM public.reincidentes WHERE 1=1{date_clause_rrc_pg};")
@@ -497,6 +509,12 @@ class ETLService:
         date_clause_rrc_pg = f" AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'))"
         limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
 
+        sync_status_tracker["status"] = "processing"
+        if not sync_status_tracker.get("start_timestamp"):
+            sync_status_tracker["start_timestamp"] = time.time()
+        sync_status_tracker["tables"]["pecas"]["status"] = "processing"
+        sync_status_tracker["periodo"] = {"data_inicio": data_inicio, "data_fim": data_fim}
+
         self.update_progress(75, "Extraindo e gravando Peças (3/4)...", "Peças")
 
         # 1. DELETE ultra-rápido indexado por ft (~1s)
@@ -537,6 +555,7 @@ class ETLService:
     def sync_step_consolidar(self, data_inicio: str = None, data_fim: str = None) -> dict:
         """Etapa 4 atômica: Cargas operacionais tb_chamado/tb_encerrados_rrc e recálculo dos KPIs (~12s)."""
         data_inicio, data_fim = self.resolve_periodo(data_inicio, data_fim)
+        sync_status_tracker["status"] = "processing"
         self.update_progress(90, "Atualizando base operacional de chamados...", "Processamento")
         novos_tb = self.sincronizar_tb_chamados()
 

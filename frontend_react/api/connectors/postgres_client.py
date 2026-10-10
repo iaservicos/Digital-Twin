@@ -131,33 +131,47 @@ class PostgreSQLClient:
         if conflict_column and conflict_column in columns:
             update_cols = [c for c in columns if c != conflict_column]
             update_stmt = ", ".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
-            insert_sql = f"""
-                INSERT INTO {target_table_escaped} ({cols_str})
-                VALUES ({placeholders})
-                ON CONFLICT ({conflict_column}) DO UPDATE SET {update_stmt};
-            """
             conn = self._get_connection()
             try:
                 with conn.cursor() as cur:
-                    cur.executemany(insert_sql, rows)
+                    # Inserção em lotes multi-row (chunks de 500 tuplas): reduz 5.000 round-trips para ~10 queries
+                    chunk_size = 500
+                    single_row_ph = f"({placeholders})"
+                    for i in range(0, len(rows), chunk_size):
+                        chunk = rows[i:i + chunk_size]
+                        chunk_ph = ", ".join([single_row_ph] * len(chunk))
+                        flat_params = [val for r in chunk for val in r]
+                        chunk_sql = f"""
+                            INSERT INTO {target_table_escaped} ({cols_str})
+                            VALUES {chunk_ph}
+                            ON CONFLICT ({conflict_column}) DO UPDATE SET {update_stmt};
+                        """
+                        cur.execute(chunk_sql, flat_params)
                 if hasattr(conn, 'commit') and not getattr(conn, 'autocommit', False):
                     conn.commit()
                 return rows_count
             finally:
                 conn.close()
         else:
-            # Alta Performance via COPY (psycopg 3): 10.000 linhas em ~1.5s
-            copy_sql = f"COPY {target_table_escaped} ({cols_str}) FROM STDIN"
             conn = self._get_connection()
             try:
                 with conn.cursor() as cur:
                     if hasattr(cur, 'copy'):
+                        # Alta Performance via COPY (psycopg 3): 10.000 linhas em ~1.5s
+                        copy_sql = f"COPY {target_table_escaped} ({cols_str}) FROM STDIN"
                         with cur.copy(copy_sql) as copy:
                             for row in rows:
                                 copy.write_row(row)
                     else:
-                        insert_sql = f"INSERT INTO {target_table_escaped} ({cols_str}) VALUES ({placeholders});"
-                        cur.executemany(insert_sql, rows)
+                        # Fallback de alta performance multi-row (psycopg2)
+                        chunk_size = 500
+                        single_row_ph = f"({placeholders})"
+                        for i in range(0, len(rows), chunk_size):
+                            chunk = rows[i:i + chunk_size]
+                            chunk_ph = ", ".join([single_row_ph] * len(chunk))
+                            flat_params = [val for r in chunk for val in r]
+                            chunk_sql = f"INSERT INTO {target_table_escaped} ({cols_str}) VALUES {chunk_ph};"
+                            cur.execute(chunk_sql, flat_params)
                 if hasattr(conn, 'commit') and not getattr(conn, 'autocommit', False):
                     conn.commit()
                 return rows_count
@@ -267,6 +281,21 @@ class PostgreSQLClient:
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS public.tb_sync_status (
+                        id_sync INT PRIMARY KEY,
+                        status VARCHAR(50) NOT NULL DEFAULT 'idle',
+                        progresso INT NOT NULL DEFAULT 0,
+                        etapa VARCHAR(255) NOT NULL DEFAULT '',
+                        tabela_atual VARCHAR(100),
+                        total_linhas INT DEFAULT 0,
+                        tempo_segundos NUMERIC DEFAULT 0,
+                        estimated_seconds_remaining INT DEFAULT 0,
+                        erro TEXT,
+                        detalhes JSONB DEFAULT '{}'::jsonb,
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+                """)
                 detalhes_json = json.dumps({
                     "tables": tracker.get("tables", {}),
                     "periodo": tracker.get("periodo", {})

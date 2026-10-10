@@ -54,10 +54,12 @@ def get_sync_status() -> Dict[str, Any]:
 
     try:
         db_status = PostgreSQLClient().get_sync_status()
-        if db_status and db_status.get("status") in ["processing", "success", "failed"]:
+        if db_status and isinstance(db_status, dict) and "status" in db_status:
             return db_status
     except Exception as e:
         logger.warning(f"Erro ao consultar sync status no banco: {e}")
+
+    return sync_status_tracker
 
 @router.post("/sync/status/abort", response_model=Dict[str, Any])
 def abort_sync_endpoint(body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:

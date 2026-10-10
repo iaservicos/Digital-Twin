@@ -103,7 +103,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       const pythonApiUrl = getPythonApiUrl();
       const pythonRes = await axios.get(`${pythonApiUrl}/api/v1/sync/status`, {
         headers: getPythonHeaders(),
-        timeout: 4000
+        timeout: 10000
       }).catch(() => null);
 
       if (pythonRes?.data) {
@@ -151,7 +151,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
           }
         }
       });
-      const resChamados = await axios.post(`${pythonApiUrl}/api/v1/sync/step/chamados`, payload, { headers, timeout: 25000 });
+      const resChamados = await axios.post(`${pythonApiUrl}/api/v1/sync/step/chamados`, payload, { headers, timeout: 60000 });
       const rowsChamados = resChamados.data?.summary?.total_rows || 0;
       const secChamados = resChamados.data?.summary?.elapsed_seconds || 8;
       set({
@@ -179,7 +179,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
           }
         }
       });
-      const resReinc = await axios.post(`${pythonApiUrl}/api/v1/sync/step/reincidentes`, payload, { headers, timeout: 25000 });
+      const resReinc = await axios.post(`${pythonApiUrl}/api/v1/sync/step/reincidentes`, payload, { headers, timeout: 60000 });
       const rowsReinc = resReinc.data?.summary?.total_rows || 0;
       const secReinc = resReinc.data?.summary?.elapsed_seconds || 4;
       set({
