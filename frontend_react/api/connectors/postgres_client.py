@@ -115,51 +115,140 @@ class PostgreSQLClient:
 
     def write_tuples_batch(self, columns: list, rows: list, table_name: str, conflict_column: str = None) -> int:
         """
-        Persiste um lote de tuplas diretamente na tabela de destino com staging upsert nativo,
-        sem depender de Polars, PyArrow ou Pandas.
+        Persiste um lote de tuplas diretamente na tabela de destino com inserção/upsert nativo em lote,
+        sem DDL (sem tabelas staging) para total compatibilidade com o pooler PgBouncer do Supabase.
         """
         if not rows or len(rows) == 0:
             return 0
 
         safe_schema = self.schema
         target_table_escaped = f'"{safe_schema}"."{table_name}"'
-        staging_table_escaped = f'"{safe_schema}"."_staging_{table_name}"'
         rows_count = len(rows)
+
+        cols_str = ", ".join(columns)
+        placeholders = ", ".join(["%s"] * len(columns))
+
+        if conflict_column and conflict_column in columns:
+            update_cols = [c for c in columns if c != conflict_column]
+            update_stmt = ", ".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
+            insert_sql = f"""
+                INSERT INTO {target_table_escaped} ({cols_str})
+                VALUES ({placeholders})
+                ON CONFLICT ({conflict_column}) DO UPDATE SET {update_stmt};
+            """
+        else:
+            insert_sql = f"INSERT INTO {target_table_escaped} ({cols_str}) VALUES ({placeholders});"
 
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                # 1. Garante que staging seja limpa e vazia
-                cur.execute(f"CREATE TABLE IF NOT EXISTS {staging_table_escaped} (LIKE {target_table_escaped} INCLUDING DEFAULTS);")
-                cur.execute(f"TRUNCATE TABLE {staging_table_escaped};")
-
-                # 2. Inserção em lotes
-                cols_str = ", ".join(columns)
-                placeholders = ", ".join(["%s"] * len(columns))
-                insert_sql = f"INSERT INTO {staging_table_escaped} ({cols_str}) VALUES ({placeholders})"
-
                 cur.executemany(insert_sql, rows)
-
-                # 3. Merge/Upsert
-                if conflict_column and conflict_column in columns:
-                    update_cols = [c for c in columns if c != conflict_column]
-                    update_stmt = ", ".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
-                    cur.execute(f"""
-                        INSERT INTO {target_table_escaped} ({cols_str})
-                        SELECT {cols_str} FROM {staging_table_escaped}
-                        ON CONFLICT ({conflict_column}) DO UPDATE SET {update_stmt};
-                    """)
-                else:
-                    cur.execute(f"""
-                        INSERT INTO {target_table_escaped} ({cols_str})
-                        SELECT {cols_str} FROM {staging_table_escaped};
-                    """)
-
-                cur.execute(f"DROP TABLE IF EXISTS {staging_table_escaped};")
 
             if hasattr(conn, 'commit') and not getattr(conn, 'autocommit', False):
                 conn.commit()
             return rows_count
+        finally:
+            conn.close()
+
+    def get_sync_status(self) -> dict:
+        """Lê o status da sincronização persistido no PostgreSQL (compartilhado entre múltiplos containers Serverless)."""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT status, progresso, etapa, tabela_atual, total_linhas, tempo_segundos, 
+                           estimated_seconds_remaining, erro, detalhes, updated_at
+                    FROM public.tb_sync_status
+                    WHERE id_sync = 1;
+                """)
+                row = cur.fetchone()
+                if not row:
+                    return {
+                        "status": "idle",
+                        "progress": 0,
+                        "step": "Pronto para iniciar",
+                        "current_table": None,
+                        "tables": {
+                            "chamados": {"status": "pending", "rows": 0, "seconds": 0},
+                            "reincidentes": {"status": "pending", "rows": 0, "seconds": 0},
+                            "pecas": {"status": "pending", "rows": 0, "seconds": 0}
+                        },
+                        "estimated_seconds_remaining": 0,
+                        "elapsed_seconds": 0,
+                        "total_rows": 0,
+                        "error": None
+                    }
+
+                detalhes = row[8] if isinstance(row[8], dict) else {}
+                tables_info = detalhes.get("tables", {
+                    "chamados": {"status": "pending", "rows": 0, "seconds": 0},
+                    "reincidentes": {"status": "pending", "rows": 0, "seconds": 0},
+                    "pecas": {"status": "pending", "rows": 0, "seconds": 0}
+                })
+                periodo_info = detalhes.get("periodo", {"data_inicio": None, "data_fim": None})
+
+                return {
+                    "status": row[0],
+                    "progress": row[1],
+                    "step": row[2],
+                    "current_table": row[3],
+                    "tables": tables_info,
+                    "estimated_seconds_remaining": row[6] or 0,
+                    "elapsed_seconds": float(row[5] or 0),
+                    "total_rows": row[4] or 0,
+                    "error": row[7],
+                    "periodo": periodo_info,
+                    "updated_at": str(row[9]) if row[9] else None
+                }
+        except Exception as e:
+            logger.warning(f"Erro ao ler status de sync do banco: {e}")
+            return None
+        finally:
+            conn.close()
+
+    def save_sync_status(self, tracker: dict) -> None:
+        """Persiste o tracker de sincronização no PostgreSQL para sincronização multi-container."""
+        import json
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                detalhes_json = json.dumps({
+                    "tables": tracker.get("tables", {}),
+                    "periodo": tracker.get("periodo", {})
+                })
+                cur.execute("""
+                    INSERT INTO public.tb_sync_status (
+                        id_sync, status, progresso, etapa, tabela_atual, total_linhas,
+                        tempo_segundos, estimated_seconds_remaining, erro, detalhes, updated_at
+                    ) VALUES (
+                        1, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, CURRENT_TIMESTAMP
+                    )
+                    ON CONFLICT (id_sync) DO UPDATE SET
+                        status = EXCLUDED.status,
+                        progresso = EXCLUDED.progresso,
+                        etapa = EXCLUDED.etapa,
+                        tabela_atual = EXCLUDED.tabela_atual,
+                        total_linhas = EXCLUDED.total_linhas,
+                        tempo_segundos = EXCLUDED.tempo_segundos,
+                        estimated_seconds_remaining = EXCLUDED.estimated_seconds_remaining,
+                        erro = EXCLUDED.erro,
+                        detalhes = EXCLUDED.detalhes,
+                        updated_at = CURRENT_TIMESTAMP;
+                """, (
+                    tracker.get("status", "idle"),
+                    tracker.get("progress", 0),
+                    tracker.get("step", ""),
+                    tracker.get("current_table"),
+                    tracker.get("total_rows", 0),
+                    tracker.get("elapsed_seconds", 0),
+                    tracker.get("estimated_seconds_remaining", 0),
+                    tracker.get("error"),
+                    detalhes_json
+                ))
+            if hasattr(conn, 'commit') and not getattr(conn, 'autocommit', False):
+                conn.commit()
+        except Exception as e:
+            logger.warning(f"Erro ao persistir status de sync no banco: {e}")
         finally:
             conn.close()
 

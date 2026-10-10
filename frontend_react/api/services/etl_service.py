@@ -83,6 +83,10 @@ class ETLService:
             "elapsed_seconds": elapsed,
             "estimated_seconds_remaining": remaining
         })
+        try:
+            self.postgres.save_sync_status(sync_status_tracker)
+        except Exception as e_save:
+            logger.debug(f"Não foi possível persistir status intermediário: {e_save}")
         logger.info(f"Progresso ETL: {progress}% - {step} (Decorrido: {elapsed}s, Restante: ~{remaining}s)")
 
     def run_pipeline(
@@ -413,6 +417,10 @@ class ETLService:
             "periodo": {"data_inicio": data_inicio, "data_fim": data_fim},
             "start_timestamp": start_all_time
         })
+        try:
+            self.postgres.save_sync_status(sync_status_tracker)
+        except Exception:
+            pass
 
         limit_clause = f" LIMIT {limit_per_table}" if limit_per_table else ""
         
@@ -424,7 +432,8 @@ class ETLService:
             clean_fim = data_fim.replace("'", "''")
             date_clause_ft = f" AND ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59'"
             date_clause_chamados = f" AND ((ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59') OR (encerramento >= '{clean_inicio} 00:00:00' AND encerramento <= '{clean_fim} 23:59:59'))"
-            date_clause_rrc = f" AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59')) AND (DATEDIFF(abertura_rrc, encerramento_anterior) <= 90 OR encerramento_anterior IS NULL)"
+            date_clause_rrc_pg = f" AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'))"
+            date_clause_rrc = f"{date_clause_rrc_pg} AND (DATEDIFF(abertura_rrc, encerramento_anterior) <= 90 OR encerramento_anterior IS NULL)"
 
         results = {}
 
@@ -499,15 +508,15 @@ class ETLService:
                 self.postgres.execute_query(f"""
                     DELETE FROM public.pecas 
                     WHERE 1=1{date_clause_ft}
-                       OR chamado IN (SELECT chamado_anterior FROM public.reincidentes WHERE chamado_anterior IS NOT NULL AND UPPER(aplicado_peca_anterior) = 'SIM');
+                       OR chamado IN (SELECT chamado_anterior FROM public.reincidentes WHERE chamado_anterior IS NOT NULL AND UPPER(aplicado_peca_anterior) = 'SIM'{date_clause_rrc_pg});
                 """)
 
             cols_pecas = """
                 chamado, ft, tecnico_nome, grupo_mercadoria_desc, grupo_mercadoria,
                 cod_solic_desc, cod_aplic_desc, tipo_equipamento, acao
             """
-            reinc_pecas_clause = "OR chamado IN (SELECT chamado_anterior FROM reincidentes WHERE chamado_anterior IS NOT NULL AND (UPPER(COALESCE(aplicado_peca_anterior, '')) = 'SIM'))"
             if date_clause_ft:
+                reinc_pecas_clause = f"OR chamado IN (SELECT chamado_anterior FROM reincidentes WHERE chamado_anterior IS NOT NULL AND (UPPER(COALESCE(aplicado_peca_anterior, '')) = 'SIM'){date_clause_rrc})"
                 where_pecas = f"WHERE chamado IS NOT NULL AND ( (1=1{date_clause_ft}) {reinc_pecas_clause} )"
             else:
                 where_pecas = "WHERE chamado IS NOT NULL"
@@ -579,6 +588,10 @@ class ETLService:
                 "elapsed_seconds": total_elapsed,
                 "total_rows": total_rows_all
             })
+            try:
+                self.postgres.save_sync_status(sync_status_tracker)
+            except Exception:
+                pass
 
             return results
 
@@ -595,4 +608,8 @@ class ETLService:
                 "elapsed_seconds": total_elapsed,
                 "error": err_msg
             })
+            try:
+                self.postgres.save_sync_status(sync_status_tracker)
+            except Exception:
+                pass
             return results

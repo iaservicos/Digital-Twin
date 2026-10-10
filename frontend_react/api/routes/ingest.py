@@ -43,7 +43,22 @@ class SyncRequest(BaseModel):
 
 @router.get("/sync/status", response_model=Dict[str, Any])
 def get_sync_status() -> Dict[str, Any]:
-    """Retorna o progresso em tempo real, tempo estimado e status das tabelas."""
+    """Retorna o progresso em tempo real, priorizando a tabela persistida no PostgreSQL."""
+    try:
+        from connectors.postgres_client import PostgreSQLClient
+    except ImportError:
+        try:
+            from api.connectors.postgres_client import PostgreSQLClient
+        except ImportError:
+            from backend_python.connectors.postgres_client import PostgreSQLClient
+
+    try:
+        db_status = PostgreSQLClient().get_sync_status()
+        if db_status and db_status.get("status") in ["processing", "success", "failed"]:
+            return db_status
+    except Exception as e:
+        logger.warning(f"Erro ao consultar sync status no banco: {e}")
+
     return sync_status_tracker
 
 
@@ -54,29 +69,27 @@ def get_sync_status() -> Dict[str, Any]:
 @router.post("/sync", response_model=Dict[str, Any])
 def trigger_sync(
     body: Optional[SyncRequest] = None,
-    background_tasks: BackgroundTasks = BackgroundTasks(),
     data_inicio: Optional[str] = Query(default=None, description="Data inicial YYYY-MM-DD"),
     data_fim: Optional[str] = Query(default=None, description="Data final YYYY-MM-DD"),
     limit_per_table: Optional[int] = Query(default=None)
 ) -> Dict[str, Any]:
-    """Dispara a sincronização sob demanda do Databricks/PostgreSQL."""
+    """Executa a sincronização sob demanda do Databricks/PostgreSQL garantindo persistência de status no banco."""
     try:
         req_inicio = body.data_inicio if body and body.data_inicio else data_inicio
         req_fim = body.data_fim if body and body.data_fim else data_fim
         req_limit = body.limit_per_table if body and body.limit_per_table else limit_per_table
 
-        def run_async_sync():
-            etl = ETLService()
-            etl.sync_all_tables(
-                data_inicio=req_inicio, 
-                data_fim=req_fim, 
-                limit_per_table=req_limit
-            )
+        etl = ETLService()
+        results = etl.sync_all_tables(
+            data_inicio=req_inicio, 
+            data_fim=req_fim, 
+            limit_per_table=req_limit
+        )
 
-        background_tasks.add_task(run_async_sync)
         return {
             "status": "success",
-            "message": "Sincronização iniciada em segundo plano.",
+            "message": "Sincronização por período concluída com sucesso.",
+            "summary": results,
             "periodo": {
                 "data_inicio": req_inicio,
                 "data_fim": req_fim
@@ -84,7 +97,7 @@ def trigger_sync(
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ")
         }
     except Exception as e:
-        logger.error(f"Erro ao disparar sincronização sob demanda: {e}", exc_info=True)
+        logger.error(f"Erro ao executar sincronização sob demanda: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 
@@ -93,35 +106,23 @@ def trigger_sync(
 # ==============================================================================
 
 @router.post("/sync/campanha/incremental", response_model=Dict[str, Any])
-def trigger_sync_campanha_incremental(
-    background_tasks: BackgroundTasks = BackgroundTasks()
-) -> Dict[str, Any]:
+def trigger_sync_campanha_incremental() -> Dict[str, Any]:
     """
     Rotina DIÁRIA: Sincronização incremental dos chamados e peças recentes da campanha ativa.
     Ao final da ingestão, recalcula automaticamente os KPIs e pontuações da campanha.
     """
     try:
-        def run_async_incremental():
-            try:
-                etl = ETLService()
-                etl.sync_campanha_incremental()
-            except Exception as ex:
-                logger.error(f"Falha na rotina incremental assíncrona: {ex}", exc_info=True)
-                sync_status_tracker.update({
-                    "status": "failed",
-                    "error": str(ex),
-                    "step": f"Falha na execução: {str(ex)}"
-                })
-
-        background_tasks.add_task(run_async_incremental)
+        etl = ETLService()
+        results = etl.sync_campanha_incremental()
         return {
             "status": "success",
             "tipo": "DIARIA_INCREMENTAL",
-            "message": "Rotina diária de atualização da campanha iniciada em segundo plano.",
+            "message": "Rotina diária de atualização da campanha concluída com sucesso.",
+            "summary": results,
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ")
         }
     except Exception as e:
-        logger.error(f"Erro ao disparar atualização incremental diária: {e}", exc_info=True)
+        logger.error(f"Erro ao executar atualização incremental diária: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro ao iniciar rotina diária: {str(e)}")
 
 
@@ -130,35 +131,23 @@ def trigger_sync_campanha_incremental(
 # ==============================================================================
 
 @router.post("/sync/campanha/completa", response_model=Dict[str, Any])
-def trigger_sync_campanha_completa(
-    background_tasks: BackgroundTasks = BackgroundTasks()
-) -> Dict[str, Any]:
+def trigger_sync_campanha_completa() -> Dict[str, Any]:
     """
     Rotina SEMANAL: Reingestão completa de todo o período da campanha ativa no Postgres.
     Sobrescreve e atualiza toda a base da campanha e recalcula todas as pontuações de ponta a ponta.
     """
     try:
-        def run_async_completa():
-            try:
-                etl = ETLService()
-                etl.sync_campanha_completa()
-            except Exception as ex:
-                logger.error(f"Falha na rotina completa assíncrona: {ex}", exc_info=True)
-                sync_status_tracker.update({
-                    "status": "failed",
-                    "error": str(ex),
-                    "step": f"Falha na execução: {str(ex)}"
-                })
-
-        background_tasks.add_task(run_async_completa)
+        etl = ETLService()
+        results = etl.sync_campanha_completa()
         return {
             "status": "success",
             "tipo": "SEMANAL_COMPLETA",
-            "message": "Rotina semanal de sincronização completa da campanha iniciada em segundo plano.",
+            "message": "Rotina semanal de sincronização completa da campanha concluída com sucesso.",
+            "summary": results,
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ")
         }
     except Exception as e:
-        logger.error(f"Erro ao disparar sincronização completa semanal: {e}", exc_info=True)
+        logger.error(f"Erro ao executar sincronização completa semanal: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro ao iniciar rotina semanal: {str(e)}")
 
 

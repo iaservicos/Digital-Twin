@@ -102,7 +102,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       const pythonApiUrl = getPythonApiUrl();
       const pythonRes = await axios.get(`${pythonApiUrl}/api/v1/sync/status`, {
         headers: getPythonHeaders(),
-        timeout: 3000
+        timeout: 4000
       }).catch(() => null);
 
       if (pythonRes?.data) {
@@ -110,9 +110,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         if (data.status === 'processing') {
           set({ tracker: data, isWidgetDismissed: false });
         } else if (data.status === 'success' || data.status === 'failed') {
-          if (get().tracker.status === 'processing') {
-            set({ tracker: data });
-          }
+          set({ tracker: data });
         }
       }
     } catch (err) {
@@ -135,22 +133,29 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
 
     try {
       const pythonApiUrl = getPythonApiUrl();
-      await axios.post(
+      const res = await axios.post(
         `${pythonApiUrl}/api/v1/sync`,
         { data_inicio, data_fim },
         { headers: getPythonHeaders() }
       );
+      if (res.data?.status === 'success') {
+        await get().fetchStatus();
+      }
     } catch (error: any) {
       console.error('Erro ao disparar sincronização:', error);
-      set({
-        tracker: {
-          ...initialTracker,
-          status: 'failed',
-          progress: 0,
-          step: 'Erro ao conectar ao microserviço DataIngest.',
-          error: error.response?.data?.detail || error.message || 'Servidor offline'
-        }
-      });
+      await get().fetchStatus();
+      if (get().tracker.status !== 'failed') {
+        const errDetail = error.response?.data?.detail || error.message || 'Servidor offline';
+        set({
+          tracker: {
+            ...initialTracker,
+            status: 'failed',
+            progress: 0,
+            step: `Falha na sincronização: ${errDetail}`,
+            error: errDetail
+          }
+        });
+      }
     }
   },
 
@@ -162,28 +167,35 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         status: 'processing',
         progress: 5,
         step: 'Rotina Diária: Sincronizando novos atendimentos da campanha...',
-        estimated_seconds_remaining: 15,
+        estimated_seconds_remaining: 25,
       }
     });
 
     try {
       const pythonApiUrl = getPythonApiUrl();
-      await axios.post(
+      const res = await axios.post(
         `${pythonApiUrl}/api/v1/sync/campanha/incremental`,
         {},
         { headers: getPythonHeaders() }
       );
+      if (res.data?.status === 'success') {
+        await get().fetchStatus();
+      }
     } catch (error: any) {
       console.error('Erro ao disparar atualização incremental diária:', error);
-      set({
-        tracker: {
-          ...initialTracker,
-          status: 'failed',
-          progress: 0,
-          step: 'Erro ao conectar ao microserviço DataIngest.',
-          error: error.response?.data?.detail || error.message || 'Servidor offline'
-        }
-      });
+      await get().fetchStatus();
+      if (get().tracker.status !== 'failed') {
+        const errDetail = error.response?.data?.detail || error.message || 'Servidor offline';
+        set({
+          tracker: {
+            ...initialTracker,
+            status: 'failed',
+            progress: 0,
+            step: `Falha na sincronização: ${errDetail}`,
+            error: errDetail
+          }
+        });
+      }
     }
   },
 
@@ -201,22 +213,29 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
 
     try {
       const pythonApiUrl = getPythonApiUrl();
-      await axios.post(
+      const res = await axios.post(
         `${pythonApiUrl}/api/v1/sync/campanha/completa`,
         {},
         { headers: getPythonHeaders() }
       );
+      if (res.data?.status === 'success') {
+        await get().fetchStatus();
+      }
     } catch (error: any) {
       console.error('Erro ao disparar sincronização completa semanal:', error);
-      set({
-        tracker: {
-          ...initialTracker,
-          status: 'failed',
-          progress: 0,
-          step: 'Erro ao conectar ao microserviço DataIngest.',
-          error: error.response?.data?.detail || error.message || 'Servidor offline'
-        }
-      });
+      await get().fetchStatus();
+      if (get().tracker.status !== 'failed') {
+        const errDetail = error.response?.data?.detail || error.message || 'Servidor offline';
+        set({
+          tracker: {
+            ...initialTracker,
+            status: 'failed',
+            progress: 0,
+            step: `Falha na sincronização: ${errDetail}`,
+            error: errDetail
+          }
+        });
+      }
     }
   },
 

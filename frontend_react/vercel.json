@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/index.py": {
-      "excludeFiles": "{node_modules,src,dist}/**"
+      "excludeFiles": "{node_modules,src,dist}/**",
+      "maxDuration": 60
     }
   },
   "rewrites": [
