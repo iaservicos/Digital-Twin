@@ -57,7 +57,7 @@ export const getStatusApiUrl = () => {
 
 // URL para acoes pesadas de ingestao do Moderador: direciona para o DataIngest no Render
 export const getDataIngestApiUrl = () => {
-  const envUrl = (import.meta.env.VITE_DATA_INGEST_URL || import.meta.env.VITE_PYTHON_API_URL || '').trim();
+  const envUrl = (import.meta.env.VITE_DATA_INGEST_URL || '').trim();
   if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
     return envUrl.replace(/\/+$/, '');
   }

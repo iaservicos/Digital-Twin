@@ -155,6 +155,80 @@ class PostgreSQLClient:
         logger.info(f"Gravados/Atualizados {rows_count} registros com sucesso na tabela '{target_table}'.")
         return rows_count
 
+    def save_sync_status(self, tracker: dict) -> None:
+        """Persiste o tracker de sincronização no PostgreSQL (Supabase) para leitura em tempo real pela Vercel."""
+        import json
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS public.tb_sync_status (
+                            id_sync INT PRIMARY KEY,
+                            status VARCHAR(50) NOT NULL DEFAULT 'idle',
+                            progresso INT NOT NULL DEFAULT 0,
+                            etapa VARCHAR(255) NOT NULL DEFAULT '',
+                            tabela_atual VARCHAR(100),
+                            total_linhas INT DEFAULT 0,
+                            tempo_segundos NUMERIC DEFAULT 0,
+                            estimated_seconds_remaining INT DEFAULT 0,
+                            erro TEXT,
+                            detalhes JSONB DEFAULT '{}'::jsonb,
+                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        );
+                    """)
+                    detalhes_json = json.dumps({
+                        "tables": tracker.get("tables", {}),
+                        "periodo": tracker.get("periodo", {})
+                    })
+                    cur.execute("""
+                        INSERT INTO public.tb_sync_status (
+                            id_sync, status, progresso, etapa, tabela_atual, total_linhas,
+                            tempo_segundos, estimated_seconds_remaining, erro, detalhes, updated_at
+                        ) VALUES (
+                            1, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, CURRENT_TIMESTAMP
+                        )
+                        ON CONFLICT (id_sync) DO UPDATE SET
+                            status = EXCLUDED.status,
+                            progresso = EXCLUDED.progresso,
+                            etapa = EXCLUDED.etapa,
+                            tabela_atual = EXCLUDED.tabela_atual,
+                            total_linhas = EXCLUDED.total_linhas,
+                            tempo_segundos = EXCLUDED.tempo_segundos,
+                            estimated_seconds_remaining = EXCLUDED.estimated_seconds_remaining,
+                            erro = EXCLUDED.erro,
+                            detalhes = EXCLUDED.detalhes,
+                            updated_at = CURRENT_TIMESTAMP;
+                    """, (
+                        tracker.get("status", "idle"),
+                        tracker.get("progress", 0),
+                        tracker.get("step", ""),
+                        tracker.get("current_table"),
+                        tracker.get("total_rows", 0),
+                        tracker.get("elapsed_seconds", 0),
+                        tracker.get("estimated_seconds_remaining", 0),
+                        tracker.get("error"),
+                        detalhes_json
+                    ))
+        except Exception as e:
+            logger.warning(f"Erro ao persistir status de sync no banco: {e}")
+
+    def abort_sync_status(self, error_msg: str = "Sincronização abortada") -> None:
+        """Marca o status no banco imediatamente como falho, evitando loops infinitos no frontend."""
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE public.tb_sync_status
+                        SET status = 'failed',
+                            progresso = 0,
+                            etapa = 'Falha na sincronização',
+                            erro = %s,
+                            updated_at = NOW()
+                        WHERE id_sync = 1;
+                    """, (error_msg,))
+        except Exception as e:
+            logger.warning(f"Erro ao abortar status no banco: {e}")
+
 
 # Alias para retrocompatibilidade
 PostgresClient = PostgreSQLClient

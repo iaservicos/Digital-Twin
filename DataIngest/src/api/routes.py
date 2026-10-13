@@ -25,9 +25,113 @@ class SyncRequest(BaseModel):
 @router.get("/sync/status", response_model=Dict[str, Any], tags=["Sincronização"])
 def get_sync_status() -> Dict[str, Any]:
     """
-    Retorna o progresso em tempo real (0 a 100%), tempo estimado restante e estado das tabelas operacionais.
+    Retorna o progresso em tempo real, priorizando a tabela persistida no PostgreSQL.
     """
+    try:
+        pg = PostgreSQLClient()
+        with pg._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT status, progresso, etapa, tabela_atual, total_linhas,
+                           tempo_segundos, estimated_seconds_remaining, erro, detalhes
+                    FROM public.tb_sync_status
+                    WHERE id_sync = 1;
+                """)
+                row = cur.fetchone()
+                if row:
+                    import json
+                    detalhes = row[8] if isinstance(row[8], dict) else (json.loads(row[8]) if row[8] else {})
+                    return {
+                        "status": row[0],
+                        "progress": row[1],
+                        "step": row[2],
+                        "current_table": row[3],
+                        "total_rows": row[4] or 0,
+                        "elapsed_seconds": float(row[5] or 0),
+                        "estimated_seconds_remaining": row[6] or 0,
+                        "error": row[7],
+                        "tables": detalhes.get("tables", sync_status_tracker.get("tables", {})),
+                        "periodo": detalhes.get("periodo", sync_status_tracker.get("periodo", {}))
+                    }
+    except Exception as e:
+        logger.warning(f"Erro ao consultar sync status no banco: {e}")
+
     return sync_status_tracker
+
+
+@router.post("/sync/status/abort", response_model=Dict[str, Any], tags=["Sincronização"])
+def abort_sync_endpoint(body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Endpoint chamado para abortar status zumbi no PostgreSQL quando ocorre falha."""
+    err_msg = body.get("error", "Sincronização abortada.") if body else "Sincronização abortada."
+    try:
+        pg = PostgreSQLClient()
+        pg.abort_sync_status(err_msg)
+    except Exception as e:
+        logger.warning(f"Erro ao abortar status no banco: {e}")
+    return {"status": "success", "message": "Status abortado."}
+
+
+# ==============================================================================
+# ENDPOINTS ATÔMICOS POR ETAPA (STEP-BY-STEP)
+# ==============================================================================
+
+@router.post("/sync/step/chamados", response_model=Dict[str, Any], tags=["Sincronização"])
+def sync_step_chamados_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
+    """Etapa 1: Extrai e grava a tabela de chamados (~8s)."""
+    try:
+        req_inicio = body.data_inicio if body else None
+        req_fim = body.data_fim if body else None
+        req_limit = body.limit_per_table if body else None
+        etl = ETLService()
+        res = etl.sync_step_chamados(req_inicio, req_fim, req_limit)
+        return {"status": "success", "step": "chamados", "summary": res}
+    except Exception as e:
+        logger.error(f"Erro na etapa de chamados: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro em chamados: {str(e)}")
+
+
+@router.post("/sync/step/reincidentes", response_model=Dict[str, Any], tags=["Sincronização"])
+def sync_step_reincidentes_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
+    """Etapa 2: Extrai e grava a tabela de reincidentes (~4s)."""
+    try:
+        req_inicio = body.data_inicio if body else None
+        req_fim = body.data_fim if body else None
+        req_limit = body.limit_per_table if body else None
+        etl = ETLService()
+        res = etl.sync_step_reincidentes(req_inicio, req_fim, req_limit)
+        return {"status": "success", "step": "reincidentes", "summary": res}
+    except Exception as e:
+        logger.error(f"Erro na etapa de reincidentes: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro em reincidentes: {str(e)}")
+
+
+@router.post("/sync/step/pecas", response_model=Dict[str, Any], tags=["Sincronização"])
+def sync_step_pecas_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
+    """Etapa 3: Extrai e grava a tabela de peças com filtro do período (~10s)."""
+    try:
+        req_inicio = body.data_inicio if body else None
+        req_fim = body.data_fim if body else None
+        req_limit = body.limit_per_table if body else None
+        etl = ETLService()
+        res = etl.sync_step_pecas(req_inicio, req_fim, req_limit)
+        return {"status": "success", "step": "pecas", "summary": res}
+    except Exception as e:
+        logger.error(f"Erro na etapa de peças: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro em peças: {str(e)}")
+
+
+@router.post("/sync/step/consolidar", response_model=Dict[str, Any], tags=["Sincronização"])
+def sync_step_consolidar_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
+    """Etapa 4: Carga operacional em tb_chamado/tb_encerrados_rrc e recálculo dos KPIs (~12s)."""
+    try:
+        req_inicio = body.data_inicio if body else None
+        req_fim = body.data_fim if body else None
+        etl = ETLService()
+        res = etl.sync_step_consolidar(req_inicio, req_fim)
+        return {"status": "success", "step": "consolidar", "summary": res}
+    except Exception as e:
+        logger.error(f"Erro na etapa de consolidação: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro em consolidação: {str(e)}")
 
 
 @router.post("/sync", response_model=Dict[str, Any], tags=["Sincronização"])
