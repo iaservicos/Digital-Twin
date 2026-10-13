@@ -14,14 +14,21 @@ logger = logging.getLogger(__name__)
 
 class PostgreSQLClient:
     def __init__(self) -> None:
-        self.conn_info = (
-            f"host={settings.POSTGRES_HOST} "
-            f"port={settings.POSTGRES_PORT} "
-            f"dbname={settings.POSTGRES_DB} "
-            f"user={settings.POSTGRES_USER} "
-            f"password={settings.POSTGRES_PASSWORD} "
-            f"sslmode=require"
-        )
+        if settings.DATABASE_URL:
+            db_url = settings.DATABASE_URL.strip()
+            # Garante sslmode=require para conexões seguras em nuvem (ex: Supabase)
+            if "sslmode=" not in db_url and "localhost" not in db_url and "127.0.0.1" not in db_url:
+                db_url += ("&" if "?" in db_url else "?") + "sslmode=require"
+            self.conn_info = db_url
+        else:
+            self.conn_info = (
+                f"host={settings.POSTGRES_HOST} "
+                f"port={settings.POSTGRES_PORT} "
+                f"dbname={settings.POSTGRES_DB} "
+                f"user={settings.POSTGRES_USER} "
+                f"password={settings.POSTGRES_PASSWORD} "
+                f"sslmode=require"
+            )
         self.schema = settings.POSTGRES_SCHEMA
 
     def _get_connection(self):

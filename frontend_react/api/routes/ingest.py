@@ -98,6 +98,11 @@ def abort_sync_endpoint(body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]
 @router.post("/sync/step/chamados", response_model=Dict[str, Any])
 def sync_step_chamados_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
     """Etapa 1: Extrai e grava a tabela de chamados (~8s)."""
+    if ETLService is None:
+        raise HTTPException(
+            status_code=503,
+            detail="A sincronização direta do Databricks foi desacoplada da Vercel para otimização de performance. O pipeline é privado e deve ser executado exclusivamente através do microserviço DataIngest no Render."
+        )
     try:
         req_inicio = body.data_inicio if body else None
         req_fim = body.data_fim if body else None
@@ -113,6 +118,11 @@ def sync_step_chamados_endpoint(body: Optional[SyncRequest] = None) -> Dict[str,
 @router.post("/sync/step/reincidentes", response_model=Dict[str, Any])
 def sync_step_reincidentes_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
     """Etapa 2: Extrai e grava a tabela de reincidentes (~4s)."""
+    if ETLService is None:
+        raise HTTPException(
+            status_code=503,
+            detail="A sincronização direta do Databricks foi desacoplada da Vercel para otimização de performance. O pipeline é privado e deve ser executado exclusivamente através do microserviço DataIngest no Render."
+        )
     try:
         req_inicio = body.data_inicio if body else None
         req_fim = body.data_fim if body else None
@@ -128,6 +138,11 @@ def sync_step_reincidentes_endpoint(body: Optional[SyncRequest] = None) -> Dict[
 @router.post("/sync/step/pecas", response_model=Dict[str, Any])
 def sync_step_pecas_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
     """Etapa 3: Extrai e grava a tabela de peças com filtro do período (~10s)."""
+    if ETLService is None:
+        raise HTTPException(
+            status_code=503,
+            detail="A sincronização direta do Databricks foi desacoplada da Vercel para otimização de performance. O pipeline é privado e deve ser executado exclusivamente através do microserviço DataIngest no Render."
+        )
     try:
         req_inicio = body.data_inicio if body else None
         req_fim = body.data_fim if body else None
@@ -143,6 +158,11 @@ def sync_step_pecas_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, An
 @router.post("/sync/step/consolidar", response_model=Dict[str, Any])
 def sync_step_consolidar_endpoint(body: Optional[SyncRequest] = None) -> Dict[str, Any]:
     """Etapa 4: Carga operacional em tb_chamado/tb_encerrados_rrc e recálculo dos KPIs (~12s)."""
+    if ETLService is None:
+        raise HTTPException(
+            status_code=503,
+            detail="A sincronização direta do Databricks foi desacoplada da Vercel para otimização de performance. O pipeline é privado e deve ser executado exclusivamente através do microserviço DataIngest no Render."
+        )
     try:
         req_inicio = body.data_inicio if body else None
         req_fim = body.data_fim if body else None

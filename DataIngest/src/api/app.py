@@ -3,20 +3,26 @@ Aplicação principal FastAPI.
 Configura middlewares (CORS), documentação OpenAPI/Swagger com suporte a X-API-Key, rotas e Landing Page.
 """
 
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.openapi.utils import get_openapi
 from datetime import datetime
+from src.config import settings
 from src.api.routes import router as chamados_router
 from src.connectors.postgres_client import PostgreSQLClient
+
+# Swagger/Docs desativado por padrão em produção para manter a API 100% privada
+enable_docs = os.getenv("ENABLE_API_DOCS", "false").lower() in ("true", "1")
 
 app = FastAPI(
     title="Digital Twin - DataIngest & Analytics Engine",
     description="Motor analítico de alta performance (Polars + Databricks ETL) para a Plataforma Digital Twin.",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/docs" if enable_docs else None,
+    redoc_url="/redoc" if enable_docs else None,
+    openapi_url="/openapi.json" if enable_docs else None,
 )
 
 # Configuração de CORS para permitir consumo via Frontend/Web App
@@ -58,8 +64,14 @@ app.openapi = custom_openapi
 
 @app.get("/health", tags=["Healthcheck"])
 @app.get("/api/v1/health", tags=["Healthcheck"])
-def healthcheck():
-    """Endpoint público JSON de verificação de integridade da API."""
+def healthcheck(request: Request):
+    """
+    Endpoint de verificação de integridade da API.
+    Blindado contra vazamento de infraestrutura: detalhes de erro só são exibidos com autenticação X-API-Key válida.
+    """
+    api_key = request.headers.get("X-API-Key", "")
+    is_authenticated = bool(api_key and api_key == settings.DATA_INGEST_API_KEY)
+
     db_status = "CONNECTED"
     try:
         pg = PostgreSQLClient()
@@ -67,7 +79,7 @@ def healthcheck():
             with conn.cursor() as cur:
                 cur.execute("SELECT 1")
     except Exception as e:
-        db_status = f"DISCONNECTED: {str(e)}"
+        db_status = f"DISCONNECTED: {str(e)}" if is_authenticated else "DISCONNECTED"
 
     return {
         "status": "UP",

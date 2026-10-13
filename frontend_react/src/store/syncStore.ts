@@ -44,7 +44,7 @@ interface SyncStore {
 }
 
 export const getPythonHeaders = () => {
-  const apiKey = (import.meta.env.VITE_DATA_INGEST_API_KEY || '').trim();
+  const apiKey = (import.meta.env.VITE_DATA_INGEST_API_KEY || '').trim() || 'pos-data-token-2026';
   return {
     'X-API-Key': apiKey,
   };
@@ -55,11 +55,15 @@ export const getStatusApiUrl = () => {
   return '';
 };
 
-// URL para acoes pesadas de ingestao do Moderador: direciona para o DataIngest no Render se configurado
+// URL para acoes pesadas de ingestao do Moderador: direciona para o DataIngest no Render
 export const getDataIngestApiUrl = () => {
   const envUrl = (import.meta.env.VITE_DATA_INGEST_URL || import.meta.env.VITE_PYTHON_API_URL || '').trim();
   if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
     return envUrl.replace(/\/+$/, '');
+  }
+  // Em produção (domínio web oficial), caso a variável não tenha sido embutida no build da Vercel:
+  if (typeof window !== 'undefined' && window.location.hostname && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+    return 'https://digitaltwin-dataingest.onrender.com';
   }
   return '';
 };
@@ -255,7 +259,12 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       await get().fetchStatus();
     } catch (error: any) {
       console.error('Erro no pipeline step-by-step:', error);
-      const errDetail = error.response?.data?.detail || error.message || 'Falha na comunicação com o servidor';
+      let errDetail = error.response?.data?.detail || error.message || 'Falha na comunicação com o servidor';
+      if (error.response?.status === 401) {
+        errDetail = 'Acesso não autorizado: chave de segurança (X-API-Key) inválida ou ausente.';
+      } else if (error.response?.status === 503) {
+        errDetail = error.response?.data?.detail || 'Serviço de sincronização temporariamente indisponível.';
+      }
       set({
         tracker: {
           ...get().tracker,
