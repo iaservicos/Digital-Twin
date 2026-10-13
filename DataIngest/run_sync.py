@@ -20,6 +20,7 @@ Uso:
 import argparse
 import logging
 import sys
+import os
 from src.config import settings
 from src.services.etl_service import ETLService
 from src.scheduler import start_scheduler
@@ -102,8 +103,8 @@ def main() -> None:
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Porta para escuta da API REST (default: 8000)"
+        default=int(os.environ.get("PORT", 8000)),
+        help="Porta para escuta da API REST (default: 8000 ou variavel PORT)"
     )
 
     args = parser.parse_args()

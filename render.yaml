@@ -52,6 +52,7 @@ services:
 
   # -------------------------------------------------------------
   # 3. DATA INGEST (Python 3.12 / FastAPI / Polars Engine)
+  # Usado exclusivamente pelo Moderador para sincronização pesada do Databricks
   # -------------------------------------------------------------
   - type: web
     name: digitaltwin-dataingest
@@ -62,13 +63,29 @@ services:
     envVars:
       - key: PORT
         value: 8000
+      - key: POSTGRES_HOST
+        sync: false
+      - key: POSTGRES_PORT
+        value: 5432
+      - key: POSTGRES_DB
+        sync: false
+      - key: POSTGRES_USER
+        sync: false
+      - key: POSTGRES_PASSWORD
+        sync: false
+      - key: POSTGRES_SCHEMA
+        value: public
       - key: DATABASE_URL
         sync: false
       - key: DATABRICKS_SERVER_HOSTNAME
         sync: false
       - key: DATABRICKS_HTTP_PATH
         sync: false
-      - key: DATABRICKS_TOKEN
+      - key: DATABRICKS_ACCESS_TOKEN
         sync: false
+      - key: DATABRICKS_CATALOG
+        value: datalake_prod
+      - key: DATABRICKS_SCHEMA
+        value: indicadores_servicos
       - key: DATA_INGEST_API_KEY
         value: pos-data-token-2026

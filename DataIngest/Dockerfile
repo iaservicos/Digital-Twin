@@ -24,5 +24,5 @@ COPY . .
 # Expor a porta da API REST HTTP (FastAPI)
 EXPOSE 8000
 
-# Comando de inicialização padrão do container
-CMD ["python", "run_sync.py", "--api", "--host", "0.0.0.0", "--port", "8000"]
+# Comando de inicialização padrão do container (usa PORT do ambiente ou 8000 por padrão)
+CMD ["python", "run_sync.py", "--api", "--host", "0.0.0.0"]

@@ -13,19 +13,29 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Query, HTTPException, BackgroundTasks, UploadFile, File, Depends, Header
 from pydantic import BaseModel
 
+# Tracker de estado padrão caso o serviço de ETL esteja offloaded
+sync_status_tracker: Dict[str, Any] = {"status": "idle", "progress": 0, "step": "Pronto para iniciar"}
+ETLService = None
+CalculoPontuacaoService = None
+SpreadsheetIngestService = None
+task_progress: Dict[str, Any] = {}
+
 try:
     from services.etl_service import ETLService, sync_status_tracker
     from services.calculo_pontuacao import CalculoPontuacaoService
     from services.spreadsheet_service import SpreadsheetIngestService, task_progress
-except ImportError:
+except Exception:
     try:
         from api.services.etl_service import ETLService, sync_status_tracker
         from api.services.calculo_pontuacao import CalculoPontuacaoService
         from api.services.spreadsheet_service import SpreadsheetIngestService, task_progress
-    except ImportError:
-        from DataIngest.src.services.etl_service import ETLService, sync_status_tracker
-        from DataIngest.src.services.calculo_pontuacao import CalculoPontuacaoService
-        from DataIngest.src.services.spreadsheet_service import SpreadsheetIngestService, task_progress
+    except Exception:
+        try:
+            from DataIngest.src.services.etl_service import ETLService, sync_status_tracker
+            from DataIngest.src.services.calculo_pontuacao import CalculoPontuacaoService
+            from DataIngest.src.services.spreadsheet_service import SpreadsheetIngestService, task_progress
+        except Exception:
+            pass
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Ingestão & Sincronização"])
@@ -156,6 +166,11 @@ def trigger_sync(
     limit_per_table: Optional[int] = Query(default=None)
 ) -> Dict[str, Any]:
     """Executa a sincronização sob demanda do Databricks/PostgreSQL garantindo persistência de status no banco."""
+    if ETLService is None:
+        raise HTTPException(
+            status_code=503,
+            detail="A sincronização direta do Databricks foi desacoplada da Vercel para otimização de performance. Execute o disparo através do microserviço DataIngest no Render."
+        )
     try:
         req_inicio = body.data_inicio if body and body.data_inicio else data_inicio
         req_fim = body.data_fim if body and body.data_fim else data_fim
@@ -193,6 +208,11 @@ def trigger_sync_campanha_incremental() -> Dict[str, Any]:
     Rotina DIÁRIA: Sincronização incremental dos chamados e peças recentes da campanha ativa.
     Ao final da ingestão, recalcula automaticamente os KPIs e pontuações da campanha.
     """
+    if ETLService is None:
+        raise HTTPException(
+            status_code=503,
+            detail="A sincronização direta do Databricks foi desacoplada da Vercel para otimização de performance. Execute o disparo através do microserviço DataIngest no Render."
+        )
     try:
         etl = ETLService()
         results = etl.sync_campanha_incremental()
@@ -218,6 +238,11 @@ def trigger_sync_campanha_completa() -> Dict[str, Any]:
     Rotina SEMANAL: Reingestão completa de todo o período da campanha ativa no Postgres.
     Sobrescreve e atualiza toda a base da campanha e recalcula todas as pontuações de ponta a ponta.
     """
+    if ETLService is None:
+        raise HTTPException(
+            status_code=503,
+            detail="A sincronização direta do Databricks foi desacoplada da Vercel para otimização de performance. Execute o disparo através do microserviço DataIngest no Render."
+        )
     try:
         etl = ETLService()
         results = etl.sync_campanha_completa()

@@ -50,16 +50,22 @@ export const getPythonHeaders = () => {
   };
 };
 
-export const getPythonApiUrl = () => {
-  const envUrl = (import.meta.env.VITE_DATA_INGEST_URL || import.meta.env.VITE_PYTHON_API_URL || '').trim();
-  // Se houver uma URL externa explícita em produção (ex: backend dedicado fora da Vercel)
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1') && !envUrl.includes('onrender.com')) {
-    return envUrl.replace(/\/+$/, '');
-  }
-  // Em produção no Vercel (onde /api/v1 é servido pelo Python Serverless na mesma origem)
-  // e em desenvolvimento local (via Vite proxy /api -> localhost:8080):
+// URL para leitura de status: sempre na Vercel / mesma origem para resposta instantanea (< 100ms) sem acordar o Render
+export const getStatusApiUrl = () => {
   return '';
 };
+
+// URL para acoes pesadas de ingestao do Moderador: direciona para o DataIngest no Render se configurado
+export const getDataIngestApiUrl = () => {
+  const envUrl = (import.meta.env.VITE_DATA_INGEST_URL || import.meta.env.VITE_PYTHON_API_URL || '').trim();
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  return '';
+};
+
+// Compatibilidade retroativa
+export const getPythonApiUrl = getDataIngestApiUrl;
 
 const initialTracker: SyncTracker = {
   status: 'idle',
@@ -100,8 +106,8 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
 
   fetchStatus: async () => {
     try {
-      const pythonApiUrl = getPythonApiUrl();
-      const pythonRes = await axios.get(`${pythonApiUrl}/api/v1/sync/status`, {
+      const statusApiUrl = getStatusApiUrl();
+      const pythonRes = await axios.get(`${statusApiUrl}/api/v1/sync/status`, {
         headers: getPythonHeaders(),
         timeout: 10000
       }).catch(() => null);
