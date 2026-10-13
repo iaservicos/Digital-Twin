@@ -4,10 +4,12 @@ import AppRoutes from './navigation/AppRoutes';
 import { useThemeStore } from './store/themeStore';
 import { useAuthStore } from './store/authStore';
 import { useSessionHeartbeat } from './hooks/useSessionHeartbeat';
+import { useInactivityTimeout } from './hooks/useInactivityTimeout';
 import { Toaster } from 'react-hot-toast';
 
 export default function App() {
   useSessionHeartbeat();
+  useInactivityTimeout();
   const { theme, initializeTheme } = useThemeStore();
   const { hydrate } = useAuthStore();
 

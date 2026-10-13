@@ -36,6 +36,8 @@ services:
       context: ./frontend_react
       dockerfile: dockerfile
     container_name: digitaltwin_frontend
+    environment:
+      - BACKEND_PROXY_TARGET=http://backend:8080
     ports:
       - "3000:3000"
     depends_on:

@@ -3,6 +3,12 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
+import fs from 'fs';
+
+// Detecta dinamicamente se está rodando dentro de container Docker ou no host Windows
+const isDocker = fs.existsSync('/.dockerenv');
+const defaultBackend = isDocker ? 'http://backend:8080' : 'http://localhost:8080';
+const backendTarget = process.env.BACKEND_PROXY_TARGET || process.env.VITE_BACKEND_PROXY_TARGET || defaultBackend;
 
 export default defineConfig({
   plugins: [
@@ -47,7 +53,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: backendTarget,
         changeOrigin: true,
         secure: false,
       }
