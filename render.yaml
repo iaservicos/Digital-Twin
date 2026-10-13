@@ -75,8 +75,6 @@ services:
         sync: false
       - key: POSTGRES_SCHEMA
         value: public
-      - key: DATABASE_URL
-        sync: false
       - key: DATABRICKS_SERVER_HOSTNAME
         sync: false
       - key: DATABRICKS_HTTP_PATH

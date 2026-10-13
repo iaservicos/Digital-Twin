@@ -14,26 +14,25 @@ logger = logging.getLogger(__name__)
 
 class PostgreSQLClient:
     def __init__(self) -> None:
-        if settings.DATABASE_URL:
-            db_url = settings.DATABASE_URL.strip()
-            # Garante sslmode=require para conexões seguras em nuvem (ex: Supabase)
-            if "sslmode=" not in db_url and "localhost" not in db_url and "127.0.0.1" not in db_url:
-                db_url += ("&" if "?" in db_url else "?") + "sslmode=require"
-            self.conn_info = db_url
-        else:
-            self.conn_info = (
-                f"host={settings.POSTGRES_HOST} "
-                f"port={settings.POSTGRES_PORT} "
-                f"dbname={settings.POSTGRES_DB} "
-                f"user={settings.POSTGRES_USER} "
-                f"password={settings.POSTGRES_PASSWORD} "
-                f"sslmode=require"
-            )
+        self.host = settings.POSTGRES_HOST
+        self.port = int(settings.POSTGRES_PORT)
+        self.dbname = settings.POSTGRES_DB
+        self.user = settings.POSTGRES_USER
+        self.password = settings.POSTGRES_PASSWORD
         self.schema = settings.POSTGRES_SCHEMA
 
     def _get_connection(self):
-        """Abre uma conexão com o PostgreSQL."""
-        conn = psycopg.connect(self.conn_info, autocommit=True)
+        """Abre uma conexão direta com o PostgreSQL (Supabase) usando os parâmetros do .env."""
+        conn = psycopg.connect(
+            host=self.host,
+            port=self.port,
+            dbname=self.dbname,
+            user=self.user,
+            password=self.password,
+            sslmode="require",
+            autocommit=True,
+            connect_timeout=15,
+        )
         with conn.cursor() as cur:
             cur.execute("SET default_transaction_read_only = off;")
         return conn
