@@ -252,121 +252,129 @@ def list_tecnicos(
 
 @router.post("/tecnicos")
 def create_tecnico(request: TecnicoCreateRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
-    mat = request.matricula.strip()
-    
-    with get_db_cursor(commit=True) as cur:
-        is_sup, sup_id, sup_bases = obter_contexto_supervisor(cur, current_user)
-        user_role = current_user.get("role", "").upper()
+    try:
+        mat = request.matricula.strip()
         
-        # 1. Regra de Negócio: Supervisores e perfis não-moderadores só podem cadastrar perfil 'PADRAO' (técnico)
-        role_to_set = "PADRAO" if (user_role != "MODERADOR" or is_sup) else (request.role or "PADRAO")
-        
-        # Tratamento consistente de primeiro nome, sobrenome e nome completo
-        primeiro_nome = request.primeiroNome.strip() if request.primeiroNome else ""
-        sobrenome = request.sobrenome.strip() if request.sobrenome else ""
-        if request.nomeCompleto and not (primeiro_nome and sobrenome):
-            parts = request.nomeCompleto.strip().split()
-            if not primeiro_nome and parts:
-                primeiro_nome = parts[0]
-            if not sobrenome and len(parts) > 1:
-                sobrenome = " ".join(parts[1:])
-        nome_completo = f"{primeiro_nome} {sobrenome}".strip() or (request.nomeCompleto.strip() if request.nomeCompleto else mat)
+        with get_db_cursor(commit=True) as cur:
+            is_sup, sup_id, sup_bases = obter_contexto_supervisor(cur, current_user)
+            user_role = current_user.get("role", "").upper()
+            
+            # 1. Regra de Negócio: Supervisores e perfis não-moderadores só podem cadastrar perfil 'PADRAO' (técnico)
+            role_to_set = "PADRAO" if (user_role != "MODERADOR" or is_sup) else (request.role or "PADRAO")
+            
+            # Tratamento consistente de primeiro nome, sobrenome e nome completo
+            primeiro_nome = request.primeiroNome.strip() if request.primeiroNome else ""
+            sobrenome = request.sobrenome.strip() if request.sobrenome else ""
+            if request.nomeCompleto and not (primeiro_nome and sobrenome):
+                parts = request.nomeCompleto.strip().split()
+                if not primeiro_nome and parts:
+                    primeiro_nome = parts[0]
+                if not sobrenome and len(parts) > 1:
+                    sobrenome = " ".join(parts[1:])
+            nome_completo = f"{primeiro_nome} {sobrenome}".strip() or (request.nomeCompleto.strip() if request.nomeCompleto else mat)
 
-        # 2. Definição do Supervisor de Origem, Base ATP e Senha
-        if is_sup and sup_id:
-            id_sup = sup_id
-            base_atp = (request.codigoBaseAtp or "").strip()
-            if sup_bases and base_atp not in sup_bases:
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"Operação não permitida: Você só pode cadastrar técnicos em sua própria base ATP. Suas bases autorizadas: {', '.join(sup_bases)}."
-                )
-            # Supervisor não pode definir senha: sem exceção, recebe a senha padrão do sistema
-            raw_senha = SENHA_PADRAO_SISTEMA
-        else:
-            id_sup = request.idSupervisor
-            if not id_sup and current_user.get("id_supervisor"):
-                id_sup = current_user.get("id_supervisor")
-                
-            if request.senha and request.senha.strip():
-                raw_senha = request.senha.strip()
-                if SENHA_PADRAO_SISTEMA and raw_senha.lower() == SENHA_PADRAO_SISTEMA.lower():
-                    raw_senha = SENHA_PADRAO_SISTEMA
-                else:
-                    validate_password_complexity(raw_senha)
-            else:
+            # 2. Definição do Supervisor de Origem, Base ATP e Senha
+            if is_sup and sup_id:
+                id_sup = sup_id
+                base_atp = (request.codigoBaseAtp or "").strip()
+                if sup_bases and base_atp not in sup_bases:
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Operação não permitida: Você só pode cadastrar técnicos em sua própria base ATP. Suas bases autorizadas: {', '.join(sup_bases)}."
+                    )
+                # Supervisor não pode definir senha: sem exceção, recebe a senha padrão do sistema
                 raw_senha = SENHA_PADRAO_SISTEMA
-                
-        senha_hash = hash_password(raw_senha)
+            else:
+                id_sup = request.idSupervisor
+                if not id_sup and current_user.get("id_supervisor"):
+                    id_sup = current_user.get("id_supervisor")
+                    
+                if request.senha and request.senha.strip():
+                    raw_senha = request.senha.strip()
+                    if SENHA_PADRAO_SISTEMA and raw_senha.lower() == SENHA_PADRAO_SISTEMA.lower():
+                        raw_senha = SENHA_PADRAO_SISTEMA
+                    else:
+                        validate_password_complexity(raw_senha)
+                else:
+                    raw_senha = SENHA_PADRAO_SISTEMA
+                    
+            senha_hash = hash_password(raw_senha)
 
-        ativo_val = True if request.ativo is None else request.ativo
-        status_colab = normalizar_status(request.statusColaborador or ("Ativo" if ativo_val else "Inativo"))
-        if status_colab in ("Ativo", "Férias", "Emprestado"):
-            ativo_val = True
-        else:
-            ativo_val = False
+            ativo_val = True if request.ativo is None else request.ativo
+            status_colab = normalizar_status(request.statusColaborador or ("Ativo" if ativo_val else "Inativo"))
+            if status_colab in ("Ativo", "Férias", "Emprestado"):
+                ativo_val = True
+            else:
+                ativo_val = False
 
-        id_sup_emp = request.idSupervisorEmprestimo if status_colab == "Emprestado" else None
-        base_emp = request.codigoBaseAtpEmprestimo.strip() if (status_colab == "Emprestado" and request.codigoBaseAtpEmprestimo) else None
-        # 1. Validação amigável de duplicidade de matrícula
-        cur.execute("SELECT id_tecnico, nome_completo FROM tb_tecnico WHERE UPPER(matricula) = %s LIMIT 1;", (mat.upper(),))
-        existe = cur.fetchone()
-        if existe:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Já existe um colaborador cadastrado com a matrícula {mat} ({existe['nome_completo']})."
-            )
+            id_sup_emp = request.idSupervisorEmprestimo if status_colab == "Emprestado" else None
+            base_emp = request.codigoBaseAtpEmprestimo.strip() if (status_colab == "Emprestado" and request.codigoBaseAtpEmprestimo) else None
 
-        # 2. Sincronização centralizada com tb_usuario
-        cur.execute("""
-            INSERT INTO tb_usuario (matricula, senha_hash, nome_completo, primeiro_nome, sobrenome, email, perfil_acesso, nivel_organizacional, ativo, is_primeiro_acesso)
-            VALUES (%s, %s, %s, %s, %s, %s, %s::enum_perfil_acesso, %s::enum_nivel_organizacional, %s, true)
-            ON CONFLICT (matricula) DO UPDATE SET
-                senha_hash = EXCLUDED.senha_hash,
-                perfil_acesso = EXCLUDED.perfil_acesso,
-                ativo = EXCLUDED.ativo
-            RETURNING id_usuario;
-        """, (
-            mat, senha_hash, nome_completo, primeiro_nome, sobrenome, request.email,
-            role_to_set, "SUPERVISOR" if "SUPERVISOR" in (request.cargo or "").upper() else "TECNICO", ativo_val
-        ))
-        usr_row = cur.fetchone()
-        id_usr = usr_row["id_usuario"] if usr_row else None
+            # Validação de duplicidade de matrícula
+            cur.execute("SELECT id_tecnico, nome_completo FROM tb_tecnico WHERE UPPER(matricula) = %s LIMIT 1;", (mat.upper(),))
+            existe = cur.fetchone()
+            if existe:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Já existe um colaborador cadastrado com a matrícula {mat} ({existe['nome_completo']})."
+                )
 
-        # 3. Se for supervisor existente em tb_supervisor, sincronizar credenciais
-        cur.execute("""
-            UPDATE tb_supervisor
-            SET email = COALESCE(email, %s),
-                senha = %s,
-                id_usuario = COALESCE(id_usuario, %s),
-                ativo = true
-            WHERE UPPER(matricula) = %s;
-        """, (request.email, senha_hash, id_usr, mat.upper()))
+            # Sincronização centralizada com tb_usuario
+            cur.execute("""
+                INSERT INTO tb_usuario (matricula, senha_hash, nome_completo, primeiro_nome, sobrenome, email, perfil_acesso, nivel_organizacional, ativo, is_primeiro_acesso)
+                VALUES (%s, %s, %s, %s, %s, %s, %s::enum_perfil_acesso, %s::enum_nivel_organizacional, %s, true)
+                ON CONFLICT (matricula) DO UPDATE SET
+                    senha_hash = EXCLUDED.senha_hash,
+                    perfil_acesso = EXCLUDED.perfil_acesso,
+                    ativo = EXCLUDED.ativo
+                RETURNING id_usuario;
+            """, (
+                mat, senha_hash, nome_completo, primeiro_nome, sobrenome, request.email,
+                role_to_set, "SUPERVISOR" if "SUPERVISOR" in (request.cargo or "").upper() else "TECNICO", ativo_val
+            ))
+            usr_row = cur.fetchone()
+            id_usr = usr_row["id_usuario"] if usr_row else None
 
-        # 4. Inserção do técnico/colaborador
-        cur.execute("""
-            INSERT INTO tb_tecnico (
-                matricula, nome_completo, primeiro_nome, sobrenome, cargo, id_supervisor, role, 
-                cpf, email, senha, ativo, status_colaborador, centro_custo, codigo_base_atp,
-                id_supervisor_emprestimo, codigo_base_atp_emprestimo, is_primeiro_acesso, id_usuario
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true, %s)
-            RETURNING id_tecnico;
-        """, (
-            mat, nome_completo, primeiro_nome, sobrenome, request.cargo or "Tecnico de Campo", id_sup, role_to_set, 
-            request.cpf, request.email, senha_hash, ativo_val, status_colab, 
-            request.centroCusto.strip() if request.centroCusto else None,
-            request.codigoBaseAtp.strip() if request.codigoBaseAtp else None,
-            id_sup_emp, base_emp, id_usr
-        ))
-        novo = cur.fetchone()
-        id_tec = novo["id_tecnico"]
+            # Se for supervisor existente em tb_supervisor, sincronizar credenciais
+            cur.execute("""
+                UPDATE tb_supervisor
+                SET email = COALESCE(email, %s),
+                    senha = %s,
+                    id_usuario = COALESCE(id_usuario, %s),
+                    ativo = true
+                WHERE UPPER(matricula) = %s;
+            """, (request.email, senha_hash, id_usr, mat.upper()))
 
-        if request.ctBases:
-            for ct in request.ctBases:
-                cur.execute("INSERT INTO tb_tecnico_base (id_tecnico, ct_codigo) VALUES (%s, %s);", (id_tec, ct))
+            # Inserção do técnico/colaborador
+            cur.execute("""
+                INSERT INTO tb_tecnico (
+                    matricula, nome_completo, primeiro_nome, sobrenome, cargo, id_supervisor, role, 
+                    cpf, email, celular_corporativo, senha, ativo, status_colaborador, centro_custo, codigo_base_atp,
+                    id_supervisor_emprestimo, codigo_base_atp_emprestimo, is_primeiro_acesso, id_usuario
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true, %s)
+                RETURNING id_tecnico;
+            """, (
+                mat, nome_completo, primeiro_nome, sobrenome, request.cargo or "Tecnico de Campo", id_sup, role_to_set, 
+                request.cpf, request.email, request.celularCorporativo.strip() if request.celularCorporativo else None,
+                senha_hash, ativo_val, status_colab, 
+                request.centroCusto.strip() if request.centroCusto else None,
+                request.codigoBaseAtp.strip() if request.codigoBaseAtp else None,
+                id_sup_emp, base_emp, id_usr
+            ))
+            novo = cur.fetchone()
+            id_tec = novo["id_tecnico"]
 
-        return {"idTecnico": id_tec, "message": "Colaborador cadastrado com sucesso."}
+            if request.ctBases:
+                for ct in request.ctBases:
+                    cur.execute("INSERT INTO tb_tecnico_base (id_tecnico, ct_codigo) VALUES (%s, %s);", (id_tec, ct))
+
+            return {"idTecnico": id_tec, "message": "Colaborador cadastrado com sucesso."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao cadastrar colaborador: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao cadastrar colaborador.")
 
 @router.put("/tecnicos/{id_tecnico}")
 def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
@@ -481,8 +489,18 @@ def update_tecnico(id_tecnico: int, request: TecnicoUpdateRequest, current_user:
             updates.append("celular_corporativo = %s")
             params.append(request.celularCorporativo.strip() if request.celularCorporativo else None)
 
+        # Proteção permanente da conta do moderador Márcio (72916)
+        cur.execute("SELECT matricula FROM tb_tecnico WHERE id_tecnico = %s;", (id_tecnico,))
+        tec_rec = cur.fetchone()
+        if tec_rec and str(tec_rec.get("matricula", "")).strip() == "72916":
+            if request.statusColaborador in ("Inativo", "Afastado") or (request.ativo is False):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Operação não permitida: A conta do moderador (72916) é protegida e não pode ser inativada."
+                )
+
         if updates:
-            sql = f"UPDATE tb_tecnico SET {', '.join(updates)} WHERE id_tecnico = %s;"
+            sql = " ".join(["UPDATE tb_tecnico SET", ", ".join(updates), "WHERE id_tecnico = %s;"])
             params.append(id_tecnico)
             cur.execute(sql, tuple(params))
 
@@ -502,6 +520,14 @@ def delete_tecnico(id_tecnico: int, current_user: Dict[str, Any] = Depends(get_c
             detail="Operação não permitida: Apenas moderadores podem excluir colaboradores. Para inativar, altere o status para 'Inativo'."
         )
     with get_db_cursor(commit=True) as cur:
+        # Proteção permanente da conta do moderador Márcio (72916)
+        cur.execute("SELECT matricula FROM tb_tecnico WHERE id_tecnico = %s;", (id_tecnico,))
+        t_row = cur.fetchone()
+        if t_row and str(t_row.get("matricula", "")).strip() == "72916":
+            raise HTTPException(
+                status_code=403,
+                detail="Operação não permitida: A conta do moderador (72916) é permanentemente protegida contra exclusão."
+            )
         cur.execute("DELETE FROM tb_tecnico_base WHERE id_tecnico = %s;", (id_tecnico,))
         cur.execute("DELETE FROM tb_tecnico WHERE id_tecnico = %s;", (id_tecnico,))
         return {"message": "Técnico removido com sucesso."}

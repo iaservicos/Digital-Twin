@@ -13,19 +13,19 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Query, HTTPException, BackgroundTasks, UploadFile, File, Depends, Header
 from pydantic import BaseModel
 
+# Tracker de estado padrão caso o serviço de ETL esteja offloaded
+sync_status_tracker: Dict[str, Any] = {"status": "idle", "progress": 0, "step": "Pronto para iniciar"}
+ETLService = None
+SpreadsheetIngestService = None
+task_progress: Dict[str, Any] = {}
+
 try:
-    from backend_python.services.etl_service import ETLService, sync_status_tracker
     from backend_python.services.calculo_pontuacao import CalculoPontuacaoService
-    from backend_python.services.spreadsheet_service import SpreadsheetIngestService, task_progress
 except ImportError:
     try:
-        from services.etl_service import ETLService, sync_status_tracker
         from services.calculo_pontuacao import CalculoPontuacaoService
-        from services.spreadsheet_service import SpreadsheetIngestService, task_progress
     except ImportError:
-        from DataIngest.src.services.etl_service import ETLService, sync_status_tracker
-        from DataIngest.src.services.calculo_pontuacao import CalculoPontuacaoService
-        from DataIngest.src.services.spreadsheet_service import SpreadsheetIngestService, task_progress
+        CalculoPontuacaoService = None
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Ingestão & Sincronização"])
@@ -198,52 +198,11 @@ async def upload_planilha(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     file: UploadFile = File(...),
 ) -> Dict[str, Any]:
-    """Endpoint principal para upload de planilhas Excel (.xlsx/.xls) ou CSV."""
-    valid_types = ['BaseDL', 'Parts', 'Reincidencia', 'EncerradosRRC']
-    if type not in valid_types:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Tipo de planilha inválido: '{type}'. Tipos permitidos: {valid_types}"
-        )
-
-    try:
-        contents = await file.read()
-        if not contents:
-            raise HTTPException(status_code=400, detail="Arquivo vazio recebido.")
-
-        task_id = str(uuid.uuid4())
-        task_progress[task_id] = {
-            "status": "queued",
-            "progress": 0,
-            "message": f"Arquivo '{file.filename}' enfileirado para processamento...",
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ")
-        }
-
-        service = SpreadsheetIngestService()
-
-        if type == 'BaseDL':
-            background_tasks.add_task(service.process_base_dl, task_id, contents)
-        elif type == 'Parts':
-            background_tasks.add_task(service.process_parts, task_id, contents)
-        elif type == 'Reincidencia':
-            background_tasks.add_task(service.process_reincidencia, task_id, contents)
-        elif type == 'EncerradosRRC':
-            background_tasks.add_task(service.process_encerrados_rrc, task_id, contents)
-
-        logger.info(f"Upload de planilha recebido: tipo={type}, arquivo={file.filename}, task_id={task_id}")
-
-        return {
-            "status": "success",
-            "task_id": task_id,
-            "filename": file.filename,
-            "type": type,
-            "message": "Processamento da planilha iniciado em segundo plano."
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erro ao receber upload da planilha: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Erro interno no upload: {str(e)}")
+    """Endpoint de upload de planilhas. Desacoplado para o DataIngest no Render."""
+    raise HTTPException(
+        status_code=503,
+        detail="O processamento de planilhas foi desacoplado para alta performance. O upload deve ser executado exclusivamente através do microserviço DataIngest no Render."
+    )
 
 
 @router.get("/ingestion/progress/{task_id}", response_model=Dict[str, Any])

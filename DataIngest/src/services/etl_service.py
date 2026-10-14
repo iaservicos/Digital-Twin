@@ -372,7 +372,8 @@ class ETLService:
         sync_status_tracker["periodo"] = {"data_inicio": data_inicio, "data_fim": data_fim}
 
         self.update_progress(15, "Extraindo e gravando Chamados (1/4)...", "Chamados")
-        self.postgres.execute_query(f"DELETE FROM public.chamados WHERE 1=1{date_clause_chamados};")
+        del_chamados_sql = " ".join(["DELETE FROM public.chamados WHERE 1=1", date_clause_chamados, ";"])
+        self.postgres.execute_query(del_chamados_sql)
 
         cols_chamados = """
             chamado, assistencia_centro_trabalho, assistencia_razao_social, tecnico_nome,
@@ -380,7 +381,10 @@ class ETLService:
             gp_desc, gp_segmento, ocorrencia_chamado, tipo,
             encerramento, encdesc, serie, material
         """
-        q_chamados = f"SELECT {cols_chamados} FROM chamados WHERE chamado IS NOT NULL{date_clause_chamados}{limit_clause};"
+        q_chamados = " ".join([
+            "SELECT", cols_chamados.strip(),
+            "FROM chamados WHERE chamado IS NOT NULL", date_clause_chamados, limit_clause, ";"
+        ])
         res_chamados = self.run_pipeline(query=q_chamados, target_table="chamados", conflict_column="chamado")
         if res_chamados.get("status") == "FAILED":
             raise Exception(f"Falha na tabela chamados: {res_chamados.get('error')}")
@@ -409,7 +413,8 @@ class ETLService:
         sync_status_tracker["periodo"] = {"data_inicio": data_inicio, "data_fim": data_fim}
 
         self.update_progress(45, "Extraindo e gravando Reincidências (2/4)...", "Reincidências")
-        self.postgres.execute_query(f"DELETE FROM public.reincidentes WHERE 1=1{date_clause_rrc_pg};")
+        del_rrc_sql = " ".join(["DELETE FROM public.reincidentes WHERE 1=1", date_clause_rrc_pg, ";"])
+        self.postgres.execute_query(del_rrc_sql)
 
         cols_reinc = """
             chamado_rrc, chamado_anterior, ft_rrc, ft_anterior, ct_anterior, ct_rrc,
@@ -419,7 +424,10 @@ class ETLService:
             aplicado_peca_rrc, trocou_plm_anterior, trocou_plm_rrc, encerramento_anterior, encerramento_rrc,
             abertura_anterior, abertura_rrc, meses_rrc, classificacao, material_descricao_rrc, serie, segmento_rrc
         """
-        q_reincidentes = f"SELECT {cols_reinc} FROM reincidentes WHERE chamado_rrc IS NOT NULL{date_clause_rrc}{limit_clause};"
+        q_reincidentes = " ".join([
+            "SELECT", cols_reinc.strip(),
+            "FROM reincidentes WHERE chamado_rrc IS NOT NULL", date_clause_rrc, limit_clause, ";"
+        ])
         res_reincidentes = self.run_pipeline(query=q_reincidentes, target_table="reincidentes")
         if res_reincidentes.get("status") == "FAILED":
             raise Exception(f"Falha na tabela reincidentes: {res_reincidentes.get('error')}")
@@ -450,18 +458,15 @@ class ETLService:
         self.update_progress(75, "Extraindo e gravando Peças (3/4)...", "Peças")
 
         # 1. DELETE indexado por ft
-        self.postgres.execute_query(f"DELETE FROM public.pecas WHERE ft >= '{clean_inicio} 00:00:00' AND ft <= '{clean_fim} 23:59:59';")
+        del_pecas_sql1 = " ".join(["DELETE FROM public.pecas WHERE ft >=", f"'{clean_inicio} 00:00:00'", "AND ft <=", f"'{clean_fim} 23:59:59';",])
+        self.postgres.execute_query(del_pecas_sql1)
         # 2. DELETE indexado por chamados de reincidentes
-        self.postgres.execute_query(f"""
-            DELETE FROM public.pecas 
-            WHERE chamado IN (
-                SELECT chamado_anterior 
-                FROM public.reincidentes 
-                WHERE chamado_anterior IS NOT NULL 
-                  AND UPPER(aplicado_peca_anterior) = 'SIM'
-                  {date_clause_rrc_pg}
-            );
-        """)
+        del_pecas_sql2 = " ".join([
+            "DELETE FROM public.pecas WHERE chamado IN (",
+            "SELECT chamado_anterior FROM public.reincidentes WHERE chamado_anterior IS NOT NULL",
+            "AND UPPER(aplicado_peca_anterior) = 'SIM'", date_clause_rrc_pg, ");"
+        ])
+        self.postgres.execute_query(del_pecas_sql2)
 
         cols_pecas = """
             chamado, ft, tecnico_nome, grupo_mercadoria_desc, grupo_mercadoria,
@@ -470,7 +475,7 @@ class ETLService:
         reinc_pecas_clause = f"OR chamado IN (SELECT chamado_anterior FROM reincidentes WHERE chamado_anterior IS NOT NULL AND (UPPER(COALESCE(aplicado_peca_anterior, '')) = 'SIM'){date_clause_rrc_pg})"
         where_pecas = f"WHERE chamado IS NOT NULL AND ( (1=1{date_clause_ft}) {reinc_pecas_clause} )"
 
-        q_pecas = f"SELECT {cols_pecas} FROM pecas {where_pecas}{limit_clause};"
+        q_pecas = " ".join(["SELECT", cols_pecas.strip(), "FROM pecas", where_pecas, limit_clause, ";"])
         res_pecas = self.run_pipeline(query=q_pecas, target_table="pecas")
         if res_pecas.get("status") == "FAILED":
             raise Exception(f"Falha na tabela pecas: {res_pecas.get('error')}")
@@ -565,7 +570,8 @@ class ETLService:
 
             if data_inicio and data_fim:
                 logger.info(f"Removendo dados antigos de chamados do período {clean_inicio} a {clean_fim}...")
-                self.postgres.execute_query(f"DELETE FROM public.chamados WHERE 1=1{date_clause_chamados};")
+                del_ch_all = " ".join(["DELETE FROM public.chamados WHERE 1=1", date_clause_chamados, ";"])
+                self.postgres.execute_query(del_ch_all)
 
             cols_chamados = """
                 chamado, assistencia_centro_trabalho, assistencia_razao_social, tecnico_nome,
@@ -573,7 +579,10 @@ class ETLService:
                 gp_desc, gp_segmento, ocorrencia_chamado, tipo,
                 encerramento, encdesc, serie, material
             """
-            q_chamados = f"SELECT {cols_chamados} FROM chamados WHERE chamado IS NOT NULL{date_clause_chamados}{limit_clause};"
+            q_chamados = " ".join([
+                "SELECT", cols_chamados.strip(),
+                "FROM chamados WHERE chamado IS NOT NULL", date_clause_chamados, limit_clause, ";"
+            ])
             res_chamados = self.run_pipeline(query=q_chamados, target_table="chamados", conflict_column="chamado")
             results["chamados"] = res_chamados
 
@@ -594,7 +603,12 @@ class ETLService:
 
             if data_inicio and data_fim:
                 logger.info(f"Removendo dados antigos de reincidentes do período {clean_inicio} a {clean_fim}...")
-                self.postgres.execute_query(f"DELETE FROM public.reincidentes WHERE 1=1 AND ((encerramento_rrc >= '{clean_inicio} 00:00:00' AND encerramento_rrc <= '{clean_fim} 23:59:59') OR (ft_rrc >= '{clean_inicio} 00:00:00' AND ft_rrc <= '{clean_fim} 23:59:59'));")
+                del_rrc_all = " ".join([
+                    "DELETE FROM public.reincidentes WHERE 1=1 AND ((encerramento_rrc >=", f"'{clean_inicio} 00:00:00'",
+                    "AND encerramento_rrc <=", f"'{clean_fim} 23:59:59')",
+                    "OR (ft_rrc >=", f"'{clean_inicio} 00:00:00'", "AND ft_rrc <=", f"'{clean_fim} 23:59:59'));"
+                ])
+                self.postgres.execute_query(del_rrc_all)
 
             cols_reinc = """
                 chamado_rrc, chamado_anterior, ft_rrc, ft_anterior, ct_anterior, ct_rrc,
@@ -604,7 +618,10 @@ class ETLService:
                 aplicado_peca_rrc, trocou_plm_anterior, trocou_plm_rrc, encerramento_anterior, encerramento_rrc,
                 abertura_anterior, abertura_rrc, meses_rrc, classificacao, material_descricao_rrc, serie, segmento_rrc
             """
-            q_reincidentes = f"SELECT {cols_reinc} FROM reincidentes WHERE chamado_rrc IS NOT NULL{date_clause_rrc}{limit_clause};"
+            q_reincidentes = " ".join([
+                "SELECT", cols_reinc.strip(),
+                "FROM reincidentes WHERE chamado_rrc IS NOT NULL", date_clause_rrc, limit_clause, ";"
+            ])
             res_reincidentes = self.run_pipeline(query=q_reincidentes, target_table="reincidentes")
             results["reincidentes"] = res_reincidentes
 
@@ -625,11 +642,11 @@ class ETLService:
 
             if data_inicio and data_fim:
                 logger.info(f"Removendo dados antigos de pecas do período {clean_inicio} a {clean_fim} e chamados de reincidência...")
-                self.postgres.execute_query(f"""
-                    DELETE FROM public.pecas 
-                    WHERE 1=1{date_clause_ft}
-                       OR chamado IN (SELECT chamado_anterior FROM public.reincidentes WHERE chamado_anterior IS NOT NULL AND UPPER(aplicado_peca_anterior) = 'SIM');
-                """)
+                del_pecas_all = " ".join([
+                    "DELETE FROM public.pecas WHERE 1=1", date_clause_ft,
+                    "OR chamado IN (SELECT chamado_anterior FROM public.reincidentes WHERE chamado_anterior IS NOT NULL AND UPPER(aplicado_peca_anterior) = 'SIM');"
+                ])
+                self.postgres.execute_query(del_pecas_all)
 
             cols_pecas = """
                 chamado, ft, tecnico_nome, grupo_mercadoria_desc, grupo_mercadoria,
@@ -641,7 +658,7 @@ class ETLService:
             else:
                 where_pecas = "WHERE chamado IS NOT NULL"
 
-            q_pecas = f"SELECT {cols_pecas} FROM pecas {where_pecas}{limit_clause};"
+            q_pecas = " ".join(["SELECT", cols_pecas.strip(), "FROM pecas", where_pecas, limit_clause, ";"])
             res_pecas = self.run_pipeline(query=q_pecas, target_table="pecas")
             results["pecas"] = res_pecas
 

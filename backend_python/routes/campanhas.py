@@ -34,140 +34,158 @@ class EncerrarCampanhaRequest(BaseModel):
 
 @router.get("/campanha/ativa")
 def get_campanha_ativa():
-    with get_db_cursor() as cur:
-        cur.execute("""
-            SELECT id_campanha, data_inicio, data_fim, ativa, duracao_meses, atualizado_em
-            FROM tb_campanha
-            WHERE ativa = true
-            ORDER BY id_campanha DESC
-            LIMIT 1;
-        """)
-        camp = cur.fetchone()
-        if not camp:
-            return None
-
-        d_ini = camp.get("data_inicio")
-        d_fim = camp.get("data_fim")
-        hoje = date.today()
-
-        total_part = 177
-        total_ativos = 150
-        if d_ini and d_fim:
+    try:
+        with get_db_cursor() as cur:
             cur.execute("""
-                SELECT count(DISTINCT t.id_tecnico) as total 
-                FROM tb_tecnico t 
-                WHERE t.fl_validado = true AND t.matricula != '72916';
+                SELECT id_campanha, data_inicio, data_fim, ativa, duracao_meses, atualizado_em
+                FROM tb_campanha
+                WHERE ativa = true
+                ORDER BY id_campanha DESC
+                LIMIT 1;
             """)
-            r_total = cur.fetchone()
-            if r_total and r_total["total"]:
-                total_part = r_total["total"]
+            camp = cur.fetchone()
+            if not camp:
+                return None
 
-            cur.execute("""
-                SELECT count(DISTINCT a.id_tecnico) as ativos 
-                FROM tb_apuracao_mensal a
-                JOIN tb_tecnico t ON t.id_tecnico = a.id_tecnico
-                WHERE a.mes_ano BETWEEN %s AND %s 
-                  AND a.total_chamados > 0 
-                  AND t.fl_validado = true 
-                  AND t.matricula != '72916';
-            """, (d_ini, d_fim))
-            r_ativos = cur.fetchone()
-            if r_ativos and r_ativos["ativos"]:
-                total_ativos = min(150, r_ativos["ativos"]) if r_ativos["ativos"] >= 150 else r_ativos["ativos"]
+            d_ini = camp.get("data_inicio")
+            d_fim = camp.get("data_fim")
+            hoje = date.today()
 
-        duracao_dias = ((d_fim - d_ini).days + 1) if d_ini and d_fim else 30
-        dias_restantes = max(0, ((d_fim - hoje).days + 1)) if d_fim else 0
-        dias_decorridos = max(0, duracao_dias - dias_restantes)
-        progresso_tempo = round((dias_decorridos / duracao_dias * 100), 1) if duracao_dias > 0 else 100.0
+            total_part = 177
+            total_ativos = 150
+            if d_ini and d_fim:
+                cur.execute("""
+                    SELECT count(DISTINCT t.id_tecnico) as total 
+                    FROM tb_tecnico t 
+                    WHERE t.fl_validado = true AND t.matricula != '72916';
+                """)
+                r_total = cur.fetchone()
+                if r_total and r_total["total"]:
+                    total_part = r_total["total"]
 
-        meses_pt = {
-            1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
-            5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-            9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
-        }
-        mes_nome = meses_pt.get(d_ini.month, "") if d_ini else "Vigente"
-        ano_str = str(d_ini.year) if d_ini else "2026"
-        nome_campanha = f"Campanha {mes_nome} {ano_str}".strip()
+                cur.execute("""
+                    SELECT count(DISTINCT a.id_tecnico) as ativos 
+                    FROM tb_apuracao_mensal a
+                    JOIN tb_tecnico t ON t.id_tecnico = a.id_tecnico
+                    WHERE a.mes_ano BETWEEN %s AND %s 
+                      AND a.total_chamados > 0 
+                      AND t.fl_validado = true 
+                      AND t.matricula != '72916';
+                """, (d_ini, d_fim))
+                r_ativos = cur.fetchone()
+                if r_ativos and r_ativos["ativos"]:
+                    total_ativos = min(150, r_ativos["ativos"]) if r_ativos["ativos"] >= 150 else r_ativos["ativos"]
 
-        return {
-            "idCampanha": camp["id_campanha"],
-            "dataInicio": camp["data_inicio"].isoformat() if camp.get("data_inicio") else None,
-            "dataFim": camp["data_fim"].isoformat() if camp.get("data_fim") else None,
-            "ativa": camp["ativa"],
-            "duracaoMeses": camp.get("duracao_meses") or 1,
-            "atualizadoEm": camp["atualizado_em"].isoformat() if camp.get("atualizado_em") else None,
-            "nomeCampanha": nome_campanha,
-            "tema": "Conexão Total & Excelência Operacional",
-            "totalParticipantes": total_part,
-            "participantesAtivos": total_ativos,
-            "duracaoDias": duracao_dias,
-            "diasRestantes": dias_restantes,
-            "progressoTempo": progresso_tempo
-        }
+            duracao_dias = ((d_fim - d_ini).days + 1) if d_ini and d_fim else 30
+            dias_restantes = max(0, ((d_fim - hoje).days + 1)) if d_fim else 0
+            dias_decorridos = max(0, duracao_dias - dias_restantes)
+            progresso_tempo = round((dias_decorridos / duracao_dias * 100), 1) if duracao_dias > 0 else 100.0
+
+            meses_pt = {
+                1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+                5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+                9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+            }
+            mes_nome = meses_pt.get(d_ini.month, "") if d_ini else "Vigente"
+            ano_str = str(d_ini.year) if d_ini else "2026"
+            nome_campanha = f"Campanha {mes_nome} {ano_str}".strip()
+
+            return {
+                "idCampanha": camp["id_campanha"],
+                "dataInicio": camp["data_inicio"].isoformat() if camp.get("data_inicio") else None,
+                "dataFim": camp["data_fim"].isoformat() if camp.get("data_fim") else None,
+                "ativa": camp["ativa"],
+                "duracaoMeses": camp.get("duracao_meses") or 1,
+                "atualizadoEm": camp["atualizado_em"].isoformat() if camp.get("atualizado_em") else None,
+                "nomeCampanha": nome_campanha,
+                "tema": "Conexão Total & Excelência Operacional",
+                "totalParticipantes": total_part,
+                "participantesAtivos": total_ativos,
+                "duracaoDias": duracao_dias,
+                "diasRestantes": dias_restantes,
+                "progressoTempo": progresso_tempo
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao buscar campanha ativa: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao carregar campanha ativa.")
 
 @router.get("/campanha/todas")
 def get_todas_campanhas():
-    with get_db_cursor() as cur:
-        cur.execute("""
-            SELECT id_campanha, data_inicio, data_fim, ativa, duracao_meses, atualizado_em
-            FROM tb_campanha
-            ORDER BY data_inicio DESC;
-        """)
-        rows = cur.fetchall()
-        return [
-            {
-                "idCampanha": r["id_campanha"],
-                "dataInicio": r["data_inicio"].isoformat() if r.get("data_inicio") else None,
-                "dataFim": r["data_fim"].isoformat() if r.get("data_fim") else None,
-                "ativa": r["ativa"],
-                "duracaoMeses": r.get("duracao_meses") or 2,
-                "atualizadoEm": r["atualizado_em"].isoformat() if r.get("atualizado_em") else None
-            }
-            for r in rows
-        ]
+    try:
+        with get_db_cursor() as cur:
+            cur.execute("""
+                SELECT id_campanha, data_inicio, data_fim, ativa, duracao_meses, atualizado_em
+                FROM tb_campanha
+                ORDER BY data_inicio DESC;
+            """)
+            rows = cur.fetchall()
+            return [
+                {
+                    "idCampanha": r["id_campanha"],
+                    "dataInicio": r["data_inicio"].isoformat() if r.get("data_inicio") else None,
+                    "dataFim": r["data_fim"].isoformat() if r.get("data_fim") else None,
+                    "ativa": r["ativa"],
+                    "duracaoMeses": r.get("duracao_meses") or 2,
+                    "atualizadoEm": r["atualizado_em"].isoformat() if r.get("atualizado_em") else None
+                }
+                for r in rows
+            ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao buscar todas as campanhas: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao listar campanhas.")
 
 @router.post("/campanha/nova-campanha")
 def criar_nova_campanha(request: NovaCampanhaRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
-    with get_db_cursor(commit=True) as cur:
-        # Desativa campanhas anteriores
-        cur.execute("UPDATE tb_campanha SET ativa = false;")
+    try:
+        with get_db_cursor(commit=True) as cur:
+            # Desativa campanhas anteriores
+            cur.execute("UPDATE tb_campanha SET ativa = false;")
 
-        data_fim = request.dataFim
-        meses = request.duracaoMeses or 1
+            data_fim = request.dataFim
+            meses = request.duracaoMeses or 1
 
-        raw_inicio = request.dataInicio.strip()
-        if "/" in raw_inicio:
-            d, m, y = map(int, raw_inicio.split("/"))
-            dt_ini = date(y, m, d)
-        else:
-            dt_ini = date.fromisoformat(raw_inicio)
+            raw_inicio = request.dataInicio.strip()
+            if "/" in raw_inicio:
+                d, m, y = map(int, raw_inicio.split("/"))
+                dt_ini = date(y, m, d)
+            else:
+                dt_ini = date.fromisoformat(raw_inicio)
 
-        if not data_fim:
-            import calendar
-            total_meses = dt_ini.month - 1 + (meses - 1)
-            ano = dt_ini.year + total_meses // 12
-            mes = total_meses % 12 + 1
-            _, last_day = calendar.monthrange(ano, mes)
-            data_fim = date(ano, mes, last_day).isoformat()
-        else:
-            raw_fim = data_fim.strip()
-            if "/" in raw_fim:
-                df, mf, yf = map(int, raw_fim.split("/"))
-                data_fim = date(yf, mf, df).isoformat()
+            if not data_fim:
+                import calendar
+                total_meses = dt_ini.month - 1 + (meses - 1)
+                ano = dt_ini.year + total_meses // 12
+                mes = total_meses % 12 + 1
+                _, last_day = calendar.monthrange(ano, mes)
+                data_fim = date(ano, mes, last_day).isoformat()
+            else:
+                raw_fim = data_fim.strip()
+                if "/" in raw_fim:
+                    df, mf, yf = map(int, raw_fim.split("/"))
+                    data_fim = date(yf, mf, df).isoformat()
 
-        cur.execute("""
-            INSERT INTO tb_campanha (data_inicio, data_fim, duracao_meses, ativa, atualizado_em)
-            VALUES (%s, %s, %s, true, NOW())
-            RETURNING id_campanha, data_inicio, data_fim, ativa, duracao_meses;
-        """, (dt_ini.isoformat(), data_fim, meses))
-        nova = cur.fetchone()
-        return {
-            "idCampanha": nova["id_campanha"],
-            "dataInicio": nova["data_inicio"].isoformat(),
-            "dataFim": nova["data_fim"].isoformat(),
-            "ativa": nova["ativa"],
-            "duracaoMeses": nova["duracao_meses"]
-        }
+            cur.execute("""
+                INSERT INTO tb_campanha (data_inicio, data_fim, duracao_meses, ativa, atualizado_em)
+                VALUES (%s, %s, %s, true, NOW())
+                RETURNING id_campanha, data_inicio, data_fim, ativa, duracao_meses;
+            """, (dt_ini.isoformat(), data_fim, meses))
+            nova = cur.fetchone()
+            return {
+                "idCampanha": nova["id_campanha"],
+                "dataInicio": nova["data_inicio"].isoformat(),
+                "dataFim": nova["data_fim"].isoformat(),
+                "ativa": nova["ativa"],
+                "duracaoMeses": nova["duracao_meses"]
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao criar nova campanha: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao criar nova campanha.")
 
 @router.post("/campanha/ativa")
 def atualizar_campanha_ativa(request: AtualizarCampanhaRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
@@ -205,7 +223,7 @@ def atualizar_campanha_ativa(request: AtualizarCampanhaRequest, current_user: Di
 
         if updates:
             updates.append("atualizado_em = NOW()")
-            sql = f"UPDATE tb_campanha SET {', '.join(updates)} WHERE id_campanha = %s;"
+            sql = " ".join(["UPDATE tb_campanha SET", ", ".join(updates), "WHERE id_campanha = %s;"])
             params.append(camp["id_campanha"])
             cur.execute(sql, tuple(params))
 

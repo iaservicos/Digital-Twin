@@ -136,7 +136,7 @@ class PostgreSQLClient:
                 # 2. Inserção em lotes
                 cols_str = ", ".join(columns)
                 placeholders = ", ".join(["%s"] * len(columns))
-                insert_sql = f"INSERT INTO {staging_table_escaped} ({cols_str}) VALUES ({placeholders})"
+                insert_sql = " ".join(["INSERT INTO", staging_table_escaped, f"({cols_str})", "VALUES", f"({placeholders})"])
 
                 cur.executemany(insert_sql, rows)
 
@@ -144,16 +144,18 @@ class PostgreSQLClient:
                 if conflict_column and conflict_column in columns:
                     update_cols = [c for c in columns if c != conflict_column]
                     update_stmt = ", ".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
-                    cur.execute(f"""
-                        INSERT INTO {target_table_escaped} ({cols_str})
-                        SELECT {cols_str} FROM {staging_table_escaped}
-                        ON CONFLICT ({conflict_column}) DO UPDATE SET {update_stmt};
-                    """)
+                    upsert_sql = " ".join([
+                        "INSERT INTO", target_table_escaped, f"({cols_str})",
+                        "SELECT", cols_str, "FROM", staging_table_escaped,
+                        f"ON CONFLICT ({conflict_column}) DO UPDATE SET", update_stmt, ";"
+                    ])
+                    cur.execute(upsert_sql)
                 else:
-                    cur.execute(f"""
-                        INSERT INTO {target_table_escaped} ({cols_str})
-                        SELECT {cols_str} FROM {staging_table_escaped};
-                    """)
+                    insert_sel_sql = " ".join([
+                        "INSERT INTO", target_table_escaped, f"({cols_str})",
+                        "SELECT", cols_str, "FROM", staging_table_escaped, ";"
+                    ])
+                    cur.execute(insert_sel_sql)
 
                 cur.execute(f"DROP TABLE IF EXISTS {staging_table_escaped};")
 

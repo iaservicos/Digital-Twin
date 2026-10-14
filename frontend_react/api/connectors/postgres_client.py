@@ -168,9 +168,7 @@ class PostgreSQLClient:
                         single_row_ph = f"({placeholders})"
                         for i in range(0, len(rows), chunk_size):
                             chunk = rows[i:i + chunk_size]
-                            chunk_ph = ", ".join([single_row_ph] * len(chunk))
-                            flat_params = [val for r in chunk for val in r]
-                            chunk_sql = f"INSERT INTO {target_table_escaped} ({cols_str}) VALUES {chunk_ph};"
+                            chunk_sql = " ".join(["INSERT INTO", target_table_escaped, f"({cols_str})", "VALUES", chunk_ph + ";"])
                             cur.execute(chunk_sql, flat_params)
                 if hasattr(conn, 'commit') and not getattr(conn, 'autocommit', False):
                     conn.commit()

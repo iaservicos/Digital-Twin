@@ -322,11 +322,12 @@ class SpreadsheetIngestService:
                         cur.executemany(upsert_mirror_query, chunk_mirror)
                         conn.commit()
 
-                        pct = 20 + int(((i + len(chunk)) / len(chamados_insert)) * 75)
+                        total_items = len(chamados_insert)
+                        pct = 20 + int(((i + len(chunk)) / total_items) * 75)
                         task_progress[task_id] = {
                             "status": "processing",
                             "progress": min(95, pct),
-                            "message": f"Gravando chamados: {min(i + 1000, len(chamados_insert))}/{len(chamados_insert)}...",
+                            "message": f"Gravando chamados: {min(i + 1000, total_items)}/{total_items}...",
                             "total_rows": total_rows
                         }
 
@@ -596,11 +597,12 @@ class SpreadsheetIngestService:
                         cur.executemany(insert_sql, chunk)
                         conn.commit()
 
-                        pct = 20 + int(((i + len(chunk)) / max(1, len(pecas_insert))) * 75)
+                        total_pecas = len(pecas_insert)
+                        pct = 20 + int(((i + len(chunk)) / max(1, total_pecas)) * 75)
                         task_progress[task_id] = {
                             "status": "processing", 
                             "progress": min(95, pct),
-                            "message": f"Gravando peças: {min(i + 1000, len(pecas_insert))}/{len(pecas_insert)}...",
+                            "message": f"Gravando peças: {min(i + 1000, total_pecas)}/{total_pecas}...",
                             "total_rows": total_rows
                         }
 
@@ -1041,11 +1043,12 @@ class SpreadsheetIngestService:
                         cur.executemany(insert_sql, chunk)
                         conn.commit()
 
-                        pct = 20 + int(((i + len(chunk)) / max(1, len(enc_insert))) * 75)
+                        total_enc = len(enc_insert)
+                        pct = 20 + int(((i + len(chunk)) / max(1, total_enc)) * 75)
                         task_progress[task_id] = {
                             "status": "processing",
                             "progress": min(95, pct),
-                            "message": f"Gravando encerrados: {min(i + 1000, len(enc_insert))}/{len(enc_insert)}...",
+                            "message": f"Gravando encerrados: {min(i + 1000, total_enc)}/{total_enc}...",
                             "total_rows": total_rows
                         }
 
